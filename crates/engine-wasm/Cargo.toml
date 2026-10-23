@@ -11,5 +11,8 @@ crate-type = ["cdylib"]
 
 [dependencies]
 engine = { path = "../engine", features = ["wasm"] }
+# The messages to and from the server (their TypeScript types come with it).
+protocol = { path = "../protocol", features = ["wasm"] }
 wasm-bindgen = "0.2.129"
+serde = { version = "1", features = ["derive"] }
 tsify = { version = "0.5.8", default-features = false, features = ["js"] }

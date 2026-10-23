@@ -1,0 +1,19 @@
+[package]
+name = "protocol"
+version = "0.1.0"
+edition = "2021"
+
+# The messages between the web client and the match server, sent as JSON
+# text frames. TypeScript types come from the `wasm` feature, through
+# crates/engine-wasm's build.
+
+[dependencies]
+engine = { path = "../engine" }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+tsify = { version = "0.5.8", optional = true, default-features = false, features = ["js"] }
+# The code tsify generates names it.
+wasm-bindgen = { version = "0.2.129", optional = true }
+
+[features]
+wasm = ["dep:tsify", "dep:wasm-bindgen", "engine/wasm"]

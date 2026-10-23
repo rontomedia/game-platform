@@ -16,7 +16,7 @@ From the repo root:
 
 ```sh
 cargo run -p server                 # match server, ws://0.0.0.0:3000/ws
-cargo test -p engine                # rules tests; one test: cargo test -p engine runs
+cargo test --workspace              # one test: cargo test -p engine runs
 cargo clippy --workspace --all-targets
 ```
 
@@ -35,22 +35,31 @@ only builds it on start.
 
 ## Architecture
 
-- **`crates/engine`**: the game rules, pure (no I/O, drawing or network).
-  The single source of truth for rules, used by the server, bots and the
-  browser. Its `wasm` feature derives `tsify::Tsify` on the types that cross
-  into JS; keep serde attributes in mind, they define the TS shape (e.g.
-  `Tile` is `{ kind: "number", color, value } | { kind: "joker" }`).
-- **`crates/engine-wasm`**: the browser API over the engine
-  (`wasm-bindgen`). wasm-pack writes JS glue and `.d.ts` into
-  `web/src/wasm/` (gitignored), so TypeScript types come from Rust. Engine
-  types cross as `tsify::Ts<T>` and are converted inside the function; don't
-  use tsify's `into_wasm_abi`/`from_wasm_abi` (deprecated, they leak on bad
-  input).
+- **`crates/engine`**: the game rules, pure (no I/O, clock or outside
+  randomness; a deal is shuffled from a seed). The single source of truth
+  for rules, used by the server, bots and the browser. `check_turn` validates
+  a turn by tile counts (table after = table before + tiles from the rack),
+  so tiles have no IDs; `Game` runs a whole game (play/draw, end, scores) and
+  `view(player)` is what that player may see. Its `wasm` feature derives
+  `tsify::Tsify` on the types that cross into JS; serde attributes define the
+  TS shape (e.g. `Tile` is `{ kind: "number", color, value } | { kind:
+  "joker" }`), and JSON field names are camelCase.
+- **`crates/protocol`**: `ClientMessage` / `ServerMessage`, one JSON text
+  frame each, tagged by `type`. Never serialize `null`: tsify types say
+  `field?: T` for an `Option`, so use `skip_serializing_if = "Option::is_none"`
+  with `#[tsify(optional)]`. Bump `PROTOCOL_VERSION` on incompatible changes.
+- **`crates/engine-wasm`**: the browser API (`wasm-bindgen`): engine
+  functions plus `protocolVersion`. wasm-pack writes JS glue and `.d.ts` into
+  `web/src/wasm/` (gitignored), so TypeScript types for the engine *and* the
+  protocol come from Rust. A crate's tsify types only reach the `.d.ts` if the
+  crate is actually used by engine-wasm. Engine types cross as
+  `tsify::Ts<T>` and are converted inside the function; don't use tsify's
+  `into_wasm_abi`/`from_wasm_abi` (deprecated, they leak on bad input).
 - **`crates/server`**: tokio + axum match server; `/ws` WebSocket route, one
-  task per connection `select!`ing over incoming messages and timers. The
-  server is the authority; the client's engine checks are for instant
-  feedback. Messages are plain text for now (typed messages generated to TS
-  are planned).
+  task per connection. Sends `welcome`, then answers each `ClientMessage`
+  (no matches yet, so moves get an `error`). The server is the authority;
+  the client's engine checks are for instant feedback. Tests start the
+  server on a free port and talk to it with `tokio-tungstenite`.
 - **`web/`**: Vite + React 19 + TypeScript client. Tailwind v4 (theme tokens
   in `src/index.css`, `@theme`), Motion for animation (`layoutId` makes a
   tile glide between rack and set), Inter via fontsource. `src/main.tsx`
