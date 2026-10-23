@@ -16,3 +16,6 @@ wasm-bindgen = { version = "0.2.129", optional = true }
 
 [features]
 wasm = ["dep:tsify", "dep:wasm-bindgen"]
+
+[dev-dependencies]
+serde_json = "1"
