@@ -1,0 +1,15 @@
+[package]
+name = "engine-wasm"
+version = "0.1.0"
+edition = "2021"
+
+# The engine for the browser. Built by web/'s `npm run wasm` (wasm-pack)
+# into web/src/wasm/.
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+engine = { path = "../engine", features = ["wasm"] }
+wasm-bindgen = "0.2.129"
+tsify = { version = "0.5.8", default-features = false, features = ["js"] }

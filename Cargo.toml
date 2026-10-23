@@ -1,0 +1,11 @@
+[workspace]
+members = ["crates/*"]
+resolver = "2"
+
+[profile.release]
+lto = true
+codegen-units = 1
+
+# The browser downloads it: small over fast.
+[profile.release.package.engine-wasm]
+opt-level = "s"

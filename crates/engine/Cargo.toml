@@ -1,0 +1,18 @@
+[package]
+name = "engine"
+version = "0.1.0"
+edition = "2021"
+
+# The game rules: pure, no drawing, network or I/O. Shared by the server,
+# the bots and the browser (through crates/engine-wasm).
+
+[dependencies]
+serde = { version = "1", features = ["derive"] }
+# The `wasm` feature makes the types cross into JS with TypeScript
+# definitions (used by crates/engine-wasm only).
+tsify = { version = "0.5.8", optional = true, default-features = false, features = ["js"] }
+# The code tsify generates names it.
+wasm-bindgen = { version = "0.2.129", optional = true }
+
+[features]
+wasm = ["dep:tsify", "dep:wasm-bindgen"]
