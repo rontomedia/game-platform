@@ -1,11 +1,14 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 
+import { newOrChanged } from './arrange.ts'
+
 import {
   protocolVersion,
   type ClientMessage,
   type PlayerView,
   type RoomInfo,
   type ServerMessage,
+  type Tile,
 } from './wasm/engine.js'
 
 export type Status = 'connecting' | 'open' | 'closed'
@@ -17,6 +20,33 @@ export interface GameState {
   turnEnds?: number
   /** Bumped on every state, so a board can drop its unsent changes. */
   version: number
+  /** The last play by another player, until the table changes again. */
+  lastPlay?: LastPlay
+}
+
+export interface LastPlay {
+  /** Who played. */
+  by: number
+  /** The sets they made or changed, as they left them. */
+  sets: Tile[][]
+  /** Tiles they put down from their rack. */
+  played: number
+  /** The state it arrived with: on later states it's old news. */
+  version: number
+}
+
+/**
+ * What changed between two states of the table, if anything: a play by
+ * the player whose turn it was (after a draw, the last play stands; after
+ * your own, there's nothing to point out).
+ */
+function lastPlay(previous: GameState | null, view: PlayerView, version: number): LastPlay | undefined {
+  if (!previous) return undefined
+  const sets = newOrChanged(previous.view.table, view.table)
+  const played = view.table.flat().length - previous.view.table.flat().length
+  if (sets.length === 0 && played === 0) return previous.lastPlay
+  const by = previous.view.current
+  return by === view.you ? undefined : { by, sets, played, version }
 }
 
 /**
@@ -122,14 +152,18 @@ export function useGame() {
         case 'room':
           setRoom(message.room)
           break
-        case 'state':
-          setGame({
+        case 'state': {
+          const next = ++version.current
+          const turnEnds = message.turnMs === undefined ? undefined : Date.now() + message.turnMs
+          setGame((previous) => ({
             view: message.view,
-            turnEnds: message.turnMs === undefined ? undefined : Date.now() + message.turnMs,
-            version: ++version.current,
-          })
+            turnEnds,
+            version: next,
+            lastPlay: lastPlay(previous, message.view, next),
+          }))
           setProblem(null)
           break
+        }
         case 'rejected':
           setProblem(message.message)
           break

@@ -26,6 +26,16 @@ export function demoGame(): GameState {
   return {
     version: 1,
     turnEnds: Date.now() + 42_000,
+    // Maya's turn, just before this one.
+    lastPlay: {
+      by: 1,
+      sets: [
+        [n('red', 5), n('red', 6), n('red', 7), n('red', 8), n('red', 9)],
+        [n('orange', 1), n('orange', 2), n('orange', 3)],
+      ],
+      played: 4,
+      version: 1,
+    },
     view: {
       you: 0,
       rules: { rackSize: 14, initialMeld: 30, jokerPenalty: 30 },

@@ -129,3 +129,17 @@ export function arrangeTable(previous: PlacedSet[], table: Tile[][]): PlacedSet[
   const kept = placed.flatMap((j, i) => (j === undefined ? [] : [{ tiles: table[j], at: previous[i].at }]))
   return [...kept, ...[...unplaced].map((j) => ({ tiles: table[j] }))]
 }
+
+/**
+ * The sets in `after` that weren't in `before` as they are now: new, or
+ * changed. Only content counts, not order on the table.
+ */
+export function newOrChanged(before: Tile[][], after: Tile[][]): Tile[][] {
+  const unused = [...before]
+  return after.filter((set) => {
+    const i = unused.findIndex((old) => same(old, set))
+    if (i < 0) return true
+    unused.splice(i, 1)
+    return false
+  })
+}

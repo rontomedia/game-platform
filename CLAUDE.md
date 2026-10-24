@@ -91,7 +91,11 @@ only builds it on start.
     moves in `onDragOver`. Drop targets must be in components rendered
     *inside* `DndContext` (hence `TableGrid`), not in `Board` itself. Don't
     put Motion `layout`/`layoutId` on draggable tiles: both libraries drive
-    `transform`. `checkTurn` gives instant feedback.
+    `transform`. `checkTurn` gives instant feedback. Set outlines, in order
+    of precedence: amber invalid, green changed or new this turn (moving a
+    set doesn't count), blue changed by another player on their last turn
+    (`GameState.lastPlay` from `useGame.ts`; flashes when it's news, then
+    stays quiet until the table changes).
   - `grid.ts`: the table as a grid of cells (one table tile wide, one row
     high; sizes as CSS variables on `.table-grid` in `index.css`, in step
     with the `table` tile size). A set takes a cell for its grip plus one

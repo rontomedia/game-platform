@@ -235,6 +235,24 @@ export function Board({
     [start],
   )
 
+  // The sets another player made or changed on their last turn, as they are now.
+  const recent = useMemo(() => {
+    const left = (game.lastPlay?.sets ?? []).map((set) => JSON.stringify(set))
+    return new Set(
+      start.sets.filter((key) => {
+        const i = left.indexOf(startTiles.get(key)!)
+        if (i >= 0) left.splice(i, 1)
+        return i >= 0
+      }),
+    )
+  }, [game.lastPlay, start, startTiles])
+  const recentBy = game.lastPlay && {
+    seat: game.lastPlay.by,
+    name: room.seats[game.lastPlay.by]?.name ?? `Player ${game.lastPlay.by + 1}`,
+    // Flash when it's news; afterwards a quiet outline until the table changes.
+    fresh: game.lastPlay.version === game.version,
+  }
+
   const widths = useMemo(
     () => new Map(layout.sets.map((key) => [key, footprint(layout.holders[setHolder(key)].length)])),
     [layout],
@@ -416,8 +434,16 @@ export function Board({
       const n = verdict.played.length
       return { tone: 'good', text: `Ready: ${n} tile${n === 1 ? '' : 's'} from your rack.` }
     }
-    if (view.melded[view.you]) return { tone: 'neutral', text: 'Your turn: drag tiles onto the table, or draw.' }
-    return { tone: 'neutral', text: `Your turn. Your first sets must be worth ${view.rules.initialMeld}, from your rack alone.` }
+    // What the last player did, if it's news.
+    const news =
+      recentBy?.fresh && game.lastPlay
+        ? `${recentBy.name} played ${game.lastPlay.played} tile${game.lastPlay.played === 1 ? '' : 's'}. `
+        : ''
+    if (view.melded[view.you]) return { tone: 'neutral', text: `${news}Your turn: drag tiles onto the table, or draw.` }
+    return {
+      tone: 'neutral',
+      text: `${news}Your turn. Your first sets must be worth ${view.rules.initialMeld}, from your rack alone.`,
+    }
   })()
   const noteColor = { neutral: 'text-slate-300', good: 'text-emerald-300', bad: 'text-amber-300' }[note.tone]
 
@@ -478,6 +504,7 @@ export function Board({
                   myTurn={myTurn}
                   glide={key !== dropped}
                   changed={myTurn && startTiles.get(key) !== JSON.stringify(tilesOf(layout.holders[setHolder(key)]))}
+                  recentBy={recent.has(key) ? recentBy : undefined}
                 />
               ))}
           </TableGrid>
@@ -592,6 +619,7 @@ function TableSet({
   myTurn,
   glide,
   changed,
+  recentBy,
 }: {
   setKey: number
   tiles: Placed[]
@@ -602,14 +630,19 @@ function TableSet({
   glide: boolean
   /** New this turn, or its tiles changed (moving the set doesn't count). */
   changed: boolean
+  /** Who made or changed it on their last turn, if another player did. */
+  recentBy?: { seat: number; name: string; fresh: boolean }
 }) {
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({ id: setItem(setKey) })
   const { setNodeRef: setHolderRef } = useDroppable({ id: setHolder(setKey) })
-  // Invalid wins over changed: it's the one to fix.
-  const state = classifySet(tilesOf(tiles)) === undefined ? 'invalid' : changed ? 'changed' : 'same'
+  // Invalid first (it's the one to fix), then this turn's own changes, then
+  // another player's last.
+  const state =
+    classifySet(tilesOf(tiles)) === undefined ? 'invalid' : changed ? 'changed' : recentBy ? 'recent' : 'same'
   const look = {
     invalid: 'bg-amber-400/15 shadow-[0_0_0_2px_rgb(251_191_36/0.7),0_0_24px_rgb(251_191_36/0.25)]',
     changed: 'bg-emerald-400/15 shadow-[0_0_0_2px_rgb(52_211_153/0.75),0_0_24px_rgb(52_211_153/0.25)]',
+    recent: recentBy?.fresh ? 'recent-flash' : 'recent-quiet',
     same: '',
   }[state]
   return (
@@ -621,6 +654,14 @@ function TableSet({
         glide ? 'transition-[left,top,box-shadow,background-color]' : 'transition-[box-shadow,background-color]'
       } ${isDragging ? 'opacity-30' : ''} ${look}`}
     >
+      {state === 'recent' && recentBy && (
+        <span
+          title={`${recentBy.name}'s last turn`}
+          className={`pointer-events-none absolute -left-2 -top-2 z-10 grid size-5 place-items-center rounded-full bg-linear-to-br text-[0.65rem] font-bold text-slate-950 ring-2 ring-felt ${seatColors[recentBy.seat % seatColors.length]}`}
+        >
+          {recentBy.name.slice(0, 1).toUpperCase()}
+        </span>
+      )}
       <button
         {...attributes}
         {...listeners}

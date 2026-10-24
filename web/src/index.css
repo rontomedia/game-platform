@@ -115,3 +115,38 @@ body {
     --cell-h: 60px;
   }
 }
+
+/*
+ * A set another player made or changed on their last turn: a flash when
+ * the news arrives, settling to a quiet outline until the table changes.
+ */
+.recent-quiet {
+  background-color: rgb(56 189 248 / 0.07);
+  box-shadow: 0 0 0 1.5px rgb(56 189 248 / 0.45);
+}
+
+.recent-flash {
+  animation: recent-flash 2.4s ease-out forwards;
+}
+
+@keyframes recent-flash {
+  0%,
+  25% {
+    background-color: rgb(56 189 248 / 0.2);
+    box-shadow:
+      0 0 0 2.5px rgb(56 189 248 / 0.95),
+      0 0 30px rgb(56 189 248 / 0.45);
+  }
+  100% {
+    background-color: rgb(56 189 248 / 0.07);
+    box-shadow: 0 0 0 1.5px rgb(56 189 248 / 0.45);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .recent-flash {
+    animation: none;
+    background-color: rgb(56 189 248 / 0.12);
+    box-shadow: 0 0 0 2px rgb(56 189 248 / 0.7);
+  }
+}
