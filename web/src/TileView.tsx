@@ -1,5 +1,3 @@
-import { motion } from 'motion/react'
-
 import type { Color, Tile } from './wasm/engine.js'
 
 const numeralColor: Record<Color, string> = {
@@ -9,31 +7,49 @@ const numeralColor: Record<Color, string> = {
   red: 'text-tile-red',
 }
 
-function tileName(tile: Tile): string {
-  return tile.kind === 'joker' ? 'Joker' : `${tile.color} ${tile.value}`
+const sizes = {
+  table: 'h-14 w-10 text-[1.35rem] rounded-md sm:h-16 sm:w-11 sm:text-2xl short:h-11 short:w-8 short:text-lg',
+  rack: 'h-16 w-11 text-2xl rounded-lg sm:h-[4.75rem] sm:w-[3.25rem] sm:text-[1.9rem] short:h-12 short:w-9 short:text-xl',
+  /** The two-row rack: a little narrower on phones, so eight fit in a row. */
+  ledge: 'h-14 w-10 text-[1.4rem] rounded-md sm:h-[4.75rem] sm:w-[3.25rem] sm:rounded-lg sm:text-[1.9rem] short:h-12 short:w-9 short:text-xl',
 }
 
-/**
- * A tile, clickable when given `onClick`. `layoutId` lets it glide between
- * places.
- */
-export function TileView({ tile, layoutId, onClick }: { tile: Tile; layoutId: string; onClick?: () => void }) {
+export type TileSize = keyof typeof sizes
+
+/** A tile's face. Moving it around is up to whoever holds it (see Board). */
+export function TileFace({ tile, size, lifted = false }: { tile: Tile; size: TileSize; lifted?: boolean }) {
   return (
-    <motion.button
-      layoutId={layoutId}
-      onClick={onClick}
-      disabled={!onClick}
-      aria-label={tileName(tile)}
-      whileHover={onClick && { y: -4 }}
-      whileTap={onClick && { scale: 0.94 }}
-      transition={{ type: 'spring', stiffness: 500, damping: 35 }}
-      className="flex h-16 w-11 cursor-pointer select-none disabled:cursor-default items-center justify-center rounded-lg bg-linear-to-b from-stone-50 to-stone-200 text-2xl font-extrabold tabular-nums shadow-[inset_0_1px_0_rgb(255_255_255/0.9),0_4px_12px_rgb(0_0_0/0.4)] ring-1 ring-black/10 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-400 sm:h-20 sm:w-14 sm:text-3xl"
+    <div
+      className={`tile relative flex shrink-0 select-none items-center justify-center font-extrabold tabular-nums tracking-tight ${sizes[size]} ${
+        lifted ? 'tile-lifted' : ''
+      }`}
     >
-      {tile.kind === 'joker' ? (
-        <span className="bg-linear-to-br from-red-500 via-amber-400 to-blue-600 bg-clip-text text-transparent">★</span>
-      ) : (
-        <span className={numeralColor[tile.color]}>{tile.value}</span>
-      )}
-    </motion.button>
+      {tile.kind === 'joker' ? <JokerFace /> : <span className={numeralColor[tile.color]}>{tile.value}</span>}
+    </div>
+  )
+}
+
+/** A grinning face in the tile colors. */
+function JokerFace() {
+  return (
+    <svg viewBox="0 0 24 24" className="h-[62%] w-[82%]" aria-hidden>
+      <defs>
+        <linearGradient id="joker-ring" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0" stopColor="var(--color-tile-red)" />
+          <stop offset="0.5" stopColor="var(--color-tile-orange)" />
+          <stop offset="1" stopColor="var(--color-tile-blue)" />
+        </linearGradient>
+      </defs>
+      <circle cx="12" cy="12" r="10" fill="none" stroke="url(#joker-ring)" strokeWidth="2.2" />
+      <circle cx="8.6" cy="9.6" r="1.5" fill="var(--color-tile-black)" />
+      <circle cx="15.4" cy="9.6" r="1.5" fill="var(--color-tile-black)" />
+      <path
+        d="M7 14c1.3 2.4 3 3.4 5 3.4s3.7-1 5-3.4"
+        fill="none"
+        stroke="var(--color-tile-red)"
+        strokeWidth="2"
+        strokeLinecap="round"
+      />
+    </svg>
   )
 }

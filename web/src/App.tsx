@@ -1,6 +1,10 @@
-import { useState, type FormEvent } from 'react'
+import { useCallback, useState, type FormEvent } from 'react'
 
+import { emptyArrangement, type Arrangement, type RackSort } from './arrange.ts'
 import { Board } from './Board.tsx'
+import { demoGame, demoRoom } from './demo.ts'
+import { useSettings } from './settings.ts'
+import { remember, remembered } from './storage.ts'
 import { Button, inputClass, Note, Panel } from './ui.tsx'
 import { SERVER_URL, useGame, type Status } from './useGame.ts'
 import { protocolVersion, type ClientMessage, type RoomInfo } from './wasm/engine.js'
@@ -11,9 +15,83 @@ const statusLook: Record<Status, { label: string; dot: string }> = {
   closed: { label: 'Disconnected', dot: 'bg-rose-500' },
 }
 
+/** `?demo`: the board with a made-up game and no server, for working on its look. */
+const DEMO = new URLSearchParams(location.search).has('demo')
+
 export default function App() {
+  return DEMO ? <Demo /> : <Online />
+}
+
+function Demo() {
+  const [game] = useState(demoGame)
+  const [settings, changeSettings] = useSettings()
+  const [arrangement, setArrangement] = useArrangement(demoRoom.code)
+  return (
+    <Board
+      game={game}
+      room={demoRoom}
+      status="open"
+      problem={null}
+      settings={settings}
+      onSettings={changeSettings}
+      arrangement={arrangement}
+      onArrange={setArrangement}
+      send={(message) => console.info('demo, not sent:', message)}
+      leave={() => location.reload()}
+    />
+  )
+}
+
+/** Remembered across visits: how the player last ordered their rack. */
+const SORT_KEY = 'rummy.rackSort'
+/** Remembered for the tab: the player's arrangement in their current room. */
+const ARRANGEMENT_KEY = 'rummy.arrangement'
+
+/**
+ * The player's arrangement of rack and table in room `code`, kept across
+ * turns and reloads (see arrange.ts).
+ */
+function useArrangement(code: string | undefined): [Arrangement, (arrangement: Arrangement) => void] {
+  const [saved, setSaved] = useState(() => remembered<{ code: string; arrangement: Arrangement }>(ARRANGEMENT_KEY, 'session'))
+  const arrangement =
+    saved && saved.code === code ? saved.arrangement : { ...emptyArrangement, sort: remembered<RackSort>(SORT_KEY) ?? 'custom' }
+  // Stable, as the board saves it in an effect.
+  const save = useCallback(
+    (arrangement: Arrangement) => {
+      if (code === undefined) return
+      const next = { code, arrangement }
+      remember(ARRANGEMENT_KEY, next, 'session')
+      remember(SORT_KEY, arrangement.sort)
+      setSaved(next)
+    },
+    [code],
+  )
+  return [arrangement, save]
+}
+
+function Online() {
   const { status, room, game, problem, mismatch, send, reconnect, leave } = useGame()
+  const [settings, changeSettings] = useSettings()
+  const [arrangement, setArrangement] = useArrangement(room?.code)
   const look = statusLook[status]
+
+  if (room?.started && game) {
+    return (
+      <Board
+        key={game.version}
+        game={game}
+        room={room}
+        status={status}
+        problem={problem}
+        settings={settings}
+        onSettings={changeSettings}
+        arrangement={arrangement}
+        onArrange={setArrangement}
+        send={send}
+        leave={leave}
+      />
+    )
+  }
 
   return (
     <div className="mx-auto flex max-w-5xl flex-col gap-6 px-4 py-6 sm:px-6 lg:py-10">
@@ -36,8 +114,6 @@ export default function App() {
       )}
       {!room ? (
         <Home send={send} problem={problem} ready={status === 'open'} />
-      ) : room.started && game ? (
-        <Board key={game.version} game={game} room={room} problem={problem} send={send} leave={leave} />
       ) : (
         <Lobby room={room} problem={problem} send={send} leave={leave} />
       )}
@@ -48,32 +124,17 @@ export default function App() {
 /** The player's name, remembered on this device. */
 const NAME_KEY = 'rummy.name'
 
-function rememberedName() {
-  try {
-    return localStorage.getItem(NAME_KEY) ?? ''
-  } catch {
-    return ''
-  }
-}
-
 function Home({ send, problem, ready }: { send: (m: ClientMessage) => void; problem: string | null; ready: boolean }) {
-  const [name, setName] = useState(rememberedName)
+  const [name, setName] = useState(() => remembered<string>(NAME_KEY) ?? '')
   const [code, setCode] = useState('')
 
-  const remember = () => {
-    try {
-      localStorage.setItem(NAME_KEY, name.trim())
-    } catch {
-      // Not remembered, then.
-    }
-  }
   const create = () => {
-    remember()
+    remember(NAME_KEY, name.trim())
     send({ type: 'createRoom', name })
   }
   const join = (e: FormEvent) => {
     e.preventDefault()
-    remember()
+    remember(NAME_KEY, name.trim())
     send({ type: 'joinRoom', code, name })
   }
 

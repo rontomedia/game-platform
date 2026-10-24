@@ -1,13 +1,20 @@
 @import 'tailwindcss';
 
+/* Phones held sideways and other short screens: tighter, smaller tiles. */
+@custom-variant short (@media (max-height: 500px));
+
 @theme {
   --font-sans: 'Inter Variable', ui-sans-serif, system-ui, sans-serif;
 
   /* Numerals on the tiles. */
   --color-tile-black: #1c1917;
   --color-tile-blue: #1d4ed8;
-  --color-tile-orange: #ea580c;
-  --color-tile-red: #dc2626;
+  --color-tile-orange: #e05d0b;
+  --color-tile-red: #d62828;
+
+  /* The table's cloth. */
+  --color-felt: #0f3b34;
+  --color-felt-deep: #0a2723;
 }
 
 body {
@@ -15,4 +22,72 @@ body {
   background-image:
     radial-gradient(ellipse 80% 60% at 50% -10%, rgb(20 184 166 / 0.18), transparent),
     radial-gradient(ellipse 60% 50% at 100% 100%, rgb(99 102 241 / 0.12), transparent);
+}
+
+/* An ivory tile with a little depth: a darker lower edge and a soft shadow. */
+.tile {
+  background: linear-gradient(180deg, #fdfbf6 0%, #f3eee3 70%, #e9e2d3 100%);
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 0.95),
+    inset 0 -3px 0 rgb(176 164 140 / 0.55),
+    0 1px 1px rgb(0 0 0 / 0.25),
+    0 6px 14px -4px rgb(0 0 0 / 0.55);
+}
+
+/* The table: cloth with a soft light in the middle and a darker rim. */
+.felt {
+  background:
+    radial-gradient(ellipse 70% 60% at 50% 40%, rgb(255 255 255 / 0.06), transparent 70%),
+    radial-gradient(ellipse 120% 100% at 50% 50%, var(--color-felt) 40%, var(--color-felt-deep) 100%);
+  box-shadow:
+    inset 0 0 0 1px rgb(255 255 255 / 0.06),
+    inset 0 2px 30px rgb(0 0 0 / 0.45);
+}
+
+/* The rack: a dark wooden tray. */
+.tray {
+  background: linear-gradient(180deg, #3a2516 0%, #2a1a10 100%);
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 0.08),
+    inset 0 -6px 12px rgb(0 0 0 / 0.35),
+    0 10px 30px -10px rgb(0 0 0 / 0.7);
+}
+
+/* A tile being dragged: raised off the table. */
+.tile-lifted {
+  transform: scale(1.06) rotate(-2deg);
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 0.95),
+    inset 0 -3px 0 rgb(176 164 140 / 0.55),
+    0 18px 30px -8px rgb(0 0 0 / 0.7);
+}
+
+/* The two-row rack: a wooden stand with two ledges the tiles rest on. */
+.rack-classic {
+  background:
+    repeating-linear-gradient(92deg, rgb(255 255 255 / 0.025) 0 2px, transparent 2px 9px),
+    linear-gradient(180deg, #7a4b28 0%, #5e3719 55%, #4a2a12 100%);
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 0.15),
+    inset 0 -8px 16px rgb(0 0 0 / 0.3),
+    0 14px 30px -10px rgb(0 0 0 / 0.75);
+}
+
+.rack-ledge {
+  position: relative;
+  padding-bottom: 0.6rem;
+}
+
+/* The lip at the front of each ledge. */
+.rack-ledge::after {
+  content: '';
+  position: absolute;
+  inset: auto 0 0 0;
+  height: 0.6rem;
+  border-radius: 0.3rem;
+  background: linear-gradient(180deg, #8a5a33 0%, #4d2c14 100%);
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 0.18),
+    0 3px 6px rgb(0 0 0 / 0.45);
+  pointer-events: none;
 }
