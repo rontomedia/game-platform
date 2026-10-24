@@ -229,6 +229,12 @@ export function Board({
     return () => observer.disconnect()
   }, [])
 
+  // Each set's tiles at the start of the turn, to tell which the player changed.
+  const startTiles = useMemo(
+    () => new Map(start.sets.map((key) => [key, JSON.stringify(tilesOf(start.holders[setHolder(key)]))])),
+    [start],
+  )
+
   const widths = useMemo(
     () => new Map(layout.sets.map((key) => [key, footprint(layout.holders[setHolder(key)].length)])),
     [layout],
@@ -471,6 +477,7 @@ export function Board({
                   metrics={metrics}
                   myTurn={myTurn}
                   glide={key !== dropped}
+                  changed={myTurn && startTiles.get(key) !== JSON.stringify(tilesOf(layout.holders[setHolder(key)]))}
                 />
               ))}
           </TableGrid>
@@ -584,6 +591,7 @@ function TableSet({
   metrics,
   myTurn,
   glide,
+  changed,
 }: {
   setKey: number
   tiles: Placed[]
@@ -592,17 +600,26 @@ function TableSet({
   myTurn: boolean
   /** Slide to a new place (moved for the player) rather than jump (dropped by them). */
   glide: boolean
+  /** New this turn, or its tiles changed (moving the set doesn't count). */
+  changed: boolean
 }) {
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({ id: setItem(setKey) })
   const { setNodeRef: setHolderRef } = useDroppable({ id: setHolder(setKey) })
-  const valid = classifySet(tilesOf(tiles)) !== undefined
+  // Invalid wins over changed: it's the one to fix.
+  const state = classifySet(tilesOf(tiles)) === undefined ? 'invalid' : changed ? 'changed' : 'same'
+  const look = {
+    invalid: 'bg-amber-400/15 shadow-[0_0_0_2px_rgb(251_191_36/0.7),0_0_24px_rgb(251_191_36/0.25)]',
+    changed: 'bg-emerald-400/15 shadow-[0_0_0_2px_rgb(52_211_153/0.75),0_0_24px_rgb(52_211_153/0.25)]',
+    same: '',
+  }[state]
   return (
     <div
       ref={setNodeRef}
+      data-state={state}
       style={{ left: at.col * metrics.cellW, top: at.row * metrics.cellH }}
-      className={`absolute flex items-stretch rounded-lg duration-200 ${glide ? 'transition-[left,top,box-shadow]' : 'transition-[box-shadow]'} ${
-        isDragging ? 'opacity-30' : ''
-      } ${valid ? '' : 'bg-amber-400/15 shadow-[0_0_0_2px_rgb(251_191_36/0.7),0_0_24px_rgb(251_191_36/0.25)]'}`}
+      className={`absolute flex items-stretch rounded-lg duration-200 ${
+        glide ? 'transition-[left,top,box-shadow,background-color]' : 'transition-[box-shadow,background-color]'
+      } ${isDragging ? 'opacity-30' : ''} ${look}`}
     >
       <button
         {...attributes}
