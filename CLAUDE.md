@@ -121,7 +121,8 @@ only builds it on start.
     `key={game.version}`) by matching tiles and sets by content; saved per
     tab in sessionStorage. Pure, with Vitest tests.
   - `settings.ts` / `SettingsMenu.tsx`: device preferences (rack style: flat
-    tray or two-row rack) behind the gear in the top bar.
+    tray or two-row rack; watching live turns) behind the gear in the top
+    bar.
   - Planned: shadcn/ui for menus, `@heroiclabs/nakama-js` for
     accounts/matchmaking.
 
