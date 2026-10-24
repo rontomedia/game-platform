@@ -84,16 +84,24 @@ only builds it on start.
     reload and retries a lost connection. Screens: home (create/join),
     lobby, `Board.tsx`.
   - `Board.tsx`: everything moves by dragging (dnd-kit core + sortable):
-    rack tiles any time; tiles onto and around the table on your turn;
-    whole sets any time (by their grip). Tiles live in "holders" (`rack-0`,
-    `rack-1`, `set-<key>`); a tile crossing holders moves in `onDragOver`.
-    Don't put Motion `layout`/`layoutId` on draggable tiles: both libraries
-    drive `transform`. `checkTurn` gives instant feedback; End turn sends
-    the table in this player's order.
-  - `arrange.ts`: the player's own order of rack and table sets, kept across
-    server states (the board remounts on every state, `key={game.version}`)
-    by matching tiles and sets by content; saved per tab in sessionStorage.
-    Pure, with Vitest tests.
+    rack tiles any time; tiles onto and around the table on your turn (a
+    tile dropped on empty table starts a set there); whole sets any time,
+    by their grip, to any cell of the table's grid. Tiles live in
+    "holders" (`rack-0`, `rack-1`, `set-<key>`); a tile crossing holders
+    moves in `onDragOver`. Drop targets must be in components rendered
+    *inside* `DndContext` (hence `TableGrid`), not in `Board` itself. Don't
+    put Motion `layout`/`layoutId` on draggable tiles: both libraries drive
+    `transform`. `checkTurn` gives instant feedback.
+  - `grid.ts`: the table as a grid of cells (one table tile wide, one row
+    high; sizes as CSS variables on `.table-grid` in `index.css`, in step
+    with the `table` tile size). A set takes a cell for its grip plus one
+    per tile. `resolve` shows each set where the player put it if it fits
+    the current width and is free, else in the next free place, so
+    resizing never loses a placement. Pure, with Vitest tests.
+  - `arrange.ts`: the player's own rack order and set positions, kept
+    across server states (the board remounts on every state,
+    `key={game.version}`) by matching tiles and sets by content; saved per
+    tab in sessionStorage. Pure, with Vitest tests.
   - `settings.ts` / `SettingsMenu.tsx`: device preferences (rack style: flat
     tray or two-row rack) behind the gear in the top bar.
   - Planned: shadcn/ui for menus, `@heroiclabs/nakama-js` for

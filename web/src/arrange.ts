@@ -1,3 +1,4 @@
+import type { Cell } from './grid.ts'
 import type { Tile } from './wasm/engine.js'
 
 /**
@@ -9,12 +10,18 @@ import type { Tile } from './wasm/engine.js'
 /** How the rack was last put in order: a sort, or by hand. */
 export type RackSort = 'custom' | 'number' | 'color'
 
+/** A set on the table, and where this player put it (see grid.ts). */
+export interface PlacedSet {
+  tiles: Tile[]
+  at?: Cell
+}
+
 export interface Arrangement {
   /** The rack's two rows (a flat rack shows them one after the other). */
   rows: [Tile[], Tile[]]
   sort: RackSort
-  /** The table's sets in the order this player put them. */
-  table: Tile[][]
+  /** The table's sets and where this player put them. */
+  table: PlacedSet[]
 }
 
 export const emptyArrangement: Arrangement = { rows: [[], []], sort: 'custom', table: [] }
@@ -90,22 +97,23 @@ function overlap(a: Tile[], b: Tile[]): number {
 const same = (a: Tile[], b: Tile[]) => a.length === b.length && a.every((t, i) => keyOf(t) === keyOf(b[i]))
 
 /**
- * The table's sets in the order the player had them. A set keeps its place
+ * The table's sets, placed where the player had them. A set keeps its place
  * if it's still there, or if a set there now shares tiles with it (another
- * player extended or split it); sets new to this player go at the end.
+ * player extended or split it); sets new to this player have no place yet
+ * and come last.
  */
-export function arrangeTable(previous: Tile[][], table: Tile[][]): Tile[][] {
+export function arrangeTable(previous: PlacedSet[], table: Tile[][]): PlacedSet[] {
   const unplaced = new Set(table.keys())
   const placed: (number | undefined)[] = previous.map(() => undefined)
   // Unchanged sets first, so a changed one can't take their place.
-  previous.forEach((set, i) => {
+  previous.forEach(({ tiles: set }, i) => {
     const match = [...unplaced].find((j) => same(set, table[j]))
     if (match !== undefined) {
       placed[i] = match
       unplaced.delete(match)
     }
   })
-  previous.forEach((set, i) => {
+  previous.forEach(({ tiles: set }, i) => {
     if (placed[i] !== undefined) return
     let best: number | undefined
     let bestOverlap = 0
@@ -118,6 +126,6 @@ export function arrangeTable(previous: Tile[][], table: Tile[][]): Tile[][] {
       unplaced.delete(best)
     }
   })
-  const order = [...placed.filter((j) => j !== undefined), ...unplaced]
-  return order.map((j) => table[j])
+  const kept = placed.flatMap((j, i) => (j === undefined ? [] : [{ tiles: table[j], at: previous[i].at }]))
+  return [...kept, ...[...unplaced].map((j) => ({ tiles: table[j] }))]
 }

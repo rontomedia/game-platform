@@ -91,3 +91,27 @@ body {
     0 3px 6px rgb(0 0 0 / 0.45);
   pointer-events: none;
 }
+
+/*
+ * The table's grid (see grid.ts): a cell is one table tile plus the gap
+ * between tiles wide, and a row of tiles plus the space between rows high.
+ * Keep in step with the `table` tile size in TileView.tsx.
+ */
+.table-grid {
+  --cell-w: 40px;
+  --cell-h: 72px;
+}
+
+@media (min-width: 40rem) {
+  .table-grid {
+    --cell-w: 48px;
+    --cell-h: 88px;
+  }
+}
+
+@media (max-height: 500px) {
+  .table-grid {
+    --cell-w: 36px;
+    --cell-h: 60px;
+  }
+}

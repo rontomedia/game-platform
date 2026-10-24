@@ -45,7 +45,7 @@ function Demo() {
 /** Remembered across visits: how the player last ordered their rack. */
 const SORT_KEY = 'rummy.rackSort'
 /** Remembered for the tab: the player's arrangement in their current room. */
-const ARRANGEMENT_KEY = 'rummy.arrangement'
+const ARRANGEMENT_KEY = 'rummy.arrangement.v2'
 
 /**
  * The player's arrangement of rack and table in room `code`, kept across

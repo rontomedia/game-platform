@@ -6,11 +6,13 @@ import {
   MouseSensor,
   pointerWithin,
   TouchSensor,
+  useDraggable,
   useDroppable,
   useSensor,
   useSensors,
   type CollisionDetection,
   type DragEndEvent,
+  type DragMoveEvent,
   type DragOverEvent,
   type DragStartEvent,
 } from '@dnd-kit/core'
@@ -24,9 +26,10 @@ import {
 } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import { AnimatePresence, motion } from 'motion/react'
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode, type RefObject } from 'react'
 
 import { arrangeRack, arrangeTable, compareTiles, splitRows, tileName, type Arrangement, type RackSort } from './arrange.ts'
+import { footprint, gridWithout, resolve, type Cell } from './grid.ts'
 import type { Settings } from './settings.ts'
 import { SettingsMenu } from './SettingsMenu.tsx'
 import { TileFace, type TileSize } from './TileView.tsx'
@@ -38,8 +41,8 @@ import { checkTurn, classifySet, type ClientMessage, type RoomInfo, type Tile } 
  * The game screen: players along the top, the table in the middle, the rack
  * at the bottom. Everything moves by dragging (dnd-kit): rack tiles any
  * time, to rearrange; tiles onto and around the table on your turn; whole
- * sets any time, to order the table as you like. The arrangement is yours
- * alone and outlives the turn (see arrange.ts).
+ * sets any time, anywhere on the table's grid (see grid.ts). The
+ * arrangement is yours alone and outlives the turn (see arrange.ts).
  */
 
 /** A tile with an identity, so the same tile can move between places. */
@@ -50,12 +53,13 @@ interface Placed {
 }
 
 /**
- * Where the tiles are: `holders` by id (`rack-0`, `rack-1`, `set-<key>`),
- * and the table's sets by key, in the order shown.
+ * Where the tiles are: `holders` by id (`rack-0`, `rack-1`, `set-<key>`);
+ * the table's sets by key, and where the player put each on the grid.
  */
 interface Layout {
   holders: Record<string, Placed[]>
   sets: number[]
+  at: Record<number, Cell | undefined>
 }
 
 const RACK_ROWS = ['rack-0', 'rack-1'] as const
@@ -64,6 +68,8 @@ const setHolder = (key: number) => `set-${key}`
 /** The drag id of a whole set (its holder is the drop target for tiles). */
 const setItem = (key: number) => `move-set-${key}`
 const isSetItem = (id: string) => id.startsWith('move-set-')
+const setKeyOf = (item: string) => Number(item.slice('move-set-'.length))
+/** The table itself: a tile dropped on empty space starts a set there. */
 const NEW_SET = 'new-set'
 
 const tilesOf = (placed: Placed[]) => placed.map((p) => p.tile)
@@ -73,13 +79,16 @@ function lay(view: GameState['view'], arrangement: Arrangement, rackStyle: Setti
   const place = (tile: Tile, fromTable: boolean) => ({ id: `tile-${id++}`, tile, fromTable })
   const holders: Layout['holders'] = {}
   const sets: number[] = []
+  const at: Layout['at'] = {}
   for (const set of arrangeTable(arrangement.table, view.table)) {
-    holders[setHolder(sets.length)] = set.map((tile) => place(tile, true))
-    sets.push(sets.length)
+    const key = sets.length
+    holders[setHolder(key)] = set.tiles.map((tile) => place(tile, true))
+    at[key] = set.at
+    sets.push(key)
   }
   const rows = arrangeRack(arrangement.rows, arrangement.sort, view.rack)
   RACK_ROWS.forEach((row, i) => (holders[row] = rows[i].map((tile) => place(tile, false))))
-  return restyle({ holders, sets }, rackStyle)
+  return restyle({ holders, sets, at }, rackStyle)
 }
 
 /** The rack's tiles in one row (flat) or two (classic). */
@@ -94,10 +103,10 @@ function restyle(layout: Layout, rackStyle: Settings['rackStyle']): Layout {
   return { ...layout, holders: { ...layout.holders, 'rack-0': rows[0], 'rack-1': rows[1] } }
 }
 
-/** The holder a tile is in, or the holder (or new-set spot) `id` names. */
+/** The holder a tile is in, or the holder (or the table) `id` names. */
 function holderOf(layout: Layout, id: string): string | undefined {
   if (id in layout.holders || id === NEW_SET) return id
-  if (isSetItem(id)) return setHolder(Number(id.slice('move-set-'.length)))
+  if (isSetItem(id)) return setHolder(setKeyOf(id))
   return Object.keys(layout.holders).find((holder) => layout.holders[holder].some((p) => p.id === id))
 }
 
@@ -105,26 +114,40 @@ function dropEmptySets(layout: Layout): Layout {
   const sets = layout.sets.filter((key) => layout.holders[setHolder(key)].length > 0)
   if (sets.length === layout.sets.length) return layout
   const holders = { ...layout.holders }
-  for (const key of layout.sets) if (!sets.includes(key)) delete holders[setHolder(key)]
-  return { holders, sets }
+  const at = { ...layout.at }
+  for (const key of layout.sets) {
+    if (sets.includes(key)) continue
+    delete holders[setHolder(key)]
+    delete at[key]
+  }
+  return { holders, sets, at }
 }
 
 /** A table to compare regardless of the order of its sets. */
 const canonical = (sets: Tile[][]) => sets.map((s) => JSON.stringify(s)).sort().join('|')
 
-/**
- * Tiles are dropped where the pointer is; a set only among sets. Tiles
- * before the holders they're in, so dropping on a tile places beside it.
- */
+/** Where a dragged tile lands when several things are under the pointer: the most specific. */
+const dropRank = (id: string) => (id.startsWith('tile-') ? 0 : id.startsWith('set-') ? 1 : isRack(id) ? 2 : 3)
+
 const collisions: CollisionDetection = (args) => {
-  const movingSet = isSetItem(String(args.active.id))
-  const droppableContainers = args.droppableContainers.filter((c) => isSetItem(String(c.id)) === movingSet)
-  const within = pointerWithin({ ...args, droppableContainers })
-  if (within.length > 0) {
-    const isTile = (id: unknown) => Number(String(id).startsWith('tile-'))
-    return [...within].sort((a, b) => isTile(b.id) - isTile(a.id))
-  }
-  return closestCenter({ ...args, droppableContainers })
+  // A set lands wherever it's let go (see onDragMove), not on anything.
+  if (isSetItem(String(args.active.id))) return []
+  const within = pointerWithin(args)
+  if (within.length > 0) return [...within].sort((a, b) => dropRank(String(a.id)) - dropRank(String(b.id)))
+  return closestCenter(args)
+}
+
+/** The size of a table cell, and how many fit across (set in index.css, `.table-grid`). */
+interface Metrics {
+  cellW: number
+  cellH: number
+  columns: number
+}
+
+/** A dragged set's (or a new set's) landing place, shown as an outline. */
+interface Target {
+  cell: Cell
+  width: number
 }
 
 /** The turn length the timer ring shows a fraction of. */
@@ -171,9 +194,15 @@ export function Board({
   const [sort, setSort] = useState<RackSort>(arrangement.sort)
   // What's being dragged (a tile or a set's id) and the holder it came from.
   const [dragging, setDragging] = useState<{ id: string; from?: string } | null>(null)
+  const [target, setTarget] = useState<Target | null>(null)
+  // The set the player just dropped: it's already where the pointer left
+  // it, so it appears there rather than gliding over from where it was.
+  const [dropped, setDropped] = useState<number | null>(null)
   // The layout when a drag began, to go back to if it's cancelled.
   const beforeDrag = useRef<Layout | null>(null)
   const nextSet = useRef(start.sets.length)
+  const tableGrid = useRef<HTMLDivElement | null>(null)
+  const [metrics, setMetrics] = useState<Metrics | null>(null)
   const secondsLeft = useSecondsLeft(game.turnEnds)
 
   const sensors = useSensors(
@@ -183,14 +212,52 @@ export function Board({
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
   )
 
-  // Keep the arrangement for the next state from the server.
+  // The table's cell size and width, again whenever it's resized.
+  useLayoutEffect(() => {
+    const grid = tableGrid.current
+    if (!grid) return
+    const measure = () => {
+      const style = getComputedStyle(grid)
+      const cellW = parseFloat(style.getPropertyValue('--cell-w'))
+      const cellH = parseFloat(style.getPropertyValue('--cell-h'))
+      const columns = Math.max(4, Math.floor(grid.clientWidth / cellW))
+      setMetrics((m) => (m && m.cellW === cellW && m.cellH === cellH && m.columns === columns ? m : { cellW, cellH, columns }))
+    }
+    measure()
+    const observer = new ResizeObserver(measure)
+    observer.observe(grid)
+    return () => observer.disconnect()
+  }, [])
+
+  const widths = useMemo(
+    () => new Map(layout.sets.map((key) => [key, footprint(layout.holders[setHolder(key)].length)])),
+    [layout],
+  )
+  const shown = useMemo(
+    () => resolve(layout.sets.map((key) => ({ key, width: widths.get(key)!, at: layout.at[key] })), metrics?.columns ?? 12),
+    [layout, widths, metrics],
+  )
+
+  /**
+   * Every set's place: where the player put it, or for a set new to them,
+   * where it's shown now. Pinned when a set moves, so the others don't.
+   */
+  const pinned = (l: Layout): Layout['at'] =>
+    Object.fromEntries(l.sets.map((key) => [key, l.at[key] ?? shown.get(key)]))
+
+  // Keep the arrangement for the next state from the server. A set new to
+  // this player keeps the place it was first shown in (once the table's
+  // width is known).
   useEffect(() => {
     onArrange({
       rows: [tilesOf(layout.holders['rack-0']), tilesOf(layout.holders['rack-1'])],
       sort,
-      table: layout.sets.map((key) => tilesOf(layout.holders[setHolder(key)])),
+      table: layout.sets.map((key) => ({
+        tiles: tilesOf(layout.holders[setHolder(key)]),
+        at: layout.at[key] ?? (metrics ? shown.get(key) : undefined),
+      })),
     })
-  }, [layout, sort, onArrange])
+  }, [layout, sort, onArrange, metrics, shown])
 
   const table = layout.sets.map((key) => tilesOf(layout.holders[setHolder(key)])).filter((set) => set.length > 0)
   const changed = canonical(table) !== canonical(view.table)
@@ -198,12 +265,46 @@ export function Board({
     ? checkTurn({ before: view.table, after: table, rack: view.rack, melded: view.melded[view.you], rules: view.rules })
     : null
 
-  /** Whether `tile` may go into `holder` (or the new-set spot). */
+  /** Whether `tile` may go into `holder` (or onto the table as a new set). */
   const mayGo = (tile: Placed, holder: string) => (isRack(holder) ? !tile.fromTable : myTurn)
+
+  /**
+   * Where a set `width` wide lands if let go at `cell`: there if it's free,
+   * else the nearest free place in that row, else nowhere.
+   */
+  const landing = (cell: Cell, width: number, except?: number): Target | null => {
+    if (!metrics) return null
+    const grid = gridWithout(shown, widths, metrics.columns, except)
+    const free = grid.fits(cell, width) ? cell : grid.nearestInRow(cell, width)
+    return free && { cell: free, width }
+  }
 
   const onDragStart = ({ active }: DragStartEvent) => {
     beforeDrag.current = layout
+    setDropped(null)
     setDragging({ id: String(active.id), from: holderOf(layout, String(active.id)) })
+  }
+
+  // Where a set, or a tile over empty table, would land: shown as an outline.
+  const onDragMove = ({ active, over }: DragMoveEvent) => {
+    const id = String(active.id)
+    const rect = active.rect.current.translated
+    const grid = tableGrid.current
+    if (!rect || !grid || !metrics) return
+    const box = grid.getBoundingClientRect()
+    const row = Math.round((rect.top - box.top) / metrics.cellH)
+    const col = Math.round((rect.left - box.left) / metrics.cellW)
+    let next: Target | null = null
+    if (isSetItem(id)) {
+      const key = setKeyOf(id)
+      next = landing({ row, col }, widths.get(key)!, key)
+    } else if (myTurn && over?.id === NEW_SET) {
+      // The tile will be the set's first, after its grip.
+      next = landing({ row, col: col - 1 }, footprint(1))
+    }
+    setTarget((t) =>
+      t && next && t.width === next.width && t.cell.row === next.cell.row && t.cell.col === next.cell.col ? t : next,
+    )
   }
 
   // A tile crossing into another holder moves there as it goes, so the
@@ -219,46 +320,50 @@ export function Board({
       if (!from || !to || to === NEW_SET || from === to) return l
       const moving = l.holders[from].find((p) => p.id === id)!
       if (!mayGo(moving, to)) return l
-      const target = l.holders[to]
-      const overIndex = target.findIndex((p) => p.id === overId)
+      const items = l.holders[to]
+      const overIndex = items.findIndex((p) => p.id === overId)
       const pastMiddle = translated !== null && translated.left + translated.width / 2 > over.rect.left + over.rect.width / 2
-      const index = overIndex < 0 ? target.length : overIndex + (pastMiddle ? 1 : 0)
+      const index = overIndex < 0 ? items.length : overIndex + (pastMiddle ? 1 : 0)
       return {
         ...l,
         holders: {
           ...l.holders,
           [from]: l.holders[from].filter((p) => p.id !== id),
-          [to]: [...target.slice(0, index), moving, ...target.slice(index)],
+          [to]: [...items.slice(0, index), moving, ...items.slice(index)],
         },
       }
     })
   }
 
   const onDragEnd = ({ active, over }: DragEndEvent) => {
-    setDragging(null)
     const id = String(active.id)
-    if (!over) return onDragCancel()
-    const overId = String(over.id)
+    const landed = target
+    const startedIn = dragging?.from
+    setDragging(null)
+    setTarget(null)
     if (isSetItem(id)) {
-      setLayout((l) => {
-        const from = l.sets.findIndex((key) => setItem(key) === id)
-        const to = l.sets.findIndex((key) => setItem(key) === overId)
-        return to < 0 || from === to ? l : { ...l, sets: arrayMove(l.sets, from, to) }
-      })
+      if (landed) {
+        setDropped(setKeyOf(id))
+        setLayout((l) => ({ ...l, at: { ...pinned(l), [setKeyOf(id)]: landed.cell } }))
+        // Once it's drawn in its new place, it may glide again (on a resize, say).
+        setTimeout(() => setDropped(null), 100)
+      }
       return
     }
-    const startedIn = dragging?.from
+    if (!over) return cancel()
+    const overId = String(over.id)
     setLayout((l) => {
       const from = holderOf(l, id)
       const to = holderOf(l, overId)
       if (!from || !to) return l
       const moving = l.holders[from].find((p) => p.id === id)!
       if (to === NEW_SET) {
-        if (!mayGo(moving, NEW_SET)) return l
+        if (!mayGo(moving, NEW_SET) || !landed) return beforeDrag.current ?? l
         const key = nextSet.current++
         return dropEmptySets({
           holders: { ...l.holders, [from]: l.holders[from].filter((p) => p.id !== id), [setHolder(key)]: [moving] },
           sets: [...l.sets, key],
+          at: { ...pinned(l), [key]: landed.cell },
         })
       }
       if (from !== to) return dropEmptySets(l)
@@ -272,8 +377,9 @@ export function Board({
     if ((startedIn && isRack(startedIn)) || isRack(holderOf(layout, overId) ?? '')) setSort('custom')
   }
 
-  const onDragCancel = () => {
+  const cancel = () => {
     setDragging(null)
+    setTarget(null)
     if (beforeDrag.current) setLayout(beforeDrag.current)
   }
 
@@ -314,35 +420,60 @@ export function Board({
     dragging && !isSetItem(dragging.id) ? Object.values(layout.holders).flat().find((p) => p.id === dragging.id) : undefined
   const draggedSet = dragging && isSetItem(dragging.id) ? layout.holders[holderOf(layout, dragging.id)!] : undefined
   const flat = settings.rackStyle === 'flat'
+  // A row of room below the last, to move a set into a new one.
+  const rows = Math.max(0, ...[...shown.values()].map((cell) => cell.row + 1)) + 1
 
   return (
     <DndContext
       sensors={sensors}
       collisionDetection={collisions}
       onDragStart={onDragStart}
+      onDragMove={onDragMove}
       onDragOver={onDragOver}
       onDragEnd={onDragEnd}
-      onDragCancel={onDragCancel}
+      onDragCancel={cancel}
     >
       <div className="flex h-dvh flex-col gap-3 p-2 sm:gap-4 sm:p-4 short:gap-2 short:p-2">
-        <TopBar room={room} view={view} secondsLeft={secondsLeft} status={status} settings={settings} onSettings={changeSettings} />
+        <TopBar
+          room={room}
+          view={view}
+          secondsLeft={secondsLeft}
+          status={status}
+          settings={settings}
+          onSettings={changeSettings}
+        />
 
-        <main className="felt relative min-h-0 flex-1 overflow-y-auto rounded-3xl p-4 sm:p-6 short:rounded-2xl short:p-3">
-          <span className="absolute right-4 top-3 rounded-full bg-black/25 px-2.5 py-1 text-xs font-medium text-emerald-100/70 sm:right-6 sm:top-4">
-            {view.pool} in the pool
-          </span>
-          {layout.sets.length === 0 && !myTurn ? (
-            <p className="grid h-full place-items-center text-center text-emerald-100/40">The table is empty. The first meld opens it.</p>
-          ) : (
-            <SortableContext items={layout.sets.map(setItem)} strategy={rectSortingStrategy}>
-              <div className="flex flex-wrap content-start items-center gap-x-5 gap-y-4 pt-6 sm:gap-x-7 sm:gap-y-5 short:gap-x-4 short:gap-y-2 short:pt-5">
-                {layout.sets.map((key) => (
-                  <TableSet key={key} setKey={key} tiles={layout.holders[setHolder(key)]} myTurn={myTurn} />
-                ))}
-                {myTurn && <NewSetSpot active={draggedTile !== undefined} />}
-              </div>
-            </SortableContext>
-          )}
+        <main className="felt relative min-h-0 flex-1 overflow-auto rounded-3xl p-3 [scrollbar-color:rgb(255_255_255/0.15)_transparent] [scrollbar-width:thin] sm:p-6 short:rounded-2xl short:p-3">
+          <TableGrid gridRef={tableGrid} droppable={myTurn} height={metrics ? rows * metrics.cellH : undefined}>
+            {layout.sets.length === 0 && (
+              <p className="pointer-events-none absolute inset-0 grid place-items-center text-center text-emerald-100/40">
+                {myTurn ? 'Drop tiles anywhere on the table to start a set.' : 'The table is empty. The first meld opens it.'}
+              </p>
+            )}
+            {target && metrics && (
+              <div
+                className="pointer-events-none absolute rounded-lg border-2 border-dashed border-emerald-200/60 bg-emerald-200/10 transition-[left,top,width] duration-100"
+                style={{
+                  left: target.cell.col * metrics.cellW,
+                  top: target.cell.row * metrics.cellH,
+                  width: target.width * metrics.cellW - 4,
+                  height: metrics.cellH - 14,
+                }}
+              />
+            )}
+            {metrics &&
+              layout.sets.map((key) => (
+                <TableSet
+                  key={key}
+                  setKey={key}
+                  tiles={layout.holders[setHolder(key)]}
+                  at={shown.get(key)!}
+                  metrics={metrics}
+                  myTurn={myTurn}
+                  glide={key !== dropped}
+                />
+              ))}
+          </TableGrid>
           <AnimatePresence>{view.outcome && <Results view={view} name={name} leave={leave} />}</AnimatePresence>
         </main>
 
@@ -373,11 +504,15 @@ export function Board({
         </section>
       </div>
 
-      <DragOverlay dropAnimation={{ duration: 180, easing: 'cubic-bezier(0.2, 0.8, 0.2, 1)' }}>
+      <DragOverlay dropAnimation={draggedSet ? null : { duration: 180, easing: 'cubic-bezier(0.2, 0.8, 0.2, 1)' }}>
         {draggedTile ? (
-          <TileFace tile={draggedTile.tile} size={dragging?.from && isRack(dragging.from) ? (flat ? 'rack' : 'ledge') : 'table'} lifted />
+          <TileFace
+            tile={draggedTile.tile}
+            size={dragging?.from && isRack(dragging.from) ? (flat ? 'rack' : 'ledge') : 'table'}
+            lifted
+          />
         ) : draggedSet ? (
-          <div className="flex gap-1 p-1">
+          <div className="flex items-center gap-1 pl-4">
             {draggedSet.map((p) => (
               <TileFace key={p.id} tile={p.tile} size="table" lifted />
             ))}
@@ -410,22 +545,66 @@ function SortableTile({ placed, size, draggable }: { placed: Placed; size: TileS
   )
 }
 
-function TableSet({ setKey, tiles, myTurn }: { setKey: number; tiles: Placed[]; myTurn: boolean }) {
-  const { attributes, listeners, setNodeRef, setActivatorNodeRef, transform, transition, isDragging } = useSortable({
-    id: setItem(setKey),
-  })
+/**
+ * The table's grid. Its own component, as a drop target must be inside the
+ * DndContext (which Board renders): a tile dropped on empty space starts a
+ * set there.
+ */
+function TableGrid({
+  gridRef,
+  droppable,
+  height,
+  children,
+}: {
+  gridRef: RefObject<HTMLDivElement | null>
+  droppable: boolean
+  height?: number
+  children: ReactNode
+}) {
+  const { setNodeRef } = useDroppable({ id: NEW_SET, disabled: !droppable })
+  const ref = useCallback(
+    (element: HTMLDivElement | null) => {
+      gridRef.current = element
+      setNodeRef(element)
+    },
+    [gridRef, setNodeRef],
+  )
+  return (
+    <div ref={ref} className="table-grid relative" style={{ height, minHeight: '100%' }}>
+      {children}
+    </div>
+  )
+}
+
+/** A set on the table, at its cell; dragged by its grip, anywhere. */
+function TableSet({
+  setKey,
+  tiles,
+  at,
+  metrics,
+  myTurn,
+  glide,
+}: {
+  setKey: number
+  tiles: Placed[]
+  at: Cell
+  metrics: Metrics
+  myTurn: boolean
+  /** Slide to a new place (moved for the player) rather than jump (dropped by them). */
+  glide: boolean
+}) {
+  const { attributes, listeners, setNodeRef, isDragging } = useDraggable({ id: setItem(setKey) })
   const { setNodeRef: setHolderRef } = useDroppable({ id: setHolder(setKey) })
   const valid = classifySet(tilesOf(tiles)) !== undefined
   return (
     <div
       ref={setNodeRef}
-      style={{ transform: CSS.Translate.toString(transform), transition }}
-      className={`flex items-stretch rounded-lg transition-shadow ${isDragging ? 'opacity-30' : ''} ${
-        valid ? '' : 'bg-amber-400/15 shadow-[0_0_0_2px_rgb(251_191_36/0.7),0_0_24px_rgb(251_191_36/0.25)]'
-      }`}
+      style={{ left: at.col * metrics.cellW, top: at.row * metrics.cellH }}
+      className={`absolute flex items-stretch rounded-lg duration-200 ${glide ? 'transition-[left,top,box-shadow]' : 'transition-[box-shadow]'} ${
+        isDragging ? 'opacity-30' : ''
+      } ${valid ? '' : 'bg-amber-400/15 shadow-[0_0_0_2px_rgb(251_191_36/0.7),0_0_24px_rgb(251_191_36/0.25)]'}`}
     >
       <button
-        ref={setActivatorNodeRef}
         {...attributes}
         {...listeners}
         aria-label="Move this set"
@@ -437,32 +616,13 @@ function TableSet({ setKey, tiles, myTurn }: { setKey: number; tiles: Placed[]; 
         </svg>
       </button>
       <SortableContext items={tiles.map((p) => p.id)} strategy={horizontalListSortingStrategy}>
-        {/* Reaching into the gap after the set, so a tile dropped just past its end joins it. */}
+        {/* Reaching a little past the set, so a tile dropped just after its end joins it. */}
         <div ref={setHolderRef} className="-mr-5 flex gap-1 py-1 pr-6">
           {tiles.map((p) => (
             <SortableTile key={p.id} placed={p} size="table" draggable={myTurn} />
           ))}
         </div>
       </SortableContext>
-    </div>
-  )
-}
-
-/** Where a dropped tile starts a set of its own. */
-function NewSetSpot({ active }: { active: boolean }) {
-  const { setNodeRef, isOver } = useDroppable({ id: NEW_SET })
-  return (
-    <div
-      ref={setNodeRef}
-      className={`grid h-14 min-w-24 place-items-center rounded-lg border-2 border-dashed px-3 text-xs font-semibold uppercase tracking-wider transition sm:h-16 short:h-11 ${
-        isOver
-          ? 'border-emerald-200 bg-emerald-200/15 text-emerald-50'
-          : active
-            ? 'border-emerald-200/50 text-emerald-100/70'
-            : 'border-emerald-200/20 text-emerald-100/35'
-      }`}
-    >
-      New set
     </div>
   )
 }
@@ -531,11 +691,11 @@ function TopBar({
 }) {
   return (
     <header className="flex items-center gap-3">
-      <div className="hidden shrink-0 items-baseline gap-2 sm:flex short:hidden">
+      <div className="hidden shrink-0 items-baseline gap-2 md:flex short:hidden">
         <span className="text-lg font-bold tracking-tight">Rummy</span>
         <span className="font-mono text-xs tracking-widest text-slate-500">{room.code}</span>
       </div>
-      <div className="flex min-w-0 flex-1 gap-2 overflow-x-auto sm:justify-center">
+      <div className="flex min-w-0 flex-1 gap-2 overflow-x-auto [scrollbar-width:none] md:justify-center">
         {view.rackSizes.map((size, seat) => (
           <PlayerChip
             key={seat}
@@ -549,6 +709,13 @@ function TopBar({
           />
         ))}
       </div>
+      <span
+        className="flex shrink-0 items-center gap-1.5 text-sm font-medium tabular-nums text-slate-300"
+        title={`${view.pool} tiles left to draw`}
+      >
+        <span className="h-4 w-3 rounded-[3px] bg-linear-to-b from-stone-100 to-stone-300 shadow-sm" aria-hidden />
+        {view.pool}
+      </span>
       <span
         className={`size-2.5 shrink-0 rounded-full ${status === 'open' ? 'bg-emerald-400' : status === 'connecting' ? 'animate-pulse bg-amber-400' : 'bg-rose-500'}`}
         title={status === 'open' ? 'Connected' : status === 'connecting' ? 'Connecting' : 'Disconnected'}
@@ -580,7 +747,7 @@ function PlayerChip({
   return (
     <div
       title={`${name}: ${tiles} tiles${connected ? '' : ', away'}`}
-      className={`flex shrink-0 items-center gap-2.5 rounded-2xl p-1.5 ring-1 transition sm:pr-3 short:pr-1.5 ${
+      className={`flex shrink-0 items-center gap-2.5 rounded-2xl p-1.5 ring-1 transition md:pr-3 short:pr-1.5 ${
         current ? 'bg-white/10 ring-teal-300/50' : 'bg-white/[0.04] ring-white/10'
       } ${connected ? '' : 'opacity-50'}`}
     >
@@ -607,11 +774,11 @@ function PlayerChip({
           {name.slice(0, 1).toUpperCase()}
         </div>
         {/* On small screens the chip is just the avatar: the tile count rides on it. */}
-        <span className="absolute -bottom-1 -right-1.5 hidden min-w-5 rounded-full bg-slate-900 px-1 text-center text-[0.7rem] font-semibold tabular-nums text-slate-200 ring-1 ring-white/15 max-sm:block short:block">
+        <span className="absolute -bottom-1 -right-1.5 hidden min-w-5 rounded-full bg-slate-900 px-1 text-center text-[0.7rem] font-semibold tabular-nums text-slate-200 ring-1 ring-white/15 max-md:block short:block">
           {tiles}
         </span>
       </div>
-      <div className="leading-tight max-sm:hidden short:hidden">
+      <div className="leading-tight max-md:hidden short:hidden">
         <div className="max-w-28 truncate text-sm font-semibold">
           {name}
           {you && <span className="font-normal text-slate-400"> · you</span>}

@@ -51,28 +51,44 @@ describe('arrangeRack', () => {
 })
 
 describe('arrangeTable', () => {
+  /** Sets with no place, in this order. */
+  const unplaced = (...sets: Tile[][]) => sets.map((tiles) => ({ tiles }))
+  const tilesOf = (sets: { tiles: Tile[] }[]) => sets.map((s) => s.tiles)
   const run = [n('blue', 9), n('blue', 10), n('blue', 11)]
   const group = [n('red', 7), n('blue', 7), n('black', 7)]
   const low = [n('orange', 1), n('orange', 2), n('orange', 3)]
 
   it('keeps the player’s order of unchanged sets', () => {
-    expect(arrangeTable([low, run, group], [run, group, low])).toEqual([low, run, group])
+    expect(tilesOf(arrangeTable(unplaced(low, run, group), [run, group, low]))).toEqual([low, run, group])
   })
 
   it('keeps a changed set in its place and adds new sets at the end', () => {
     const longer = [...run, n('blue', 12)]
     const fresh = [n('red', 1), n('red', 2), n('red', 3)]
-    expect(arrangeTable([group, run], [fresh, longer, group])).toEqual([group, longer, fresh])
+    expect(tilesOf(arrangeTable(unplaced(group, run), [fresh, longer, group]))).toEqual([group, longer, fresh])
   })
 
   it('does not let a changed set take an unchanged one’s place', () => {
     // `group` is still there; the other 7s set changed.
     const sevens = [n('orange', 7), n('blue', 7), n('black', 7)]
     const changed = [n('orange', 7), n('blue', 7), n('red', 7), n('black', 7)]
-    expect(arrangeTable([sevens, group], [group, changed])).toEqual([changed, group])
+    expect(tilesOf(arrangeTable(unplaced(sevens, group), [group, changed]))).toEqual([changed, group])
   })
 
   it('starts with the server’s order', () => {
-    expect(arrangeTable([], [run, group])).toEqual([run, group])
+    expect(arrangeTable([], [run, group])).toEqual(unplaced(run, group))
+  })
+
+  it('keeps where each set was put, also when it changed; new sets have no place yet', () => {
+    const longer = [...run, n('blue', 12)]
+    const previous = [
+      { tiles: run, at: { row: 3, col: 6 } },
+      { tiles: group, at: { row: 0, col: 1 } },
+    ]
+    expect(arrangeTable(previous, [low, group, longer])).toEqual([
+      { tiles: longer, at: { row: 3, col: 6 } },
+      { tiles: group, at: { row: 0, col: 1 } },
+      { tiles: low },
+    ])
   })
 })

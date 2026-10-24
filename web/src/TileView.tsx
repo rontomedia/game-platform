@@ -8,7 +8,7 @@ const numeralColor: Record<Color, string> = {
 }
 
 const sizes = {
-  table: 'h-14 w-10 text-[1.35rem] rounded-md sm:h-16 sm:w-11 sm:text-2xl short:h-11 short:w-8 short:text-lg',
+  table: 'h-[3.25rem] w-9 text-[1.25rem] rounded-md sm:h-16 sm:w-11 sm:text-2xl short:h-11 short:w-8 short:text-lg',
   rack: 'h-16 w-11 text-2xl rounded-lg sm:h-[4.75rem] sm:w-[3.25rem] sm:text-[1.9rem] short:h-12 short:w-9 short:text-xl',
   /** The two-row rack: a little narrower on phones, so eight fit in a row. */
   ledge: 'h-14 w-10 text-[1.4rem] rounded-md sm:h-[4.75rem] sm:w-[3.25rem] sm:rounded-lg sm:text-[1.9rem] short:h-12 short:w-9 short:text-xl',
