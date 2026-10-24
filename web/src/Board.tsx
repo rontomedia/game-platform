@@ -466,6 +466,28 @@ export function Board({
     if ((startedIn && isRack(startedIn)) || isRack(holderOf(layout, overId) ?? '')) setSort('custom')
   }
 
+  // Double-clicked rack tiles go onto the table: the first starts a set
+  // after the last row, the next ones join that set while it's there.
+  const quickSet = useRef<number | null>(null)
+  const playQuickly = (tile: Placed) => {
+    const from = holderOf(layout, tile.id)
+    if (!myTurn || !metrics || !from || !isRack(from)) return
+    const existing = quickSet.current !== null && layout.sets.includes(quickSet.current) ? quickSet.current : null
+    const key = existing ?? nextSet.current++
+    quickSet.current = key
+    const lastRow = Math.max(0, ...[...shown.values()].map((cell) => cell.row))
+    const cell = existing === null ? gridWithout(shown, widths, metrics.columns).firstFree(footprint(1), lastRow) : null
+    setLayout((l) => ({
+      holders: {
+        ...l.holders,
+        [from]: l.holders[from].filter((p) => p.id !== tile.id),
+        [setHolder(key)]: [...(l.holders[setHolder(key)] ?? []), tile],
+      },
+      sets: cell ? [...l.sets, key] : l.sets,
+      at: cell ? { ...pinned(l), [key]: cell } : l.at,
+    }))
+  }
+
   const cancel = () => {
     setDragging(null)
     setTarget(null)
@@ -513,7 +535,7 @@ export function Board({
       recentBy?.fresh && game.lastPlay
         ? `${recentBy.name} played ${game.lastPlay.played} tile${game.lastPlay.played === 1 ? '' : 's'}. `
         : ''
-    if (view.melded[view.you]) return { tone: 'neutral', text: `${news}Your turn: drag tiles onto the table, or draw.` }
+    if (view.melded[view.you]) return { tone: 'neutral', text: `${news}Your turn: drag tiles onto the table (or double-click them), or draw.` }
     return {
       tone: 'neutral',
       text: `${news}Your turn. Your first sets must be worth ${view.rules.initialMeld}, from your rack alone.`,
@@ -608,11 +630,11 @@ export function Board({
             )}
           </div>
           {flat ? (
-            <RackRow id="rack-0" tiles={layout.holders['rack-0']} wrap />
+            <RackRow id="rack-0" tiles={layout.holders['rack-0']} wrap onPlay={myTurn ? playQuickly : undefined} />
           ) : (
             <div className="rack-classic space-y-1.5 rounded-2xl px-2 pb-1.5 pt-2 sm:px-3 short:space-y-1 short:pt-1.5">
-              <RackRow id="rack-0" tiles={layout.holders['rack-0']} />
-              <RackRow id="rack-1" tiles={layout.holders['rack-1']} />
+              <RackRow id="rack-0" tiles={layout.holders['rack-0']} onPlay={myTurn ? playQuickly : undefined} />
+              <RackRow id="rack-1" tiles={layout.holders['rack-1']} onPlay={myTurn ? playQuickly : undefined} />
             </div>
           )}
         </section>
@@ -637,7 +659,17 @@ export function Board({
   )
 }
 
-function SortableTile({ placed, size, draggable }: { placed: Placed; size: TileSize; draggable: boolean }) {
+function SortableTile({
+  placed,
+  size,
+  draggable,
+  onDoubleClick,
+}: {
+  placed: Placed
+  size: TileSize
+  draggable: boolean
+  onDoubleClick?: () => void
+}) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: placed.id,
     disabled: { draggable: !draggable, droppable: false },
@@ -648,6 +680,7 @@ function SortableTile({ placed, size, draggable }: { placed: Placed; size: TileS
       style={{ transform: CSS.Translate.toString(transform), transition }}
       {...attributes}
       {...listeners}
+      onDoubleClick={onDoubleClick}
       aria-label={tileName(placed.tile)}
       aria-roledescription="tile"
       className={`touch-manipulation rounded-md outline-offset-2 focus-visible:outline-2 focus-visible:outline-teal-300 ${
@@ -778,7 +811,18 @@ function TableSet({
   )
 }
 
-function RackRow({ id, tiles, wrap = false }: { id: string; tiles: Placed[]; wrap?: boolean }) {
+function RackRow({
+  id,
+  tiles,
+  wrap = false,
+  onPlay,
+}: {
+  id: string
+  tiles: Placed[]
+  wrap?: boolean
+  /** Plays a double-clicked tile, on the player's turn. */
+  onPlay?: (tile: Placed) => void
+}) {
   const { setNodeRef } = useDroppable({ id })
   const row = (
     <SortableContext items={tiles.map((p) => p.id)} strategy={wrap ? rectSortingStrategy : horizontalListSortingStrategy}>
@@ -791,7 +835,13 @@ function RackRow({ id, tiles, wrap = false }: { id: string; tiles: Placed[]; wra
         }
       >
         {tiles.map((p) => (
-          <SortableTile key={p.id} placed={p} size={wrap ? 'rack' : 'ledge'} draggable />
+          <SortableTile
+            key={p.id}
+            placed={p}
+            size={wrap ? 'rack' : 'ledge'}
+            draggable
+            onDoubleClick={onPlay && (() => onPlay(p))}
+          />
         ))}
       </div>
     </SortableContext>
