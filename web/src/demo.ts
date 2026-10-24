@@ -66,11 +66,18 @@ export function demoGame(watching = false): GameState {
 
 /**
  * Maya's table as her turn goes on (`?demo=watch`): a new set from her rack,
- * then a tile on the end of a run, then back to the start (she reset).
+ * a tile on the end of a run, the orange 7 taken out of the 7s for a set of
+ * its own (unfinished, as mid-turn tables are), then back to the start (she
+ * reset).
  */
 export function demoDrafts(): (Tile[][] | null)[] {
   const table = demoGame().view.table
   const withRun = [...table, [n('red', 10), n('red', 11), n('red', 12)]]
   const extended = withRun.map((set, i) => (i === 0 ? [...set, n('blue', 13)] : set))
-  return [null, withRun, extended, table]
+  const sevens = extended[1]
+  const split = [
+    ...extended.map((set, i) => (i === 1 ? sevens.filter((t) => !(t.kind === 'number' && t.color === 'orange')) : set)),
+    [n('orange', 7)],
+  ]
+  return [null, withRun, extended, split, table]
 }

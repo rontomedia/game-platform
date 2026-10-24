@@ -102,9 +102,14 @@ only builds it on start.
     (`engine::within_reach`), passes it on and keeps it for anyone who
     reconnects, until the next state. Watchers see it via `withTable` in
     their own arrangement (unchanged sets keep their keys, so nothing they
-    hold moves), changed sets pulsing blue. Each player can switch watching
+    hold moves), changed sets pulsing blue. Tiles new to the table glide
+    in like dragged ones (Web Animations on the tile's face; the wrapper's
+    position is what's recorded), from where they were or from the
+    player's avatar (`data-seat`) if they came from the rack. Each player can switch watching
     off in the settings (`watchLive`); there's no per-player opt-out of
     being watched, as that's the room's rule. `?demo=watch` shows it.
+  - Double-clicking a rack tile on your turn plays it: the first starts a
+    set after the last row, later ones join that set while it exists.
   - `grid.ts`: the table as a grid of cells (one table tile wide, one row
     high; sizes as CSS variables on `.table-grid` in `index.css`, in step
     with the `table` tile size). A set takes a cell for its grip plus one

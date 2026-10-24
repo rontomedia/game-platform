@@ -252,6 +252,67 @@ export function Board({
     setShownLive(liveTable)
     setLayout((l) => withTable(l, liveTable ?? view.table))
   }
+  // Watching: tiles new to the table in a draft glide to their places like
+  // dragged ones, from where they were on the table or, from the rack, from
+  // the player's avatar. Where every tile was is noted after each render
+  // (the tile's wrapper, which never moves; its face is what's animated).
+  const tilesWere = useRef(new Map<string, { tile: string; rect: DOMRect }>())
+  const glidedFor = useRef<Tile[][] | null>(null)
+  useLayoutEffect(() => {
+    const grid = tableGrid.current
+    if (myTurn || !grid) return
+    const now = [...grid.querySelectorAll<HTMLElement>('[data-tile-id]')].map((element) => ({
+      element,
+      id: element.dataset.tileId!,
+      tile: element.dataset.tile!,
+      rect: element.getBoundingClientRect(),
+    }))
+    const before = tilesWere.current
+    tilesWere.current = new Map(now.map(({ id, tile, rect }) => [id, { tile, rect }]))
+    if (shownLive === glidedFor.current) return
+    glidedFor.current = shownLive
+    if (!shownLive || matchMedia('(prefers-reduced-motion: reduce)').matches) return
+
+    // Tiles that left their place, to be found again elsewhere.
+    const present = new Set(now.map(({ id }) => id))
+    const left = [...before].filter(([id]) => !present.has(id)).map(([, was]) => was)
+    const avatar = document.querySelector(`[data-seat="${view.current}"]`)?.getBoundingClientRect()
+    let order = 0
+    for (const { element, id, tile, rect } of now) {
+      if (before.has(id)) continue
+      const centre = (r: DOMRect) => [r.left + r.width / 2, r.top + r.height / 2]
+      const [x, y] = centre(rect)
+      // The nearest tile like it that left its place; else the rack.
+      let from: number[] | undefined
+      let best = Infinity
+      left.forEach((was, i) => {
+        if (was.tile !== tile) return
+        const [wx, wy] = centre(was.rect)
+        const distance = Math.hypot(wx - x, wy - y)
+        if (distance < best) [best, from] = [distance, [wx, wy, i]]
+      })
+      if (from) left.splice(from[2], 1)
+      else if (avatar) from = centre(avatar)
+      if (!from || Math.hypot(from[0] - x, from[1] - y) < 2) continue
+      const face = element.firstElementChild as HTMLElement
+      const set = element.closest<HTMLElement>('[data-state]')
+      // Above the other sets while it travels.
+      if (set) set.style.zIndex = '20'
+      const lifted = 'scale(1.08) rotate(-3deg)'
+      face
+        .animate(
+          [
+            { transform: `translate(${from[0] - x}px, ${from[1] - y}px) ${lifted}`, offset: 0 },
+            { transform: `translate(0, 0) ${lifted}`, offset: 0.8 },
+            { transform: 'none', offset: 1 },
+          ],
+          { duration: 650, delay: order++ * 140, easing: 'cubic-bezier(0.3, 0.7, 0.2, 1)', fill: 'backwards' },
+        )
+        .finished.then(() => set && (set.style.zIndex = ''))
+        .catch(() => {})
+    }
+  })
+
   // The sets they've made or changed so far.
   const liveSets = useMemo(
     () => new Set(liveTable ? newOrChanged(view.table, liveTable).map((set) => JSON.stringify(set)) : []),
@@ -683,6 +744,8 @@ function SortableTile({
       onDoubleClick={onDoubleClick}
       aria-label={tileName(placed.tile)}
       aria-roledescription="tile"
+      data-tile-id={placed.id}
+      data-tile={tileName(placed.tile)}
       className={`touch-manipulation rounded-md outline-offset-2 focus-visible:outline-2 focus-visible:outline-teal-300 ${
         draggable ? 'cursor-grab active:cursor-grabbing' : 'cursor-default'
       } ${isDragging ? 'opacity-30' : ''}`}
@@ -948,6 +1011,7 @@ function PlayerChip({
   return (
     <div
       title={`${name}: ${tiles} tiles${connected ? '' : ', away'}`}
+      data-seat={seat}
       className={`flex shrink-0 items-center gap-2.5 rounded-2xl p-1.5 ring-1 transition md:pr-3 short:pr-1.5 ${
         current ? 'bg-white/10 ring-teal-300/50' : 'bg-white/[0.04] ring-white/10'
       } ${connected ? '' : 'opacity-50'}`}
