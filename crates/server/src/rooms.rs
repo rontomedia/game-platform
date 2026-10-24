@@ -4,6 +4,7 @@ use std::collections::HashMap;
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::{Arc, Mutex};
 
+use protocol::RoomOptions;
 use tokio::sync::mpsc;
 
 use crate::room::{self, Command, Timing};
@@ -24,7 +25,7 @@ impl Rooms {
     }
 
     /// Opens a room with a new code.
-    pub fn create(self: &Arc<Self>) -> mpsc::Sender<Command> {
+    pub fn create(self: &Arc<Self>, options: RoomOptions) -> mpsc::Sender<Command> {
         let mut rooms = self.rooms.lock().unwrap();
         let code = loop {
             let code: String =
@@ -33,7 +34,7 @@ impl Rooms {
                 break code;
             }
         };
-        let sender = room::spawn(code.clone(), self.timing, self.clone());
+        let sender = room::spawn(code.clone(), self.timing, options, self.clone());
         rooms.insert(code, sender.clone());
         sender
     }

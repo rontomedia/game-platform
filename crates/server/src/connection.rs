@@ -64,8 +64,8 @@ async fn handle(message: ClientMessage, rooms: &Arc<Rooms>, membership: &mut Opt
         {
             error(outbox, "already in a room")
         }
-        ClientMessage::CreateRoom { name } => {
-            let room = rooms.create();
+        ClientMessage::CreateRoom { name, options } => {
+            let room = rooms.create(options);
             *membership = enter(room, outbox, |reply| Command::Join { name: clean(&name), connection: connection(), reply }).await;
         }
         ClientMessage::JoinRoom { code, name } => match rooms.get(&code) {
@@ -82,6 +82,7 @@ async fn handle(message: ClientMessage, rooms: &Arc<Rooms>, membership: &mut Opt
         ClientMessage::Start => forward(membership, outbox, |player| Command::Start { player }).await,
         ClientMessage::Play { table } => forward(membership, outbox, |player| Command::Play { player, table }).await,
         ClientMessage::Draw => forward(membership, outbox, |player| Command::Draw { player }).await,
+        ClientMessage::Draft { table } => forward(membership, outbox, |player| Command::Draft { player, table }).await,
     }
 }
 

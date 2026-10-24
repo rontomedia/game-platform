@@ -96,6 +96,15 @@ only builds it on start.
     set doesn't count), blue changed by another player on their last turn
     (`GameState.lastPlay` from `useGame.ts`; flashes when it's news, then
     stays quiet until the table changes).
+  - Live turns: in rooms created with `liveTurns` (on by default), the
+    current player's board sends its table after each drop (`draft`); the
+    server checks it uses only tiles from the table and that player's rack
+    (`engine::within_reach`), passes it on and keeps it for anyone who
+    reconnects, until the next state. Watchers see it via `withTable` in
+    their own arrangement (unchanged sets keep their keys, so nothing they
+    hold moves), changed sets pulsing blue. Each player can switch watching
+    off in the settings (`watchLive`); there's no per-player opt-out of
+    being watched, as that's the room's rule. `?demo=watch` shows it.
   - `grid.ts`: the table as a grid of cells (one table tile wide, one row
     high; sizes as CSS variables on `.table-grid` in `index.css`, in step
     with the `table` tile size). A set takes a cell for its grip plus one

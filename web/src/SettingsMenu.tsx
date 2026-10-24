@@ -2,6 +2,7 @@ import { AnimatePresence, motion } from 'motion/react'
 import { useEffect, useRef, useState } from 'react'
 
 import type { Settings } from './settings.ts'
+import { Switch } from './ui.tsx'
 
 /** A gear that opens the settings. */
 export function SettingsMenu({ settings, onChange }: { settings: Settings; onChange: (change: Partial<Settings>) => void }) {
@@ -69,6 +70,15 @@ export function SettingsMenu({ settings, onChange }: { settings: Settings; onCha
                 ))}
               </div>
             </fieldset>
+            <label className="mt-4 flex cursor-pointer items-start gap-3">
+              <span className="flex-1">
+                <span className="block text-sm font-medium">Watch turns live</span>
+                <span className="mt-0.5 block text-xs text-slate-400">
+                  See the other players’ moves as they make them, in rooms that share them.
+                </span>
+              </span>
+              <Switch checked={settings.watchLive} onChange={(watchLive) => onChange({ watchLive })} />
+            </label>
           </motion.div>
         )}
       </AnimatePresence>

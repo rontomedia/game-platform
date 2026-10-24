@@ -24,6 +24,14 @@ export interface GameState {
   lastPlay?: LastPlay
 }
 
+/** The current player's table so far this turn, as they shared it. */
+export interface Draft {
+  by: number
+  table: Tile[][]
+  /** The state it belongs to: a new state ends it. */
+  version: number
+}
+
 export interface LastPlay {
   /** Who played. */
   by: number
@@ -101,6 +109,7 @@ export function useGame() {
   const [status, setStatus] = useState<Status>('connecting')
   const [room, setRoom] = useState<RoomInfo | null>(null)
   const [game, setGame] = useState<GameState | null>(null)
+  const [draft, setDraft] = useState<Draft | null>(null)
   /** The last refusal or error from the server, until the next change. */
   const [problem, setProblem] = useState<string | null>(null)
   /** Set when the server speaks another protocol version than this page. */
@@ -161,9 +170,13 @@ export function useGame() {
             version: next,
             lastPlay: lastPlay(previous, message.view, next),
           }))
+          setDraft(null)
           setProblem(null)
           break
         }
+        case 'draft':
+          setDraft({ by: message.by, table: message.table, version: version.current })
+          break
         case 'rejected':
           setProblem(message.message)
           break
@@ -194,9 +207,10 @@ export function useGame() {
     saveSeat(null)
     setRoom(null)
     setGame(null)
+    setDraft(null)
     setProblem(null)
     reconnect()
   }, [reconnect])
 
-  return { status, room, game, problem, mismatch, send, reconnect, leave }
+  return { status, room, game, draft, problem, mismatch, send, reconnect, leave }
 }

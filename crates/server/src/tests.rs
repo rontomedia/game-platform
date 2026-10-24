@@ -5,7 +5,7 @@ use std::time::Duration;
 
 use engine::{PlayerView, TurnError};
 use futures_util::{SinkExt, StreamExt};
-use protocol::{ClientMessage, RoomInfo, ServerMessage, PROTOCOL_VERSION};
+use protocol::{ClientMessage, RoomInfo, RoomOptions, ServerMessage, PROTOCOL_VERSION};
 use tokio::net::{TcpListener, TcpStream};
 use tokio_tungstenite::tungstenite::Message;
 use tokio_tungstenite::{MaybeTlsStream, WebSocketStream};
@@ -85,7 +85,11 @@ impl Client {
 
     /// Creates a room; its code and this player's token.
     async fn create(&mut self, name: &str) -> (String, String) {
-        self.send(ClientMessage::CreateRoom { name: name.into() }).await;
+        self.create_with(name, RoomOptions::default()).await
+    }
+
+    async fn create_with(&mut self, name: &str, options: RoomOptions) -> (String, String) {
+        self.send(ClientMessage::CreateRoom { name: name.into(), options }).await;
         let joined = self.receive().await;
         let ServerMessage::Joined { code, token } = joined else { panic!("expected Joined, got {joined:?}") };
         self.room().await;
@@ -109,28 +113,35 @@ struct TwoPlayers {
     code: String,
     /// Ann's, the host's.
     token: String,
+    bob_token: String,
+    /// What Ann saw when the game started (it's her turn).
+    ann_view: PlayerView,
 }
 
 async fn two_player_game(timing: Timing) -> TwoPlayers {
+    two_player_game_with(timing, RoomOptions::default()).await
+}
+
+async fn two_player_game_with(timing: Timing, options: RoomOptions) -> TwoPlayers {
     let server = start_server(timing).await;
     let mut ann = Client::connect(server).await;
     let mut bob = Client::connect(server).await;
-    let (code, token) = ann.create("Ann").await;
-    bob.join(&code, "Bob").await;
+    let (code, token) = ann.create_with("Ann", options).await;
+    let bob_token = bob.join(&code, "Bob").await;
     ann.room().await; // Bob arrived
     ann.send(ClientMessage::Start).await;
-    for client in [&mut ann, &mut bob] {
-        assert!(client.room().await.started);
-        client.state().await;
-    }
-    TwoPlayers { server, ann, bob, code, token }
+    assert!(ann.room().await.started);
+    let (ann_view, _) = ann.state().await;
+    assert!(bob.room().await.started);
+    bob.state().await;
+    TwoPlayers { server, ann, bob, code, token, bob_token, ann_view }
 }
 
 #[tokio::test]
 async fn creating_and_joining_a_room() {
     let server = start_server(SLOW).await;
     let mut ann = Client::connect(server).await;
-    ann.send(ClientMessage::CreateRoom { name: "  Ann  ".into() }).await;
+    ann.send(ClientMessage::CreateRoom { name: "  Ann  ".into(), options: RoomOptions::default() }).await;
     let ServerMessage::Joined { code, .. } = ann.receive().await else { panic!() };
     assert_eq!(code.len(), 4);
     let room = ann.room().await;
@@ -153,7 +164,7 @@ async fn joining_can_fail() {
     assert_eq!(outsider.error().await, "no room with code ZZZZ");
 
     let (code, _) = ann.create("Ann").await;
-    ann.send(ClientMessage::CreateRoom { name: "Ann".into() }).await;
+    ann.send(ClientMessage::CreateRoom { name: "Ann".into(), options: RoomOptions::default() }).await;
     assert_eq!(ann.error().await, "already in a room");
 
     let mut others = Vec::new();
@@ -280,7 +291,7 @@ async fn an_absent_players_turn_is_short() {
 #[tokio::test]
 async fn coming_back_in_time_keeps_the_turn() {
     let timing = Timing { absent_turn: Duration::from_millis(1500), ..SLOW };
-    let TwoPlayers { server, ann, mut bob, code, token } = two_player_game(timing).await;
+    let TwoPlayers { server, ann, mut bob, code, token, .. } = two_player_game(timing).await;
     drop(ann);
     let (view, turn_ms) = bob.state().await;
     assert_eq!(view.current, 0);
@@ -338,4 +349,69 @@ async fn bad_messages_get_an_error() {
     assert_eq!(client.error().await, "messages are JSON text");
     client.send(ClientMessage::Draw).await;
     assert_eq!(client.error().await, "not in a room");
+}
+
+
+/// A table in the middle of Ann's turn: three of her tiles put down (not
+/// necessarily a valid set).
+fn draft(ann_view: &PlayerView) -> Vec<Vec<engine::Tile>> {
+    vec![ann_view.rack[..3].to_vec()]
+}
+
+#[tokio::test]
+async fn the_others_watch_the_current_players_table() {
+    let TwoPlayers { mut ann, mut bob, ann_view, .. } = two_player_game(SLOW).await;
+    ann.send(ClientMessage::Draft { table: draft(&ann_view) }).await;
+    assert_eq!(bob.receive().await, ServerMessage::Draft { by: 0, table: draft(&ann_view) });
+    // Ann gets nothing back: her next message is the state after her draw.
+    ann.send(ClientMessage::Draw).await;
+    assert!(matches!(ann.receive().await, ServerMessage::State { .. }));
+}
+
+#[tokio::test]
+async fn no_live_turns_when_the_room_said_so() {
+    let options = RoomOptions { live_turns: false };
+    let TwoPlayers { mut ann, mut bob, ann_view, .. } = two_player_game_with(SLOW, options).await;
+    ann.send(ClientMessage::Draft { table: draft(&ann_view) }).await;
+    ann.send(ClientMessage::Draw).await;
+    assert!(matches!(bob.receive().await, ServerMessage::State { .. }), "no draft first");
+}
+
+#[tokio::test]
+async fn only_the_current_player_shares_a_draft_and_only_their_tiles() {
+    let TwoPlayers { mut ann, mut bob, .. } = two_player_game(SLOW).await;
+    // Not Bob's turn: ignored.
+    bob.send(ClientMessage::Draft { table: vec![] }).await;
+    // Three jokers: Ann can't have them.
+    let joker = engine::Tile::Joker;
+    ann.send(ClientMessage::Draft { table: vec![vec![joker, joker, joker]] }).await;
+    assert_eq!(ann.error().await, "that table has tiles you don't have");
+    ann.send(ClientMessage::Draw).await;
+    assert!(matches!(bob.receive().await, ServerMessage::State { .. }), "nothing passed on");
+}
+
+#[tokio::test]
+async fn coming_back_mid_turn_shows_the_draft_until_the_turn_ends() {
+    let TwoPlayers { server, mut ann, bob, code, bob_token, ann_view, .. } = two_player_game(SLOW).await;
+    drop(bob);
+    ann.send(ClientMessage::Draft { table: draft(&ann_view) }).await;
+    let rejoin = || ClientMessage::Rejoin { code: code.clone(), token: bob_token.clone() };
+
+    // Bob comes back during Ann's turn: the room, the state, then her draft.
+    let mut bob = Client::connect(server).await;
+    bob.send(rejoin()).await;
+    assert!(matches!(bob.receive().await, ServerMessage::Joined { .. }));
+    assert!(matches!(bob.receive().await, ServerMessage::Room { .. }));
+    assert!(matches!(bob.receive().await, ServerMessage::State { .. }));
+    assert_eq!(bob.receive().await, ServerMessage::Draft { by: 0, table: draft(&ann_view) });
+
+    // After Ann's turn, the draft is gone.
+    ann.send(ClientMessage::Draw).await;
+    bob.state().await;
+    drop(bob);
+    let mut bob = Client::connect(server).await;
+    bob.send(rejoin()).await;
+    bob.state().await;
+    bob.send(ClientMessage::Draw).await;
+    assert!(matches!(bob.receive().await, ServerMessage::State { .. }), "no draft before it");
 }

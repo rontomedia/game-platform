@@ -41,3 +41,19 @@ export function Note({ tone, children }: { tone: 'neutral' | 'good' | 'bad'; chi
   const color = { neutral: 'text-slate-400', good: 'text-emerald-300', bad: 'text-amber-300' }[tone]
   return <p className={`text-sm font-medium ${color}`}>{children}</p>
 }
+
+/** An on/off switch. */
+export function Switch({ checked, onChange }: { checked: boolean; onChange: (checked: boolean) => void }) {
+  return (
+    <button
+      role="switch"
+      aria-checked={checked}
+      onClick={() => onChange(!checked)}
+      className={`relative mt-0.5 h-6 w-10 shrink-0 cursor-pointer rounded-full transition ${checked ? 'bg-teal-500' : 'bg-white/15'}`}
+    >
+      <span
+        className={`absolute top-0.5 size-5 rounded-full bg-white shadow transition-[left] ${checked ? 'left-[1.125rem]' : 'left-0.5'}`}
+      />
+    </button>
+  )
+}

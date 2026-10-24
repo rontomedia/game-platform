@@ -150,3 +150,30 @@ body {
     box-shadow: 0 0 0 2px rgb(56 189 248 / 0.7);
   }
 }
+
+/* A set another player is changing right now, on their turn. */
+.live-set {
+  background-color: rgb(56 189 248 / 0.12);
+  animation: live-set 1.6s ease-in-out infinite;
+}
+
+@keyframes live-set {
+  0%,
+  100% {
+    box-shadow:
+      0 0 0 2px rgb(56 189 248 / 0.55),
+      0 0 12px rgb(56 189 248 / 0.15);
+  }
+  50% {
+    box-shadow:
+      0 0 0 2px rgb(56 189 248 / 0.95),
+      0 0 26px rgb(56 189 248 / 0.4);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .live-set {
+    animation: none;
+    box-shadow: 0 0 0 2px rgb(56 189 248 / 0.85);
+  }
+}

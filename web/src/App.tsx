@@ -1,12 +1,12 @@
-import { useCallback, useState, type FormEvent } from 'react'
+import { useCallback, useEffect, useState, type FormEvent } from 'react'
 
 import { emptyArrangement, type Arrangement, type RackSort } from './arrange.ts'
 import { Board } from './Board.tsx'
-import { demoGame, demoRoom } from './demo.ts'
+import { demoDrafts, demoGame, demoRoom } from './demo.ts'
 import { useSettings } from './settings.ts'
 import { remember, remembered } from './storage.ts'
-import { Button, inputClass, Note, Panel } from './ui.tsx'
-import { SERVER_URL, useGame, type Status } from './useGame.ts'
+import { Button, inputClass, Note, Panel, Switch } from './ui.tsx'
+import { SERVER_URL, useGame, type Draft, type Status } from './useGame.ts'
 import { protocolVersion, type ClientMessage, type RoomInfo } from './wasm/engine.js'
 
 const statusLook: Record<Status, { label: string; dot: string }> = {
@@ -22,10 +22,25 @@ export default function App() {
   return DEMO ? <Demo /> : <Online />
 }
 
+/**
+ * The demo game. `?demo=watch`: it's Maya's turn instead, and she shares it
+ * live, a step every few seconds.
+ */
 function Demo() {
-  const [game] = useState(demoGame)
+  const watch = new URLSearchParams(location.search).get('demo') === 'watch'
+  const [game] = useState(() => demoGame(watch))
   const [settings, changeSettings] = useSettings()
   const [arrangement, setArrangement] = useArrangement(demoRoom.code)
+  const [step, setStep] = useState(0)
+  useEffect(() => {
+    if (!watch) return
+    const timer = setInterval(() => setStep((step) => step + 1), 2500)
+    return () => clearInterval(timer)
+  }, [watch])
+  // Made once: a new table each render would look like a new draft each time.
+  const [drafts] = useState(demoDrafts)
+  const table = watch ? drafts[step % drafts.length] : null
+  const draft: Draft | null = table && { by: game.view.current, table, version: game.version }
   return (
     <Board
       game={game}
@@ -36,6 +51,7 @@ function Demo() {
       onSettings={changeSettings}
       arrangement={arrangement}
       onArrange={setArrangement}
+      draft={settings.watchLive ? draft : null}
       send={(message) => console.info('demo, not sent:', message)}
       leave={() => location.reload()}
     />
@@ -70,7 +86,7 @@ function useArrangement(code: string | undefined): [Arrangement, (arrangement: A
 }
 
 function Online() {
-  const { status, room, game, problem, mismatch, send, reconnect, leave } = useGame()
+  const { status, room, game, draft, problem, mismatch, send, reconnect, leave } = useGame()
   const [settings, changeSettings] = useSettings()
   const [arrangement, setArrangement] = useArrangement(room?.code)
   const look = statusLook[status]
@@ -87,6 +103,7 @@ function Online() {
         onSettings={changeSettings}
         arrangement={arrangement}
         onArrange={setArrangement}
+        draft={settings.watchLive ? draft : null}
         send={send}
         leave={leave}
       />
@@ -128,9 +145,11 @@ function Home({ send, problem, ready }: { send: (m: ClientMessage) => void; prob
   const [name, setName] = useState(() => remembered<string>(NAME_KEY) ?? '')
   const [code, setCode] = useState('')
 
+  const [liveTurns, setLiveTurns] = useState(true)
+
   const create = () => {
     remember(NAME_KEY, name.trim())
-    send({ type: 'createRoom', name })
+    send({ type: 'createRoom', name, options: { liveTurns } })
   }
   const join = (e: FormEvent) => {
     e.preventDefault()
@@ -145,7 +164,16 @@ function Home({ send, problem, ready }: { send: (m: ClientMessage) => void; prob
           <span className="text-sm font-medium text-slate-300">Your name</span>
           <input value={name} onChange={(e) => setName(e.target.value)} maxLength={20} placeholder="Name" className={inputClass} />
         </label>
-        <Button look="primary" className="mt-5 w-full" disabled={!ready} onClick={create}>
+        <label className="mt-5 flex cursor-pointer items-start gap-3">
+          <span className="flex-1">
+            <span className="block text-sm font-medium text-slate-300">Show turns live</span>
+            <span className="mt-0.5 block text-xs text-slate-500">
+              Everyone sees the current player’s moves as they make them, as at a real table.
+            </span>
+          </span>
+          <Switch checked={liveTurns} onChange={setLiveTurns} />
+        </label>
+        <Button look="primary" className="mt-4 w-full" disabled={!ready} onClick={create}>
           Create a room
         </Button>
         <div className="my-5 flex items-center gap-3 text-sm text-slate-500">
@@ -194,6 +222,9 @@ function Lobby({
       <Panel>
         <p className="text-sm text-slate-400">Room code: share it with the other players</p>
         <p className="mt-1 font-mono text-5xl font-bold tracking-[0.2em] text-teal-300">{room.code}</p>
+        <p className="mt-3 text-sm text-slate-400">
+          {room.options.liveTurns ? 'Turns are shown live to everyone.' : 'Only finished turns are shown.'}
+        </p>
         <ul className="mt-6 space-y-2">
           {room.seats.map((seat, i) => (
             <li key={i} className="flex items-center gap-3 rounded-xl bg-white/5 px-3 py-2">

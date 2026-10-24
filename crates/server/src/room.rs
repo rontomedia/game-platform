@@ -5,8 +5,8 @@
 use std::sync::Arc;
 use std::time::Duration;
 
-use engine::{Game, Rules, Tile};
-use protocol::{RoomInfo, Seat, ServerMessage};
+use engine::{within_reach, Game, Rules, Tile};
+use protocol::{RoomInfo, RoomOptions, Seat, ServerMessage};
 use tokio::sync::{mpsc, oneshot};
 use tokio::time::{sleep_until, Instant};
 
@@ -52,6 +52,7 @@ pub enum Command {
     Start { player: PlayerId },
     Play { player: PlayerId, table: Vec<Vec<Tile>> },
     Draw { player: PlayerId },
+    Draft { player: PlayerId, table: Vec<Vec<Tile>> },
 }
 
 struct Player {
@@ -64,6 +65,7 @@ struct Player {
 pub struct Room {
     code: String,
     timing: Timing,
+    options: RoomOptions,
     /// In seat order.
     players: Vec<Player>,
     next_id: PlayerId,
@@ -75,12 +77,26 @@ pub struct Room {
     full_turn_ends: Option<Instant>,
     /// When the room closes if nobody comes back.
     closes: Option<Instant>,
+    /// The current player's table so far this turn, if they've shared one
+    /// (rooms with live turns); kept for anyone who reconnects.
+    draft: Option<Vec<Vec<Tile>>>,
 }
 
 /// Starts a room's task; it removes itself from `rooms` when it closes.
-pub fn spawn(code: String, timing: Timing, rooms: Arc<Rooms>) -> mpsc::Sender<Command> {
+pub fn spawn(code: String, timing: Timing, options: RoomOptions, rooms: Arc<Rooms>) -> mpsc::Sender<Command> {
     let (sender, commands) = mpsc::channel(64);
-    let room = Room { code, timing, players: Vec::new(), next_id: 0, game: None, turn_ends: None, full_turn_ends: None, closes: None };
+    let room = Room {
+        code,
+        timing,
+        options,
+        players: Vec::new(),
+        next_id: 0,
+        game: None,
+        turn_ends: None,
+        full_turn_ends: None,
+        closes: None,
+        draft: None,
+    };
     tokio::spawn(room.run(commands, rooms));
     sender
 }
@@ -119,6 +135,7 @@ impl Room {
             Command::Start { player } => self.start(player),
             Command::Play { player, table } => self.make_move(player, |game, seat| game.play(seat, table).map(|_| ())),
             Command::Draw { player } => self.make_move(player, |game, seat| game.draw(seat).map(|_| ())),
+            Command::Draft { player, table } => self.share_draft(player, table),
         }
     }
 
@@ -152,6 +169,12 @@ impl Room {
         }
         self.connections_changed();
         self.broadcast_state();
+        if let Some(table) = &self.draft {
+            let by = self.game.as_ref().map_or(0, Game::current);
+            if by != seat {
+                self.send(seat, ServerMessage::Draft { by, table: table.clone() });
+            }
+        }
         Ok(id)
     }
 
@@ -209,6 +232,24 @@ impl Room {
         }
     }
 
+    /// The current player's table so far, passed on to the others. Only in
+    /// rooms with live turns, only from the current player, and only tiles
+    /// they could have: the table's and their rack's.
+    fn share_draft(&mut self, player: PlayerId, table: Vec<Vec<Tile>>) {
+        let Some(seat) = self.seat(player) else { return };
+        let Some(game) = &self.game else { return };
+        if !self.options.live_turns || game.current() != seat || game.outcome().is_some() {
+            return;
+        }
+        if !within_reach(game.table(), game.rack(seat), &table) {
+            return self.send(seat, ServerMessage::Error { message: "that table has tiles you don't have".into() });
+        }
+        for other in (0..self.players.len()).filter(|&other| other != seat) {
+            self.send(other, ServerMessage::Draft { by: seat, table: table.clone() });
+        }
+        self.draft = Some(table);
+    }
+
     /// The current player ran out of time: they draw.
     fn time_out(&mut self) {
         let Some(game) = self.game.as_mut() else { return };
@@ -221,6 +262,7 @@ impl Room {
     fn start_turn(&mut self) {
         let Some(game) = &self.game else { return };
         self.full_turn_ends = None;
+        self.draft = None;
         self.turn_ends = game.outcome().is_none().then(|| {
             let present = self.players[game.current()].connection.is_some();
             Instant::now() + if present { self.timing.turn } else { self.timing.absent_turn }
@@ -263,6 +305,7 @@ impl Room {
                 you,
                 host: self.host(),
                 started: self.game.is_some(),
+                options: self.options.clone(),
             };
             self.send(you, ServerMessage::Room { room });
         }

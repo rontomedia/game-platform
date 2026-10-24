@@ -20,14 +20,17 @@ export const demoRoom: RoomInfo = {
   you: 0,
   host: 0,
   started: true,
+  options: { liveTurns: true },
 }
 
-export function demoGame(): GameState {
+/** `watching`: Maya's turn, so the player watches it (with `demoDrafts`). */
+export function demoGame(watching = false): GameState {
   return {
     version: 1,
     turnEnds: Date.now() + 42_000,
-    // Maya's turn, just before this one.
-    lastPlay: {
+    // Maya's turn, just before this one (when watching, Maya plays now and
+    // the turn before was this player's own).
+    lastPlay: watching ? undefined : {
       by: 1,
       sets: [
         [n('red', 5), n('red', 6), n('red', 7), n('red', 8), n('red', 9)],
@@ -39,7 +42,7 @@ export function demoGame(): GameState {
     view: {
       you: 0,
       rules: { rackSize: 14, initialMeld: 30, jokerPenalty: 30 },
-      current: 0,
+      current: watching ? 1 : 0,
       pool: 38,
       rackSizes: [15, 9, 12, 6],
       melded: [true, true, true, true],
@@ -59,4 +62,15 @@ export function demoGame(): GameState {
       ],
     },
   }
+}
+
+/**
+ * Maya's table as her turn goes on (`?demo=watch`): a new set from her rack,
+ * then a tile on the end of a run, then back to the start (she reset).
+ */
+export function demoDrafts(): (Tile[][] | null)[] {
+  const table = demoGame().view.table
+  const withRun = [...table, [n('red', 10), n('red', 11), n('red', 12)]]
+  const extended = withRun.map((set, i) => (i === 0 ? [...set, n('blue', 13)] : set))
+  return [null, withRun, extended, table]
 }

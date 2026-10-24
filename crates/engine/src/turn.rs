@@ -54,6 +54,15 @@ impl fmt::Display for TurnError {
 
 impl std::error::Error for TurnError {}
 
+/// Whether `draft`, a table in the middle of a turn, uses only tiles that
+/// exist and that are on the table `before` or on the player's `rack`. Its
+/// sets needn't be valid yet, nor all of `before` be there: it's shown to
+/// other players as the turn goes, not played.
+pub fn within_reach(before: &[Vec<Tile>], rack: &[Tile], draft: &[Vec<Tile>]) -> bool {
+    draft.iter().flatten().all(|t| t.exists())
+        && Counts::of(before.iter().flatten().chain(rack)).minus(&Counts::of(draft.iter().flatten())).is_some()
+}
+
 /// Checks a turn that changes the table from `before` to `after`, playing
 /// tiles from `rack`. `melded`: whether the player has made their initial
 /// meld in an earlier turn. Returns the tiles that left the rack.
@@ -208,6 +217,18 @@ mod tests {
     fn something_must_be_played() {
         let rearranged = [vec![n(Red, 3), n(Red, 4), n(Red, 5), n(Red, 6)]];
         assert_eq!(check(&[red_run()], &rearranged, &[n(Red, 7)], true), Err(TurnError::NothingPlayed));
+    }
+
+    #[test]
+    fn a_draft_uses_only_the_table_and_the_rack() {
+        let rack = [n(Red, 7), J];
+        // Half done: a run split, the joker out on its own, a red 7 not placed yet.
+        let draft = [vec![n(Red, 3), n(Red, 4)], vec![n(Red, 5), n(Red, 6)], vec![J]];
+        assert!(within_reach(&[red_run()], &rack, &draft));
+        // A second joker, from nowhere.
+        let extra = [red_run(), vec![J, J]];
+        assert!(!within_reach(&[red_run()], &rack, &extra));
+        assert!(!within_reach(&[], &rack, &[vec![n(Red, 14)]]), "no such tile");
     }
 
     #[test]

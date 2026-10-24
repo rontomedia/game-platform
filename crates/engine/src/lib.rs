@@ -12,4 +12,4 @@ mod turn;
 pub use game::{Game, Outcome, PlayerView, Rules};
 pub use set::{classify, points, SetKind};
 pub use tile::{full_set, Color, Tile, MAX_VALUE};
-pub use turn::{check_turn, TurnError};
+pub use turn::{check_turn, within_reach, TurnError};

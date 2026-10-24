@@ -6,9 +6,11 @@ import { remember, remembered } from './storage.ts'
 export interface Settings {
   /** A flat tray that wraps, or a two-row rack like a physical one. */
   rackStyle: 'flat' | 'classic'
+  /** See the current player's table as they rearrange it (in rooms that share turns live). */
+  watchLive: boolean
 }
 
-const defaults: Settings = { rackStyle: 'flat' }
+const defaults: Settings = { rackStyle: 'flat', watchLive: true }
 const KEY = 'rummy.settings'
 
 export function useSettings(): [Settings, (change: Partial<Settings>) => void] {

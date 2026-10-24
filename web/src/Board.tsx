@@ -28,13 +28,22 @@ import { CSS } from '@dnd-kit/utilities'
 import { AnimatePresence, motion } from 'motion/react'
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode, type RefObject } from 'react'
 
-import { arrangeRack, arrangeTable, compareTiles, splitRows, tileName, type Arrangement, type RackSort } from './arrange.ts'
+import {
+  arrangeRack,
+  arrangeTable,
+  compareTiles,
+  newOrChanged,
+  splitRows,
+  tileName,
+  type Arrangement,
+  type RackSort,
+} from './arrange.ts'
 import { footprint, gridWithout, resolve, type Cell } from './grid.ts'
 import type { Settings } from './settings.ts'
 import { SettingsMenu } from './SettingsMenu.tsx'
 import { TileFace, type TileSize } from './TileView.tsx'
 import { Button } from './ui.tsx'
-import type { GameState, Status } from './useGame.ts'
+import type { Draft, GameState, Status } from './useGame.ts'
 import { checkTurn, classifySet, type ClientMessage, type RoomInfo, type Tile } from './wasm/engine.js'
 
 /**
@@ -123,6 +132,33 @@ function dropEmptySets(layout: Layout): Layout {
   return { holders, sets, at }
 }
 
+/** Ids for the tiles of sets that arrive in another player's draft. */
+let liveTileIds = 0
+
+/**
+ * The layout with the table replaced by `table` (another player's draft, or
+ * the state again), arranged as this player has it. Sets that didn't change
+ * keep their key and tiles, so they stay put on screen (even mid-drag).
+ */
+function withTable(l: Layout, table: Tile[][]): Layout {
+  const previous = l.sets.map((key) => ({ key, tiles: tilesOf(l.holders[setHolder(key)]), at: l.at[key] }))
+  const holders: Layout['holders'] = Object.fromEntries(RACK_ROWS.map((row) => [row, l.holders[row]]))
+  const sets: number[] = []
+  const at: Layout['at'] = {}
+  let nextKey = Math.max(-1, ...l.sets) + 1
+  for (const set of arrangeTable(previous, table)) {
+    const kept = previous.findIndex(
+      (p) => JSON.stringify(p.tiles) === JSON.stringify(set.tiles) && p.at?.row === set.at?.row && p.at?.col === set.at?.col,
+    )
+    const key = kept >= 0 ? previous.splice(kept, 1)[0].key : nextKey++
+    holders[setHolder(key)] =
+      kept >= 0 ? l.holders[setHolder(key)] : set.tiles.map((tile) => ({ id: `live-${liveTileIds++}`, tile, fromTable: true }))
+    at[key] = set.at
+    sets.push(key)
+  }
+  return { holders, sets, at }
+}
+
 /** A table to compare regardless of the order of its sets. */
 const canonical = (sets: Tile[][]) => sets.map((s) => JSON.stringify(s)).sort().join('|')
 
@@ -173,6 +209,7 @@ export function Board({
   onSettings,
   arrangement,
   onArrange,
+  draft,
   send,
   leave,
 }: {
@@ -184,6 +221,8 @@ export function Board({
   onSettings: (change: Partial<Settings>) => void
   arrangement: Arrangement
   onArrange: (arrangement: Arrangement) => void
+  /** The current player's table so far, if they share it and this player watches. */
+  draft: Draft | null
   send: (message: ClientMessage) => void
   leave: () => void
 }) {
@@ -204,6 +243,20 @@ export function Board({
   const tableGrid = useRef<HTMLDivElement | null>(null)
   const [metrics, setMetrics] = useState<Metrics | null>(null)
   const secondsLeft = useSecondsLeft(game.turnEnds)
+
+  // Another player's turn, as they share it: their draft in place of the
+  // table, until the next state (or the draft goes away).
+  const liveTable = !myTurn && draft && draft.version === game.version ? draft.table : null
+  const [shownLive, setShownLive] = useState<Tile[][] | null>(null)
+  if (liveTable !== shownLive) {
+    setShownLive(liveTable)
+    setLayout((l) => withTable(l, liveTable ?? view.table))
+  }
+  // The sets they've made or changed so far.
+  const liveSets = useMemo(
+    () => new Set(liveTable ? newOrChanged(view.table, liveTable).map((set) => JSON.stringify(set)) : []),
+    [liveTable, view.table],
+  )
 
   const sensors = useSensors(
     useSensor(MouseSensor, { activationConstraint: { distance: 4 } }),
@@ -288,6 +341,18 @@ export function Board({
   const verdict = myTurn && changed
     ? checkTurn({ before: view.table, after: table, rack: view.rack, melded: view.melded[view.you], rules: view.rules })
     : null
+
+  // On this player's turn, in a room that shares turns live: the table after
+  // each drop, for the others to watch.
+  const shareLive = myTurn && room.options.liveTurns
+  const shared = useRef(canonical(view.table))
+  useEffect(() => {
+    if (!shareLive || dragging) return
+    const now = canonical(table)
+    if (now === shared.current) return
+    shared.current = now
+    send({ type: 'draft', table })
+  }, [shareLive, dragging, table, send])
 
   /** Whether `tile` may go into `holder` (or onto the table as a new set). */
   const mayGo = (tile: Placed, holder: string) => (isRack(holder) ? !tile.fromTable : myTurn)
@@ -428,7 +493,16 @@ export function Board({
   const note = ((): { tone: 'neutral' | 'good' | 'bad'; text: string } => {
     if (problem) return { tone: 'bad', text: problem }
     if (view.outcome) return { tone: 'neutral', text: 'The game is over.' }
-    if (!myTurn) return { tone: 'neutral', text: `${name(view.current)} is playing.` }
+    if (!myTurn) {
+      const placed = liveTable ? liveTable.flat().length - view.table.flat().length : 0
+      return {
+        tone: 'neutral',
+        text:
+          liveTable && (placed > 0 || liveSets.size > 0)
+            ? `${name(view.current)} is playing: ${placed} tile${placed === 1 ? '' : 's'} from their rack so far.`
+          : `${name(view.current)} is playing.`,
+      }
+    }
     if (verdict?.verdict === 'rejected') return { tone: 'bad', text: verdict.message }
     if (verdict?.verdict === 'allowed') {
       const n = verdict.played.length
@@ -504,7 +578,13 @@ export function Board({
                   myTurn={myTurn}
                   glide={key !== dropped}
                   changed={myTurn && startTiles.get(key) !== JSON.stringify(tilesOf(layout.holders[setHolder(key)]))}
-                  recentBy={recent.has(key) ? recentBy : undefined}
+                  // Once the current player changes the table live, last turn's marks give way.
+                  recentBy={recent.has(key) && liveSets.size === 0 ? recentBy : undefined}
+                  liveBy={
+                    liveTable && liveSets.has(JSON.stringify(tilesOf(layout.holders[setHolder(key)])))
+                      ? { seat: view.current, name: name(view.current) }
+                      : undefined
+                  }
                 />
               ))}
           </TableGrid>
@@ -620,6 +700,7 @@ function TableSet({
   glide,
   changed,
   recentBy,
+  liveBy,
 }: {
   setKey: number
   tiles: Placed[]
@@ -632,14 +713,26 @@ function TableSet({
   changed: boolean
   /** Who made or changed it on their last turn, if another player did. */
   recentBy?: { seat: number; name: string; fresh: boolean }
+  /** Who is changing it right now, on their turn (live turns). */
+  liveBy?: { seat: number; name: string }
 }) {
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({ id: setItem(setKey) })
   const { setNodeRef: setHolderRef } = useDroppable({ id: setHolder(setKey) })
-  // Invalid first (it's the one to fix), then this turn's own changes, then
+  // Another player's set in the making (it may be invalid for now); else
+  // invalid first (it's the one to fix), then this turn's own changes, then
   // another player's last.
-  const state =
-    classifySet(tilesOf(tiles)) === undefined ? 'invalid' : changed ? 'changed' : recentBy ? 'recent' : 'same'
+  const state = liveBy
+    ? 'live'
+    : classifySet(tilesOf(tiles)) === undefined
+      ? 'invalid'
+      : changed
+        ? 'changed'
+        : recentBy
+          ? 'recent'
+          : 'same'
+  const by = liveBy ?? recentBy
   const look = {
+    live: 'live-set',
     invalid: 'bg-amber-400/15 shadow-[0_0_0_2px_rgb(251_191_36/0.7),0_0_24px_rgb(251_191_36/0.25)]',
     changed: 'bg-emerald-400/15 shadow-[0_0_0_2px_rgb(52_211_153/0.75),0_0_24px_rgb(52_211_153/0.25)]',
     recent: recentBy?.fresh ? 'recent-flash' : 'recent-quiet',
@@ -654,12 +747,12 @@ function TableSet({
         glide ? 'transition-[left,top,box-shadow,background-color]' : 'transition-[box-shadow,background-color]'
       } ${isDragging ? 'opacity-30' : ''} ${look}`}
     >
-      {state === 'recent' && recentBy && (
+      {(state === 'recent' || state === 'live') && by && (
         <span
-          title={`${recentBy.name}'s last turn`}
-          className={`pointer-events-none absolute -left-2 -top-2 z-10 grid size-5 place-items-center rounded-full bg-linear-to-br text-[0.65rem] font-bold text-slate-950 ring-2 ring-felt ${seatColors[recentBy.seat % seatColors.length]}`}
+          title={state === 'live' ? `${by.name} is changing this` : `${by.name}'s last turn`}
+          className={`pointer-events-none absolute -left-2 -top-2 z-10 grid size-5 place-items-center rounded-full bg-linear-to-br text-[0.65rem] font-bold text-slate-950 ring-2 ring-felt ${seatColors[by.seat % seatColors.length]}`}
         >
-          {recentBy.name.slice(0, 1).toUpperCase()}
+          {by.name.slice(0, 1).toUpperCase()}
         </span>
       )}
       <button

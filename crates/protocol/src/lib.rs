@@ -14,7 +14,23 @@ use tsify::Tsify;
 
 /// Bumped when a message changes in a way an older client can't read; the
 /// server says which it speaks in `Welcome`.
-pub const PROTOCOL_VERSION: u32 = 2;
+pub const PROTOCOL_VERSION: u32 = 3;
+
+/// How a room plays, chosen by whoever opens it.
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "wasm", derive(Tsify))]
+#[serde(rename_all = "camelCase")]
+pub struct RoomOptions {
+    /// Whether the others see the current player's table as they rearrange
+    /// it (`Draft`), as at a real table. Off: only finished turns.
+    pub live_turns: bool,
+}
+
+impl Default for RoomOptions {
+    fn default() -> RoomOptions {
+        RoomOptions { live_turns: true }
+    }
+}
 
 /// From a client to the server.
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
@@ -22,7 +38,12 @@ pub const PROTOCOL_VERSION: u32 = 2;
 #[serde(tag = "type", rename_all = "camelCase", rename_all_fields = "camelCase")]
 pub enum ClientMessage {
     /// Open a new room and join it as its host.
-    CreateRoom { name: String },
+    CreateRoom {
+        name: String,
+        #[serde(default)]
+        #[cfg_attr(feature = "wasm", tsify(optional))]
+        options: RoomOptions,
+    },
     /// Join a room that hasn't started, by its code.
     JoinRoom { code: String, name: String },
     /// Take back a seat after a lost connection, with the token from
@@ -35,6 +56,9 @@ pub enum ClientMessage {
     Play { table: Vec<Vec<Tile>> },
     /// End the turn by drawing a tile instead.
     Draw,
+    /// The table as the current player is rearranging it, for the others
+    /// to watch (rooms with `live_turns`). Not a move: sets may be invalid.
+    Draft { table: Vec<Vec<Tile>> },
 }
 
 /// A player in a room.
@@ -59,6 +83,7 @@ pub struct RoomInfo {
     /// The seat that may start the game.
     pub host: usize,
     pub started: bool,
+    pub options: RoomOptions,
 }
 
 /// From the server to a client.
@@ -82,6 +107,9 @@ pub enum ServerMessage {
         #[cfg_attr(feature = "wasm", tsify(optional))]
         turn_ms: Option<u32>,
     },
+    /// The current player's table so far this turn (see `ClientMessage::Draft`).
+    /// Gone with the next `State`.
+    Draft { by: usize, table: Vec<Vec<Tile>> },
     /// This player's move wasn't allowed; if it was their turn, it still is.
     Rejected { error: TurnError, message: String },
     /// A message the server couldn't act on: malformed, or not possible now.
@@ -113,6 +141,15 @@ mod tests {
             ClientMessage::Play { table: vec![vec![Tile::Number { color: Color::Red, value: 3 }, Tile::Joker]] }
         );
         assert_eq!(ClientMessage::from_json(r#"{"type":"draw"}"#).unwrap(), ClientMessage::Draw);
+        assert_eq!(
+            ClientMessage::from_json(r#"{"type":"createRoom","name":"Ann"}"#).unwrap(),
+            ClientMessage::CreateRoom { name: "Ann".into(), options: RoomOptions { live_turns: true } },
+            "live turns unless asked otherwise"
+        );
+        assert_eq!(
+            ClientMessage::from_json(r#"{"type":"createRoom","name":"Ann","options":{"liveTurns":false}}"#).unwrap(),
+            ClientMessage::CreateRoom { name: "Ann".into(), options: RoomOptions { live_turns: false } }
+        );
         assert_eq!(
             ClientMessage::from_json(r#"{"type":"joinRoom","code":"ABCD","name":"Ann"}"#).unwrap(),
             ClientMessage::JoinRoom { code: "ABCD".into(), name: "Ann".into() }
