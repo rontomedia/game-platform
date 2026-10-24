@@ -55,16 +55,29 @@ only builds it on start.
   crate is actually used by engine-wasm. Engine types cross as
   `tsify::Ts<T>` and are converted inside the function; don't use tsify's
   `into_wasm_abi`/`from_wasm_abi` (deprecated, they leak on bad input).
-- **`crates/server`**: tokio + axum match server; `/ws` WebSocket route, one
-  task per connection. Sends `welcome`, then answers each `ClientMessage`
-  (no matches yet, so moves get an `error`). The server is the authority;
-  the client's engine checks are for instant feedback. Tests start the
-  server on a free port and talk to it with `tokio-tungstenite`.
+- **`crates/server`**: tokio + axum match server, `/ws` WebSocket route.
+  - `rooms.rs`: open rooms by 4-letter code (no I or O).
+  - `room.rs`: each room is its own task (an actor) owning its players, the
+    `Game` and the turn timer; connections send it `Command`s over a channel,
+    so game state has no locks. Players are identified by a stable
+    `PlayerId` (seats shift when those who left are dropped at the start)
+    and keep their seat across lost connections with a token (`rejoin`).
+    `Timing`: turn 60 s (runs out: the player draws), 5 s for a player who
+    is away (their full time is given back if they return during that turn),
+    room closes after 120 s with nobody connected.
+  - `connection.rs`: one task per WebSocket, `select!`ing over the socket
+    and the room's messages for it.
+  - The server is the authority; the client's engine checks are for
+    instant feedback. Tests (`tests.rs`) play matches through real
+    WebSockets against a server on a free port, with short `Timing`s.
 - **`web/`**: Vite + React 19 + TypeScript client. Tailwind v4 (theme tokens
   in `src/index.css`, `@theme`), Motion for animation (`layoutId` makes a
   tile glide between rack and set), Inter via fontsource. `src/main.tsx`
   awaits the WASM init before rendering. The board is HTML elements, not a
-  canvas. Planned: dnd-kit for dragging, shadcn/ui for menus,
+  canvas. `src/useGame.ts` owns the connection: it keeps the seat token in
+  `sessionStorage` (per tab, so two tabs are two players), rejoins after a
+  reload and retries a lost connection. Screens: home (create/join), lobby,
+  `Board.tsx` (a plain, tap-based board until the real one replaces it). Planned: dnd-kit for dragging, shadcn/ui for menus,
   `@heroiclabs/nakama-js` for accounts/matchmaking.
 
 The client reaches the server at `/ws` on its own origin: Vite proxies it to

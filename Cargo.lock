@@ -646,8 +646,10 @@ name = "server"
 version = "0.1.0"
 dependencies = [
  "axum",
+ "engine",
  "futures-util",
  "protocol",
+ "rand 0.10.3",
  "serde_json",
  "tokio",
  "tokio-tungstenite 0.30.0",

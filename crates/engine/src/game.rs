@@ -46,6 +46,7 @@ pub struct Outcome {
 pub struct PlayerView {
     /// This player's seat.
     pub you: usize,
+    pub rules: Rules,
     pub rack: Vec<Tile>,
     pub table: Vec<Vec<Tile>>,
     /// Tiles on each player's rack.
@@ -184,6 +185,7 @@ impl Game {
     pub fn view(&self, player: usize) -> PlayerView {
         PlayerView {
             you: player,
+            rules: self.rules.clone(),
             rack: self.racks[player].clone(),
             table: self.table.clone(),
             rack_sizes: self.racks.iter().map(Vec::len).collect(),

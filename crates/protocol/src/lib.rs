@@ -14,13 +14,22 @@ use tsify::Tsify;
 
 /// Bumped when a message changes in a way an older client can't read; the
 /// server says which it speaks in `Welcome`.
-pub const PROTOCOL_VERSION: u32 = 1;
+pub const PROTOCOL_VERSION: u32 = 2;
 
 /// From a client to the server.
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[cfg_attr(feature = "wasm", derive(Tsify))]
-#[serde(tag = "type", rename_all = "camelCase")]
+#[serde(tag = "type", rename_all = "camelCase", rename_all_fields = "camelCase")]
 pub enum ClientMessage {
+    /// Open a new room and join it as its host.
+    CreateRoom { name: String },
+    /// Join a room that hasn't started, by its code.
+    JoinRoom { code: String, name: String },
+    /// Take back a seat after a lost connection, with the token from
+    /// `Joined`.
+    Rejoin { code: String, token: String },
+    /// Deal and play (the host only).
+    Start,
     /// End the turn with the table rearranged to this (see
     /// `engine::check_turn`).
     Play { table: Vec<Vec<Tile>> },
@@ -28,16 +37,52 @@ pub enum ClientMessage {
     Draw,
 }
 
+/// A player in a room.
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "wasm", derive(Tsify))]
+#[serde(rename_all = "camelCase")]
+pub struct Seat {
+    pub name: String,
+    pub connected: bool,
+}
+
+/// A room as one of its players sees it.
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "wasm", derive(Tsify))]
+#[serde(rename_all = "camelCase")]
+pub struct RoomInfo {
+    pub code: String,
+    /// In turn order once the game has started.
+    pub seats: Vec<Seat>,
+    /// The seat of the player this is sent to.
+    pub you: usize,
+    /// The seat that may start the game.
+    pub host: usize,
+    pub started: bool,
+}
+
 /// From the server to a client.
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[cfg_attr(feature = "wasm", derive(Tsify))]
-#[serde(tag = "type", rename_all = "camelCase")]
+#[serde(tag = "type", rename_all = "camelCase", rename_all_fields = "camelCase")]
 pub enum ServerMessage {
     /// First thing on every connection.
     Welcome { protocol: u32 },
+    /// This connection has a seat in the room. Keep the token to `Rejoin`.
+    Joined { code: String, token: String },
+    /// The room's players changed (someone joined, left, came back) or the
+    /// game started.
+    Room { room: RoomInfo },
     /// The game as this player may see it, after every change.
-    State { view: PlayerView },
-    /// This player's play wasn't allowed; it's still their turn.
+    State {
+        view: PlayerView,
+        /// Milliseconds left in the current turn; absent once the game is
+        /// over.
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        #[cfg_attr(feature = "wasm", tsify(optional))]
+        turn_ms: Option<u32>,
+    },
+    /// This player's move wasn't allowed; if it was their turn, it still is.
     Rejected { error: TurnError, message: String },
     /// A message the server couldn't act on: malformed, or not possible now.
     Error { message: String },
@@ -68,6 +113,10 @@ mod tests {
             ClientMessage::Play { table: vec![vec![Tile::Number { color: Color::Red, value: 3 }, Tile::Joker]] }
         );
         assert_eq!(ClientMessage::from_json(r#"{"type":"draw"}"#).unwrap(), ClientMessage::Draw);
+        assert_eq!(
+            ClientMessage::from_json(r#"{"type":"joinRoom","code":"ABCD","name":"Ann"}"#).unwrap(),
+            ClientMessage::JoinRoom { code: "ABCD".into(), name: "Ann".into() }
+        );
         assert!(ClientMessage::from_json(r#"{"type":"cheat"}"#).is_err());
         assert!(ClientMessage::from_json("hello").is_err());
     }
@@ -80,8 +129,11 @@ mod tests {
             rejected.to_json(),
             r#"{"type":"rejected","error":{"kind":"invalidSet","index":2},"message":"set 3"}"#
         );
-        let state = ServerMessage::State { view: Game::new(2, Rules::default(), 1).view(0) }.to_json();
-        assert!(state.starts_with(r#"{"type":"state","view":{"you":0,"rack":["#), "{state}");
-        assert!(!state.contains("null"), "{state}");
+        let view = Game::new(2, Rules::default(), 1).view(0);
+        let state = ServerMessage::State { view: view.clone(), turn_ms: Some(1500) }.to_json();
+        assert!(state.starts_with(r#"{"type":"state","view":{"you":0,"rules":{"#), "{state}");
+        assert!(state.ends_with(r#""turnMs":1500}"#), "{state}");
+        let over = ServerMessage::State { view, turn_ms: None }.to_json();
+        assert!(!over.contains("turnMs") && !over.contains("null"), "{over}");
     }
 }

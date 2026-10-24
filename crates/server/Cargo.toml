@@ -4,9 +4,11 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
+engine = { path = "../engine" }
 protocol = { path = "../protocol" }
 axum = { version = "0.8.9", features = ["ws"] }
-tokio = { version = "1.54", features = ["rt-multi-thread", "macros", "net"] }
+rand = "0.10.3"
+tokio = { version = "1.54", features = ["rt-multi-thread", "macros", "net", "sync", "time"] }
 
 [dev-dependencies]
 futures-util = { version = "0.3.34", default-features = false, features = ["sink"] }

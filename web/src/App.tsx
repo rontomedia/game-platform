@@ -1,116 +1,9 @@
-import { AnimatePresence, motion } from 'motion/react'
-import { useEffect, useRef, useState, type ReactNode } from 'react'
+import { useState, type FormEvent } from 'react'
 
-import { TileView } from './TileView.tsx'
-import { SERVER_URL, useServer, type Entry, type Status } from './useServer.ts'
-import { classifySet, protocolVersion, setPoints, type Tile } from './wasm/engine.js'
-
-/** A tile with an identity, so the same tile can move between places. */
-interface Placed {
-  id: number
-  tile: Tile
-}
-
-const RACK: Placed[] = (
-  [
-    { kind: 'number', color: 'red', value: 3 },
-    { kind: 'number', color: 'red', value: 4 },
-    { kind: 'number', color: 'red', value: 5 },
-    { kind: 'number', color: 'blue', value: 7 },
-    { kind: 'number', color: 'black', value: 7 },
-    { kind: 'number', color: 'orange', value: 7 },
-    { kind: 'number', color: 'red', value: 7 },
-    { kind: 'joker' },
-    { kind: 'number', color: 'blue', value: 12 },
-    { kind: 'number', color: 'blue', value: 13 },
-  ] satisfies Tile[]
-).map((tile, id) => ({ id, tile }))
-
-export default function App() {
-  const [rack, setRack] = useState(RACK)
-  const [set, setSet] = useState<Placed[]>([])
-
-  const toSet = (placed: Placed) => {
-    setRack((rack) => rack.filter((p) => p.id !== placed.id))
-    setSet((set) => [...set, placed])
-  }
-  const toRack = (placed: Placed) => {
-    setSet((set) => set.filter((p) => p.id !== placed.id))
-    setRack((rack) => [...rack, placed].sort((a, b) => a.id - b.id))
-  }
-
-  return (
-    <div className="mx-auto flex max-w-6xl flex-col gap-6 px-4 py-8 sm:px-6 lg:py-12">
-      <header>
-        <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">Rummy</h1>
-        <p className="mt-1 text-slate-400">The Rust rules engine in the browser, and typed messages with the match server.</p>
-      </header>
-      <div className="grid gap-6 lg:grid-cols-[3fr_2fr]">
-        <SetBuilder rack={rack} set={set} toSet={toSet} toRack={toRack} />
-        <ServerPanel table={set.length ? [set.map((p) => p.tile)] : []} />
-      </div>
-    </div>
-  )
-}
-
-function Panel({ title, aside, children }: { title: string; aside?: ReactNode; children: ReactNode }) {
-  return (
-    <section className="rounded-2xl border border-white/10 bg-white/5 p-5 shadow-2xl backdrop-blur-xl sm:p-6">
-      <div className="mb-4 flex items-center justify-between gap-4">
-        <h2 className="text-lg font-semibold">{title}</h2>
-        {aside}
-      </div>
-      {children}
-    </section>
-  )
-}
-
-/** Build a set from the rack; the engine says whether it's valid. */
-function SetBuilder({
-  rack,
-  set,
-  toSet,
-  toRack,
-}: {
-  rack: Placed[]
-  set: Placed[]
-  toSet: (placed: Placed) => void
-  toRack: (placed: Placed) => void
-}) {
-  const tiles = set.map((p) => p.tile)
-  const kind = classifySet(tiles)
-  const points = setPoints(tiles)
-
-  const verdict =
-    set.length === 0
-      ? { text: 'Tap tiles to build a set', tone: 'text-slate-400' }
-      : kind
-        ? { text: `Valid ${kind}, ${points} points`, tone: 'text-emerald-300' }
-        : { text: set.length < 3 ? 'A set needs 3 or more tiles' : 'Not a valid set', tone: 'text-amber-300' }
-
-  return (
-    <Panel title="Set builder" aside={<span className={`text-sm font-medium ${verdict.tone}`}>{verdict.text}</span>}>
-      <div
-        className={`flex min-h-28 flex-wrap items-center gap-2 rounded-xl border-2 border-dashed p-3 transition-colors sm:min-h-32 ${
-          kind ? 'border-emerald-400/60 bg-emerald-400/10' : 'border-white/15 bg-black/20'
-        }`}
-      >
-        {set.map((p) => (
-          <TileView key={p.id} layoutId={`tile-${p.id}`} tile={p.tile} onClick={() => toRack(p)} />
-        ))}
-      </div>
-      <div className="mt-4 flex min-h-24 flex-wrap gap-2 rounded-xl bg-linear-to-b from-amber-900/60 to-amber-950/80 p-3 shadow-inner ring-1 ring-amber-200/10 sm:min-h-28">
-        {rack.map((p) => (
-          <TileView key={p.id} layoutId={`tile-${p.id}`} tile={p.tile} onClick={() => toSet(p)} />
-        ))}
-      </div>
-      <p className="mt-3 text-sm text-slate-400">
-        The check runs in Rust (<code className="text-slate-300">crates/engine</code>) compiled to WebAssembly: the same
-        code the server uses.
-      </p>
-    </Panel>
-  )
-}
+import { Board } from './Board.tsx'
+import { Button, inputClass, Note, Panel } from './ui.tsx'
+import { SERVER_URL, useGame, type Status } from './useGame.ts'
+import { protocolVersion, type ClientMessage, type RoomInfo } from './wasm/engine.js'
 
 const statusLook: Record<Status, { label: string; dot: string }> = {
   connecting: { label: 'Connecting', dot: 'bg-amber-400 animate-pulse' },
@@ -118,95 +11,156 @@ const statusLook: Record<Status, { label: string; dot: string }> = {
   closed: { label: 'Disconnected', dot: 'bg-rose-500' },
 }
 
-/** One line of the conversation; the full message is in its tooltip. */
-function describe(entry: Entry): string {
-  if ('sent' in entry) {
-    const m = entry.sent
-    if (m.type === 'draw') return 'draw'
-    const sets = m.table.length
-    return `play ${m.table.flat().length} tiles in ${sets} set${sets === 1 ? '' : 's'}`
-  }
-  const m = entry.received
-  switch (m.type) {
-    case 'welcome':
-      return `welcome, protocol ${m.protocol}`
-    case 'state':
-      return `state: ${m.view.rack.length} tiles on your rack`
-    case 'rejected':
-    case 'error':
-      return `${m.type}: ${m.message}`
-  }
-}
-
-/** Messages with the match server. It hosts no matches yet, so moves get an error. */
-function ServerPanel({ table }: { table: Tile[][] }) {
-  const { status, entries, mismatch, send, reconnect } = useServer()
-  const log = useRef<HTMLOListElement>(null)
-
-  useEffect(() => {
-    log.current?.scrollTo({ top: log.current.scrollHeight, behavior: 'smooth' })
-  }, [entries])
-
+export default function App() {
+  const { status, room, game, problem, mismatch, send, reconnect, leave } = useGame()
   const look = statusLook[status]
-  const button =
-    'flex-1 cursor-pointer rounded-xl px-4 py-2.5 font-semibold transition disabled:cursor-not-allowed disabled:opacity-40'
+
   return (
-    <Panel
-      title="Match server"
-      aside={
+    <div className="mx-auto flex max-w-5xl flex-col gap-6 px-4 py-6 sm:px-6 lg:py-10">
+      <header className="flex items-center justify-between gap-4">
+        <h1 className="text-3xl font-bold tracking-tight">Rummy</h1>
         <span className="flex items-center gap-2 text-sm text-slate-300" title={SERVER_URL}>
           <span className={`size-2.5 rounded-full ${look.dot}`} />
           {look.label}
+          {status === 'closed' && (
+            <Button look="quiet" className="px-2 py-1 text-sm" onClick={reconnect}>
+              Reconnect
+            </Button>
+          )}
         </span>
-      }
-    >
+      </header>
       {mismatch !== null && (
-        <p className="mb-3 rounded-xl bg-rose-500/15 px-3 py-2 text-sm text-rose-200">
+        <p className="rounded-xl bg-rose-500/15 px-3 py-2 text-sm text-rose-200">
           The server speaks protocol {mismatch}, this page {protocolVersion()}. Reload to get the current version.
         </p>
       )}
-      <ol ref={log} className="h-64 space-y-1.5 overflow-y-auto rounded-xl bg-black/30 p-3 font-mono text-sm lg:h-72">
-        <AnimatePresence initial={false}>
-          {entries.map((entry) => {
-            const sent = 'sent' in entry
-            const failed = !sent && (entry.received.type === 'error' || entry.received.type === 'rejected')
-            return (
-              <motion.li
-                key={entry.id}
-                initial={{ opacity: 0, y: 6 }}
-                animate={{ opacity: 1, y: 0 }}
-                title={JSON.stringify(sent ? entry.sent : entry.received)}
-                className={sent ? 'text-sky-300' : failed ? 'text-amber-300' : 'text-emerald-300'}
-              >
-                <span className="mr-2 text-slate-500">{sent ? '→' : '←'}</span>
-                {describe(entry)}
-              </motion.li>
-            )
-          })}
-        </AnimatePresence>
-      </ol>
-      {status === 'closed' ? (
-        <button onClick={reconnect} className={`mt-3 w-full bg-white/10 hover:bg-white/15 ${button}`}>
-          Reconnect
-        </button>
+      {!room ? (
+        <Home send={send} problem={problem} ready={status === 'open'} />
+      ) : room.started && game ? (
+        <Board key={game.version} game={game} room={room} problem={problem} send={send} leave={leave} />
       ) : (
-        <div className="mt-3 flex gap-2">
-          <button
-            onClick={() => send({ type: 'play', table })}
-            disabled={status !== 'open' || table.length === 0}
-            className={`bg-teal-500 text-slate-950 hover:bg-teal-400 ${button}`}
-          >
-            Play the set
-          </button>
-          <button
-            onClick={() => send({ type: 'draw' })}
-            disabled={status !== 'open'}
-            className={`bg-white/10 hover:bg-white/15 ${button}`}
-          >
-            Draw
-          </button>
-        </div>
+        <Lobby room={room} problem={problem} send={send} leave={leave} />
       )}
-    </Panel>
+    </div>
+  )
+}
+
+/** The player's name, remembered on this device. */
+const NAME_KEY = 'rummy.name'
+
+function rememberedName() {
+  try {
+    return localStorage.getItem(NAME_KEY) ?? ''
+  } catch {
+    return ''
+  }
+}
+
+function Home({ send, problem, ready }: { send: (m: ClientMessage) => void; problem: string | null; ready: boolean }) {
+  const [name, setName] = useState(rememberedName)
+  const [code, setCode] = useState('')
+
+  const remember = () => {
+    try {
+      localStorage.setItem(NAME_KEY, name.trim())
+    } catch {
+      // Not remembered, then.
+    }
+  }
+  const create = () => {
+    remember()
+    send({ type: 'createRoom', name })
+  }
+  const join = (e: FormEvent) => {
+    e.preventDefault()
+    remember()
+    send({ type: 'joinRoom', code, name })
+  }
+
+  return (
+    <div className="mx-auto w-full max-w-md">
+      <Panel>
+        <label className="flex flex-col gap-2">
+          <span className="text-sm font-medium text-slate-300">Your name</span>
+          <input value={name} onChange={(e) => setName(e.target.value)} maxLength={20} placeholder="Name" className={inputClass} />
+        </label>
+        <Button look="primary" className="mt-5 w-full" disabled={!ready} onClick={create}>
+          Create a room
+        </Button>
+        <div className="my-5 flex items-center gap-3 text-sm text-slate-500">
+          <span className="h-px flex-1 bg-white/10" />
+          or join one
+          <span className="h-px flex-1 bg-white/10" />
+        </div>
+        <form onSubmit={join} className="flex gap-2">
+          <input
+            value={code}
+            onChange={(e) => setCode(e.target.value.toUpperCase())}
+            maxLength={4}
+            placeholder="CODE"
+            aria-label="Room code"
+            autoCapitalize="characters"
+            autoComplete="off"
+            className={`${inputClass} flex-1 text-center font-mono text-lg tracking-[0.3em]`}
+          />
+          <Button disabled={!ready || code.trim().length !== 4}>Join</Button>
+        </form>
+        {problem && (
+          <div className="mt-4">
+            <Note tone="bad">{problem}</Note>
+          </div>
+        )}
+      </Panel>
+    </div>
+  )
+}
+
+function Lobby({
+  room,
+  problem,
+  send,
+  leave,
+}: {
+  room: RoomInfo
+  problem: string | null
+  send: (m: ClientMessage) => void
+  leave: () => void
+}) {
+  const present = room.seats.filter((s) => s.connected).length
+  const isHost = room.you === room.host
+  return (
+    <div className="mx-auto w-full max-w-md">
+      <Panel>
+        <p className="text-sm text-slate-400">Room code: share it with the other players</p>
+        <p className="mt-1 font-mono text-5xl font-bold tracking-[0.2em] text-teal-300">{room.code}</p>
+        <ul className="mt-6 space-y-2">
+          {room.seats.map((seat, i) => (
+            <li key={i} className="flex items-center gap-3 rounded-xl bg-white/5 px-3 py-2">
+              <span className={`size-2 rounded-full ${seat.connected ? 'bg-emerald-400' : 'bg-slate-500'}`} />
+              <span className="flex-1">
+                {seat.name}
+                {i === room.you && <span className="text-slate-400"> (you)</span>}
+              </span>
+              {i === room.host && <span className="text-xs uppercase tracking-wide text-teal-300">host</span>}
+            </li>
+          ))}
+        </ul>
+        <div className="mt-6 flex gap-2">
+          <Button onClick={leave}>Leave</Button>
+          {isHost ? (
+            <Button look="primary" className="flex-1" disabled={present < 2} onClick={() => send({ type: 'start' })}>
+              {present < 2 ? 'Waiting for players…' : `Start with ${present} players`}
+            </Button>
+          ) : (
+            <p className="flex-1 self-center text-center text-sm text-slate-400">Waiting for the host to start…</p>
+          )}
+        </div>
+        {problem && (
+          <div className="mt-4">
+            <Note tone="bad">{problem}</Note>
+          </div>
+        )}
+      </Panel>
+    </div>
   )
 }
