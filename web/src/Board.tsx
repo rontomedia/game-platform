@@ -32,10 +32,13 @@ import {
   arrangeRack,
   arrangeTable,
   compareTiles,
+  joinEnd,
+  keepPlans,
   newOrChanged,
   sortTiles,
   splitRows,
   tileName,
+  without,
   type Arrangement,
   type RackSort,
 } from './arrange.ts'
@@ -64,24 +67,32 @@ interface Placed {
 }
 
 /**
- * Where the tiles are: `holders` by id (`rack-0`, `rack-1`, `set-<key>`);
- * the table's sets by key, and where the player put each on the grid.
+ * Where the tiles are: `holders` by id (`rack-0`, `rack-1`, `set-<key>`,
+ * `plan-<key>`); the table's sets by key, and where the player put each on
+ * the grid; and the sets the player is planning from their rack.
  */
 interface Layout {
   holders: Record<string, Placed[]>
   sets: number[]
   at: Record<number, Cell | undefined>
+  plans: number[]
 }
 
 const RACK_ROWS = ['rack-0', 'rack-1'] as const
 const isRack = (holder: string) => holder.startsWith('rack-')
 const setHolder = (key: number) => `set-${key}`
+const planHolder = (key: number) => `plan-${key}`
+const isPlan = (holder: string) => holder.startsWith('plan-')
+/** Holders of the player's own tiles: the rack and their plans. */
+const isOwn = (holder: string) => isRack(holder) || isPlan(holder)
 /** The drag id of a whole set (its holder is the drop target for tiles). */
 const setItem = (key: number) => `move-set-${key}`
 const isSetItem = (id: string) => id.startsWith('move-set-')
 const setKeyOf = (item: string) => Number(item.slice('move-set-'.length))
 /** The table itself: a tile dropped on empty space starts a set there. */
 const NEW_SET = 'new-set'
+/** The planning area: a tile dropped there starts a plan. */
+const NEW_PLAN = 'new-plan'
 
 const tilesOf = (placed: Placed[]) => placed.map((p) => p.tile)
 
@@ -97,9 +108,11 @@ function lay(view: GameState['view'], arrangement: Arrangement, rackStyle: Setti
     at[key] = set.at
     sets.push(key)
   }
-  const rows = arrangeRack(arrangement.rows, arrangement.sort, view.rack)
+  const plans = keepPlans(arrangement.plans ?? [], view.rack)
+  plans.forEach((plan, key) => (holders[planHolder(key)] = plan.map((tile) => place(tile, false))))
+  const rows = arrangeRack(arrangement.rows, arrangement.sort, without(view.rack, plans.flat()))
   RACK_ROWS.forEach((row, i) => (holders[row] = rows[i].map((tile) => place(tile, false))))
-  return restyle({ holders, sets, at }, rackStyle)
+  return restyle({ holders, sets, at, plans: plans.map((_, key) => key) }, rackStyle)
 }
 
 /** The rack's tiles in one row (flat) or two (classic). */
@@ -116,14 +129,16 @@ function restyle(layout: Layout, rackStyle: Settings['rackStyle']): Layout {
 
 /** The holder a tile is in, or the holder (or the table) `id` names. */
 function holderOf(layout: Layout, id: string): string | undefined {
-  if (id in layout.holders || id === NEW_SET) return id
+  if (id in layout.holders || id === NEW_SET || id === NEW_PLAN) return id
   if (isSetItem(id)) return setHolder(setKeyOf(id))
   return Object.keys(layout.holders).find((holder) => layout.holders[holder].some((p) => p.id === id))
 }
 
+/** The layout without sets or plans left empty. */
 function dropEmptySets(layout: Layout): Layout {
   const sets = layout.sets.filter((key) => layout.holders[setHolder(key)].length > 0)
-  if (sets.length === layout.sets.length) return layout
+  const plans = layout.plans.filter((key) => layout.holders[planHolder(key)].length > 0)
+  if (sets.length === layout.sets.length && plans.length === layout.plans.length) return layout
   const holders = { ...layout.holders }
   const at = { ...layout.at }
   for (const key of layout.sets) {
@@ -131,7 +146,21 @@ function dropEmptySets(layout: Layout): Layout {
     delete holders[setHolder(key)]
     delete at[key]
   }
-  return { holders, sets, at }
+  for (const key of layout.plans) if (!plans.includes(key)) delete holders[planHolder(key)]
+  return { holders, sets, at, plans }
+}
+
+/** `tile` moved from holder `from` to an end of holder `to`. */
+function moveTile(l: Layout, tile: Placed, from: string, to: string, end: 'start' | 'end' = 'end'): Layout {
+  const rest = l.holders[to] ?? []
+  return {
+    ...l,
+    holders: {
+      ...l.holders,
+      [from]: l.holders[from].filter((p) => p.id !== tile.id),
+      [to]: end === 'end' ? [...rest, tile] : [tile, ...rest],
+    },
+  }
 }
 
 /** Ids for the tiles of sets that arrive in another player's draft. */
@@ -144,7 +173,7 @@ let liveTileIds = 0
  */
 function withTable(l: Layout, table: Tile[][]): Layout {
   const previous = l.sets.map((key) => ({ key, tiles: tilesOf(l.holders[setHolder(key)]), at: l.at[key] }))
-  const holders: Layout['holders'] = Object.fromEntries(RACK_ROWS.map((row) => [row, l.holders[row]]))
+  const holders: Layout['holders'] = Object.fromEntries(Object.entries(l.holders).filter(([holder]) => !holder.startsWith('set-')))
   const sets: number[] = []
   const at: Layout['at'] = {}
   let nextKey = Math.max(-1, ...l.sets) + 1
@@ -158,14 +187,15 @@ function withTable(l: Layout, table: Tile[][]): Layout {
     at[key] = set.at
     sets.push(key)
   }
-  return { holders, sets, at }
+  return { holders, sets, at, plans: l.plans }
 }
 
 /** A table to compare regardless of the order of its sets. */
 const canonical = (sets: Tile[][]) => sets.map((s) => JSON.stringify(s)).sort().join('|')
 
 /** Where a dragged tile lands when several things are under the pointer: the most specific. */
-const dropRank = (id: string) => (id.startsWith('tile-') ? 0 : id.startsWith('set-') ? 1 : isRack(id) ? 2 : 3)
+const dropRank = (id: string) =>
+  id.startsWith('tile-') ? 0 : id.startsWith('set-') || isPlan(id) ? 1 : isRack(id) ? 2 : 3
 
 const collisions: CollisionDetection = (args) => {
   // A set lands wherever it's let go (see onDragMove), not on anything.
@@ -242,6 +272,11 @@ export function Board({
   // The layout when a drag began, to go back to if it's cancelled.
   const beforeDrag = useRef<Layout | null>(null)
   const nextSet = useRef(start.sets.length)
+  const nextPlan = useRef(start.plans.length)
+  // The set the player last changed on the table, and among their plans: a
+  // double-clicked tile joins it if it fits.
+  const lastSet = useRef<number | null>(null)
+  const lastPlan = useRef<number | null>(null)
   const tableGrid = useRef<HTMLDivElement | null>(null)
   const [metrics, setMetrics] = useState<Metrics | null>(null)
   const secondsLeft = useSecondsLeft(game.turnEnds)
@@ -396,6 +431,7 @@ export function Board({
         tiles: tilesOf(layout.holders[setHolder(key)]),
         at: layout.at[key] ?? (metrics ? shown.get(key) : undefined),
       })),
+      plans: layout.plans.map((key) => tilesOf(layout.holders[planHolder(key)])),
     })
   }, [layout, sort, onArrange, metrics, shown])
 
@@ -418,7 +454,7 @@ export function Board({
   }, [shareLive, dragging, table, send])
 
   /** Whether `tile` may go into `holder` (or onto the table as a new set). */
-  const mayGo = (tile: Placed, holder: string) => (isRack(holder) ? !tile.fromTable : myTurn)
+  const mayGo = (tile: Placed, holder: string) => (isOwn(holder) || holder === NEW_PLAN ? !tile.fromTable : myTurn)
 
   /**
    * Where a set `width` wide lands if let go at `cell`: there if it's free,
@@ -469,7 +505,7 @@ export function Board({
     setLayout((l) => {
       const from = holderOf(l, id)
       const to = holderOf(l, overId)
-      if (!from || !to || to === NEW_SET || from === to) return l
+      if (!from || !to || to === NEW_SET || to === NEW_PLAN || from === to) return l
       const moving = l.holders[from].find((p) => p.id === id)!
       if (!mayGo(moving, to)) return l
       const items = l.holders[to]
@@ -490,7 +526,6 @@ export function Board({
   const onDragEnd = ({ active, over }: DragEndEvent) => {
     const id = String(active.id)
     const landed = target
-    const startedIn = dragging?.from
     setDragging(null)
     setTarget(null)
     if (isSetItem(id)) {
@@ -512,12 +547,21 @@ export function Board({
       if (to === NEW_SET) {
         if (!mayGo(moving, NEW_SET) || !landed) return beforeDrag.current ?? l
         const key = nextSet.current++
+        lastSet.current = key
         return dropEmptySets({
-          holders: { ...l.holders, [from]: l.holders[from].filter((p) => p.id !== id), [setHolder(key)]: [moving] },
+          ...moveTile(l, moving, from, setHolder(key)),
           sets: [...l.sets, key],
           at: { ...pinned(l), [key]: landed.cell },
         })
       }
+      if (to === NEW_PLAN) {
+        if (!mayGo(moving, NEW_PLAN)) return beforeDrag.current ?? l
+        const key = nextPlan.current++
+        lastPlan.current = key
+        return dropEmptySets({ ...moveTile(l, moving, from, planHolder(key)), plans: [...l.plans, key] })
+      }
+      if (to.startsWith('set-')) lastSet.current = Number(to.slice('set-'.length))
+      if (isPlan(to)) lastPlan.current = Number(to.slice('plan-'.length))
       if (from !== to) return dropEmptySets(l)
       const items = l.holders[from]
       const oldIndex = items.findIndex((p) => p.id === id)
@@ -525,30 +569,72 @@ export function Board({
       const moved = newIndex < 0 || newIndex === oldIndex ? items : arrayMove(items, oldIndex, newIndex)
       return dropEmptySets({ ...l, holders: { ...l.holders, [from]: moved } })
     })
-    // Moving rack tiles by hand ends any sort order.
-    if ((startedIn && isRack(startedIn)) || isRack(holderOf(layout, overId) ?? '')) setSort('custom')
+    // Placing tiles in the rack by hand ends any sort order.
+    if (isRack(holderOf(layout, overId) ?? '')) setSort('custom')
   }
 
-  // Double-clicked rack tiles go onto the table: the first starts a set
-  // after the last row, the next ones join that set while it's there.
-  const quickSet = useRef<number | null>(null)
-  const playQuickly = (tile: Placed) => {
-    const from = holderOf(layout, tile.id)
-    if (!myTurn || !metrics || !from || !isRack(from)) return
-    const existing = quickSet.current !== null && layout.sets.includes(quickSet.current) ? quickSet.current : null
-    const key = existing ?? nextSet.current++
-    quickSet.current = key
+  /** Where a set `width` wide goes when not dragged there: the first free place from the last row on. */
+  const freeCell = (width: number) => {
+    if (!metrics) return null
     const lastRow = Math.max(0, ...[...shown.values()].map((cell) => cell.row))
-    const cell = existing === null ? gridWithout(shown, widths, metrics.columns).firstFree(footprint(1), lastRow) : null
-    setLayout((l) => ({
-      holders: {
-        ...l.holders,
-        [from]: l.holders[from].filter((p) => p.id !== tile.id),
-        [setHolder(key)]: [...(l.holders[setHolder(key)] ?? []), tile],
-      },
-      sets: cell ? [...l.sets, key] : l.sets,
-      at: cell ? { ...pinned(l), [key]: cell } : l.at,
-    }))
+    return gridWithout(shown, widths, metrics.columns).firstFree(width, lastRow)
+  }
+
+  /**
+   * A double-clicked tile. From the rack: onto the table on the player's
+   * turn, else into a plan; either way it joins the set last changed there
+   * if it fits, else starts a new one. From a plan: on the player's turn the
+   * whole plan goes onto the table, else the tile goes back to the rack.
+   */
+  const quickMove = (tile: Placed) => {
+    const from = holderOf(layout, tile.id)
+    if (!from || view.outcome) return
+    if (isPlan(from)) {
+      if (myTurn) return playPlan(from)
+      return setLayout((l) => dropEmptySets(moveTile(l, tile, from, RACK_ROWS[flat ? 0 : 1])))
+    }
+    if (!isRack(from)) return
+    const last = myTurn
+      ? lastSet.current !== null && layout.sets.includes(lastSet.current)
+        ? lastSet.current
+        : null
+      : lastPlan.current !== null && layout.plans.includes(lastPlan.current)
+        ? lastPlan.current
+        : (layout.plans.at(-1) ?? null)
+    const holder = myTurn ? setHolder : planHolder
+    const end = last === null ? null : joinEnd(tilesOf(layout.holders[holder(last)]), tile.tile)
+    if (last !== null && end) {
+      if (myTurn) lastSet.current = last
+      else lastPlan.current = last
+      return setLayout((l) => moveTile(l, tile, from, holder(last), end))
+    }
+    if (!myTurn) {
+      const key = nextPlan.current++
+      lastPlan.current = key
+      return setLayout((l) => ({ ...moveTile(l, tile, from, planHolder(key)), plans: [...l.plans, key] }))
+    }
+    const cell = freeCell(footprint(1))
+    if (!cell) return
+    const key = nextSet.current++
+    lastSet.current = key
+    setLayout((l) => ({ ...moveTile(l, tile, from, setHolder(key)), sets: [...l.sets, key], at: { ...pinned(l), [key]: cell } }))
+  }
+
+  /** A plan put on the table as a new set, on the player's turn. */
+  const playPlan = (plan: string) => {
+    const tiles = layout.holders[plan]
+    const cell = myTurn && tiles ? freeCell(footprint(tiles.length)) : null
+    if (!cell) return
+    const key = nextSet.current++
+    lastSet.current = key
+    setLayout((l) =>
+      dropEmptySets({
+        ...l,
+        holders: { ...l.holders, [plan]: [], [setHolder(key)]: l.holders[plan] },
+        sets: [...l.sets, key],
+        at: { ...pinned(l), [key]: cell },
+      }),
+    )
   }
 
   const cancel = () => {
@@ -694,12 +780,18 @@ export function Board({
               </div>
             )}
           </div>
+          <Plans
+            plans={layout.plans.map((key) => ({ holder: planHolder(key), tiles: layout.holders[planHolder(key)] }))}
+            myTurn={myTurn}
+            onQuick={quickMove}
+            onPlay={playPlan}
+          />
           {flat ? (
-            <RackRow id="rack-0" tiles={layout.holders['rack-0']} wrap onPlay={myTurn ? playQuickly : undefined} />
+            <RackRow id="rack-0" tiles={layout.holders['rack-0']} wrap onPlay={quickMove} />
           ) : (
             <div className="rack-classic space-y-1.5 rounded-2xl px-2 pb-1.5 pt-2 sm:px-3 short:space-y-1 short:pt-1.5">
-              <RackRow id="rack-0" tiles={layout.holders['rack-0']} onPlay={myTurn ? playQuickly : undefined} />
-              <RackRow id="rack-1" tiles={layout.holders['rack-1']} onPlay={myTurn ? playQuickly : undefined} />
+              <RackRow id="rack-0" tiles={layout.holders['rack-0']} onPlay={quickMove} />
+              <RackRow id="rack-1" tiles={layout.holders['rack-1']} onPlay={quickMove} />
             </div>
           )}
         </section>
@@ -887,7 +979,7 @@ function RackRow({
   id: string
   tiles: Placed[]
   wrap?: boolean
-  /** Plays a double-clicked tile, on the player's turn. */
+  /** A double-clicked tile (see `quickMove`). */
   onPlay?: (tile: Placed) => void
 }) {
   const { setNodeRef } = useDroppable({ id })
@@ -914,6 +1006,82 @@ function RackRow({
     </SortableContext>
   )
   return wrap ? row : <div className="rack-ledge">{row}</div>
+}
+
+/**
+ * Sets the player is planning from their rack, at the top of the tray: built
+ * any time by dragging or double-clicking, put on the table on their turn.
+ * Its own component, as drop targets must be inside the DndContext.
+ */
+function Plans({
+  plans,
+  myTurn,
+  onQuick,
+  onPlay,
+}: {
+  plans: { holder: string; tiles: Placed[] }[]
+  myTurn: boolean
+  onQuick: (tile: Placed) => void
+  onPlay: (holder: string) => void
+}) {
+  const { setNodeRef, isOver } = useDroppable({ id: NEW_PLAN })
+  return (
+    <div
+      ref={setNodeRef}
+      className={`mb-2 flex min-h-11 flex-wrap items-center gap-2 rounded-2xl border border-dashed px-2 py-1.5 transition short:mb-1.5 ${
+        isOver ? 'border-amber-100/50 bg-amber-100/10' : 'border-amber-100/15'
+      }`}
+    >
+      {plans.length === 0 && (
+        <p className="pointer-events-none px-1 text-xs text-amber-100/40">
+          Plan sets here: drag tiles in, or double-click them when it isn’t your turn.
+        </p>
+      )}
+      {plans.map((plan) => (
+        <Plan key={plan.holder} {...plan} myTurn={myTurn} onQuick={onQuick} onPlay={onPlay} />
+      ))}
+    </div>
+  )
+}
+
+function Plan({
+  holder,
+  tiles,
+  myTurn,
+  onQuick,
+  onPlay,
+}: {
+  holder: string
+  tiles: Placed[]
+  myTurn: boolean
+  onQuick: (tile: Placed) => void
+  onPlay: (holder: string) => void
+}) {
+  const { setNodeRef } = useDroppable({ id: holder })
+  const valid = classifySet(tilesOf(tiles)) !== undefined
+  return (
+    <SortableContext items={tiles.map((p) => p.id)} strategy={horizontalListSortingStrategy}>
+      <div
+        ref={setNodeRef}
+        title={valid ? 'A valid set' : 'Not a set yet'}
+        className={`flex items-center gap-1 rounded-xl p-1 ring-1 ${valid ? 'bg-emerald-300/10 ring-emerald-300/50' : 'ring-amber-100/20'}`}
+      >
+        {tiles.map((p) => (
+          <SortableTile key={p.id} placed={p} size="table" draggable onDoubleClick={() => onQuick(p)} />
+        ))}
+        {myTurn && (
+          <button
+            className="ml-0.5 grid size-7 cursor-pointer place-items-center rounded-lg text-amber-100/70 hover:bg-white/10 hover:text-amber-50"
+            title="Put it on the table"
+            aria-label="Put it on the table"
+            onClick={() => onPlay(holder)}
+          >
+            ↑
+          </button>
+        )}
+      </div>
+    </SortableContext>
+  )
 }
 
 function SortButtons({ sort, onSort }: { sort: RackSort; onSort: (by: 'number' | 'color') => void }) {

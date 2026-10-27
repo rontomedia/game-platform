@@ -1,6 +1,16 @@
 import { describe, expect, it } from 'vitest'
 
-import { arrangeRack, arrangeTable, newOrChanged, sortTiles, splitRows, without } from './arrange.ts'
+import {
+  arrangeRack,
+  arrangeTable,
+  couldBeSet,
+  joinEnd,
+  keepPlans,
+  newOrChanged,
+  sortTiles,
+  splitRows,
+  without,
+} from './arrange.ts'
 import type { Tile } from './wasm/engine.js'
 
 const n = (color: 'black' | 'blue' | 'orange' | 'red', value: number): Tile => ({ kind: 'number', color, value })
@@ -118,5 +128,44 @@ describe('without', () => {
       n('red', 3),
       n('blue', 1),
     ])
+  })
+})
+
+describe('keepPlans', () => {
+  it('keeps the planned tiles still on the rack, in order', () => {
+    const plans = [[n('red', 3), n('red', 4), n('red', 5)], [n('blue', 9), n('black', 9)]]
+    expect(keepPlans(plans, [n('red', 5), n('red', 3), n('blue', 9), n('orange', 1)])).toEqual([
+      [n('red', 3), n('red', 5)],
+      [n('blue', 9)],
+    ])
+    expect(keepPlans(plans, [n('red', 4)]), 'empty plans go').toEqual([[n('red', 4)]])
+  })
+  it('takes a tile once even if two plans want it', () => {
+    expect(keepPlans([[n('red', 3)], [n('red', 3)]], [n('red', 3)])).toEqual([[n('red', 3)]])
+  })
+})
+
+describe('couldBeSet', () => {
+  it('accepts sets and the beginnings of sets', () => {
+    expect(couldBeSet([n('red', 3)])).toBe(true)
+    expect(couldBeSet([n('red', 3), n('red', 4)])).toBe(true)
+    expect(couldBeSet([n('red', 3), J, n('red', 5)])).toBe(true)
+    expect(couldBeSet([n('red', 9), n('blue', 9)])).toBe(true)
+    expect(couldBeSet([J, n('blue', 1), n('blue', 2)]), 'nothing below 1').toBe(false)
+  })
+  it('refuses what can never be one', () => {
+    expect(couldBeSet([n('red', 3), n('red', 5)])).toBe(false)
+    expect(couldBeSet([n('red', 3), n('blue', 4)])).toBe(false)
+    expect(couldBeSet([n('red', 9), n('red', 9)])).toBe(false)
+    expect(couldBeSet([n('red', 9), n('blue', 9), n('black', 9), n('orange', 9), J])).toBe(false)
+  })
+})
+
+describe('joinEnd', () => {
+  it('puts a tile where it fits', () => {
+    expect(joinEnd([n('red', 5), n('red', 6)], n('red', 7))).toBe('end')
+    expect(joinEnd([n('red', 5), n('red', 6)], n('red', 4))).toBe('start')
+    expect(joinEnd([n('red', 5), n('red', 6)], n('blue', 7))).toBe(null)
+    expect(joinEnd([n('red', 5), n('blue', 5)], n('black', 5))).toBe('end')
   })
 })

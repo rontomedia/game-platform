@@ -22,9 +22,11 @@ export interface Arrangement {
   sort: RackSort
   /** The table's sets and where this player put them. */
   table: PlacedSet[]
+  /** Sets the player is planning from their rack, not yet played. */
+  plans?: Tile[][]
 }
 
-export const emptyArrangement: Arrangement = { rows: [[], []], sort: 'custom', table: [] }
+export const emptyArrangement: Arrangement = { rows: [[], []], sort: 'custom', table: [], plans: [] }
 
 /** How a tile is read out: "red 7", "Joker". */
 export function tileName(tile: Tile): string {
@@ -74,6 +76,43 @@ function take(counts: Map<string, number>, tile: Tile): boolean {
 export function without(tiles: Tile[], taken: Tile[]): Tile[] {
   const left = counts(taken)
   return tiles.filter((tile) => !take(left, tile))
+}
+
+/**
+ * The player's planned sets that are still on `rack` (tiles played or gone
+ * leave them; a plan left empty goes).
+ */
+export function keepPlans(plans: Tile[][], rack: Tile[]): Tile[][] {
+  const available = counts(rack)
+  return plans.map((plan) => plan.filter((tile) => take(available, tile))).filter((plan) => plan.length > 0)
+}
+
+/**
+ * Whether `tiles`, in this order, are a set or could become one with more
+ * tiles at either end: a run of one colour going up by one (within 1-13), or
+ * up to four of a number in different colours. Jokers fit anywhere.
+ */
+export function couldBeSet(tiles: Tile[]): boolean {
+  const numbers = tiles.flatMap((tile, place) => (tile.kind === 'number' ? [{ ...tile, place }] : []))
+  if (numbers.length === 0) return tiles.length <= 13
+  const first = numbers[0]
+  const start = first.value - first.place
+  const run =
+    start >= 1 &&
+    start + tiles.length - 1 <= 13 &&
+    numbers.every((n) => n.color === first.color && n.value === start + n.place)
+  const group =
+    tiles.length <= 4 &&
+    numbers.every((n) => n.value === first.value) &&
+    new Set(numbers.map((n) => n.color)).size === numbers.length
+  return run || group
+}
+
+/** Where `tile` can join `set` (its end, else its start), if it can. */
+export function joinEnd(set: Tile[], tile: Tile): 'end' | 'start' | null {
+  if (couldBeSet([...set, tile])) return 'end'
+  if (couldBeSet([tile, ...set])) return 'start'
+  return null
 }
 
 /**

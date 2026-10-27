@@ -122,8 +122,15 @@ only builds it on start.
     player's avatar (`data-seat`) if they came from the rack. Each player can switch watching
     off in the settings (`watchLive`); there's no per-player opt-out of
     being watched, as that's the room's rule. `?demo=watch` shows it.
-  - Double-clicking a rack tile on your turn plays it: the first starts a
-    set after the last row, later ones join that set while it exists.
+  - Plans: a strip at the top of the tray (`Plans`, holders `plan-<key>`)
+    where the player builds sets from their rack any time; on their turn a
+    plan goes onto the table whole (its ↑ button or double-click). Kept in
+    the arrangement like the rack order (`keepPlans`).
+  - Double-clicking a rack tile: on your turn it goes onto the table, else
+    into a plan. It joins the set last changed there (by drag or
+    double-click) if it fits (`joinEnd`), else starts a new one, after the
+    last row. Double-clicking a planned tile off your turn sends it back to
+    the rack.
   - `grid.ts`: the table as a grid of cells (one table tile wide, one row
     high; sizes as CSS variables on `.table-grid` in `index.css`, in step
     with the `table` tile size). A set takes a cell for its grip plus one
