@@ -133,8 +133,10 @@ pub struct Room {
     full_turn_ends: Option<Instant>,
     /// When the room closes if nobody comes back.
     closes: Option<Instant>,
-    /// The current player's table so far this turn, if they've shared one
-    /// (rooms with live turns); kept for anyone who reconnects.
+    /// The current player's table so far this turn, if they've sent one:
+    /// played for them if their time runs out and it's a valid turn, and in
+    /// rooms with live turns shown to the others (and to anyone who
+    /// reconnects).
     draft: Option<Vec<Vec<Tile>>>,
     /// On a bot's turn: what it's doing, and when it takes its next step.
     bot_turn: Option<(BotTurn, Instant)>,
@@ -245,7 +247,7 @@ impl Room {
         }
         self.connections_changed();
         self.broadcast_state();
-        if let Some(table) = &self.draft {
+        if let Some(table) = self.draft.as_ref().filter(|_| self.options.live_turns) {
             let by = self.game.as_ref().map_or(0, Game::current);
             if by != seat {
                 self.send(seat, ServerMessage::Draft { by, table: table.clone() });
@@ -348,13 +350,14 @@ impl Room {
         }
     }
 
-    /// The current player's table so far, passed on to the others. Only in
-    /// rooms with live turns, only from the current player, and only tiles
-    /// they could have: the table's and their rack's.
+    /// The current player's table so far: kept in case their time runs
+    /// out, and passed on to the others in rooms with live turns. Only from
+    /// the current player, and only tiles they could have: the table's and
+    /// their rack's.
     fn share_draft(&mut self, player: PlayerId, table: Vec<Vec<Tile>>) {
         let Some(seat) = self.seat(player) else { return };
         let Some(game) = &self.game else { return };
-        if !self.options.live_turns || game.current() != seat || game.outcome().is_some() {
+        if game.current() != seat || game.outcome().is_some() {
             return;
         }
         if !within_reach(game.table(), game.rack(seat), &table) {
@@ -363,9 +366,13 @@ impl Room {
         self.pass_on_draft(seat, table);
     }
 
+    /// Keeps the current player's table so far, shown to the others in rooms
+    /// with live turns.
     fn pass_on_draft(&mut self, by: usize, table: Vec<Vec<Tile>>) {
-        for other in (0..self.players.len()).filter(|&other| other != by) {
-            self.send(other, ServerMessage::Draft { by, table: table.clone() });
+        if self.options.live_turns {
+            for other in (0..self.players.len()).filter(|&other| other != by) {
+                self.send(other, ServerMessage::Draft { by, table: table.clone() });
+            }
         }
         self.draft = Some(table);
     }
@@ -426,10 +433,15 @@ impl Room {
         self.broadcast_state();
     }
 
-    /// The current player ran out of time: they draw.
+    /// The current player ran out of time: the table they left is played
+    /// if it's a valid turn, as if they had ended it; else they draw.
     fn time_out(&mut self) {
         let Some(game) = self.game.as_mut() else { return };
-        let _ = game.draw(game.current());
+        let seat = game.current();
+        let played = self.draft.take().is_some_and(|table| game.play(seat, table).is_ok());
+        if !played {
+            let _ = game.draw(seat);
+        }
         self.start_turn();
         self.broadcast_state();
     }

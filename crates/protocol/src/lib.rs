@@ -61,8 +61,10 @@ pub enum ClientMessage {
     Play { table: Vec<Vec<Tile>> },
     /// End the turn by drawing a tile instead.
     Draw,
-    /// The table as the current player is rearranging it, for the others
-    /// to watch (rooms with `live_turns`). Not a move: sets may be invalid.
+    /// The table as the current player is rearranging it: played for them
+    /// if their time runs out and it's a valid turn, and passed on for the
+    /// others to watch in rooms with `live_turns`. Not a move: sets may be
+    /// invalid.
     Draft { table: Vec<Vec<Tile>> },
 }
 

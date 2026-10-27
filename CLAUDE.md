@@ -75,7 +75,8 @@ only builds it on start.
     so game state has no locks. Players are identified by a stable
     `PlayerId` (seats shift when those who left are dropped at the start)
     and keep their seat across lost connections with a token (`rejoin`).
-    `Timing`: turn 60 s (runs out: the player draws), 5 s for a player who
+    `Timing`: turn 60 s (runs out: the table they left, their last
+    `draft`, is played if it's a valid turn, else they draw), 5 s for a player who
     is away (their full time is given back if they return during that turn),
     room closes after 120 s with nobody connected. Bots (`AddBot`, host
     only, before the start) are players without a connection: on their
@@ -110,11 +111,12 @@ only builds it on start.
     set doesn't count), blue changed by another player on their last turn
     (`GameState.lastPlay` from `useGame.ts`; flashes when it's news, then
     stays quiet until the table changes).
-  - Live turns: in rooms created with `liveTurns` (on by default), the
-    current player's board sends its table after each drop (`draft`); the
+  - Live turns: the current player's board sends its table after each
+    drop (`draft`, in every room: it's what's played if time runs out); the
     server checks it uses only tiles from the table and that player's rack
-    (`engine::within_reach`), passes it on and keeps it for anyone who
-    reconnects, until the next state. Watchers see it via `withTable` in
+    (`engine::within_reach`) and keeps it until the next state. In rooms
+    created with `liveTurns` (on by default) it also passes it on, and to
+    anyone who reconnects. Watchers see it via `withTable` in
     their own arrangement (unchanged sets keep their keys, so nothing they
     hold moves), changed sets pulsing blue. Tiles new to the table glide
     in like dragged ones (Web Animations on the tile's face; the wrapper's

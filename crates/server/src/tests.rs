@@ -513,3 +513,33 @@ async fn open_racks_show_every_rack() {
         }
     }
 }
+
+#[tokio::test]
+async fn a_valid_table_is_played_when_time_runs_out() {
+    // Live turns off: the server keeps the table anyway, for the timer.
+    let timing = Timing { turn: Duration::from_millis(800), ..SLOW };
+    let options = RoomOptions { live_turns: false };
+    // Deals until Ann's rack has an initial meld (a bot finds it).
+    for _ in 0..40 {
+        let TwoPlayers { mut ann, mut bob, ann_view, .. } = two_player_game_with(timing, options.clone()).await;
+        let engine::Move::Play(table) = engine::bot_move(&ann_view, BotLevel::Hard) else { continue };
+        ann.send(ClientMessage::Draft { table: table.clone() }).await;
+        let (view, _) = bob.state().await;
+        assert_eq!(view.table, table, "played as she left it");
+        assert_eq!(view.current, 1);
+        assert!(view.rack_sizes[0] < 14, "from her rack, nothing drawn: {:?}", view.rack_sizes);
+        return;
+    }
+    panic!("no deal with an initial meld in 40 tries");
+}
+
+#[tokio::test]
+async fn an_invalid_table_draws_when_time_runs_out() {
+    let timing = Timing { turn: Duration::from_millis(300), ..SLOW };
+    let TwoPlayers { mut ann, mut bob, ann_view, .. } = two_player_game(timing).await;
+    ann.send(ClientMessage::Draft { table: draft(&ann_view) }).await;
+    bob.receive().await; // the draft
+    let (view, _) = bob.state().await;
+    assert!(view.table.is_empty());
+    assert_eq!(view.rack_sizes, vec![15, 14], "Ann drew");
+}

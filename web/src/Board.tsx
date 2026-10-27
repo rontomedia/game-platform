@@ -441,17 +441,17 @@ export function Board({
     ? checkTurn({ before: view.table, after: table, rack: view.rack, melded: view.melded[view.you], rules: view.rules })
     : null
 
-  // On this player's turn, in a room that shares turns live: the table after
-  // each drop, for the others to watch.
-  const shareLive = myTurn && room.options.liveTurns
+  // On this player's turn: the table after each drop, for the server to
+  // play if time runs out (when it's a valid turn) and, in rooms that share
+  // turns live, for the others to watch.
   const shared = useRef(canonical(view.table))
   useEffect(() => {
-    if (!shareLive || dragging) return
+    if (!myTurn || dragging) return
     const now = canonical(table)
     if (now === shared.current) return
     shared.current = now
     send({ type: 'draft', table })
-  }, [shareLive, dragging, table, send])
+  }, [myTurn, dragging, table, send])
 
   /** Whether `tile` may go into `holder` (or onto the table as a new set). */
   const mayGo = (tile: Placed, holder: string) => (isOwn(holder) || holder === NEW_PLAN ? !tile.fromTable : myTurn)
