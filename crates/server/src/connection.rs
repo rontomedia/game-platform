@@ -65,7 +65,7 @@ async fn handle(message: ClientMessage, rooms: &Arc<Rooms>, membership: &mut Opt
             error(outbox, "already in a room")
         }
         ClientMessage::CreateRoom { name, options } => {
-            let room = rooms.create(options);
+            let room = rooms.create(options.checked());
             *membership = enter(room, outbox, |reply| Command::Join { name: clean(&name), connection: connection(), reply }).await;
         }
         ClientMessage::JoinRoom { code, name } => match rooms.get(&code) {

@@ -12,6 +12,7 @@ use tokio_tungstenite::tungstenite::Message;
 use tokio_tungstenite::{MaybeTlsStream, WebSocketStream};
 
 use super::*;
+use crate::clock::Bonus;
 
 /// Long enough never to run out during a test.
 const SLOW: Timing = Timing {
@@ -21,6 +22,10 @@ const SLOW: Timing = Timing {
     // Bots don't keep tests waiting.
     bot_think: Duration::from_millis(5),
     bot_show: Duration::from_millis(5),
+    bank: Duration::from_secs(60),
+    bonus: Bonus { per_tile: Duration::from_secs(15), per_set: Duration::from_secs(20) },
+    unearned_warning: Duration::from_secs(60),
+    unearned_limit: Duration::from_secs(120),
 };
 
 async fn start_server(timing: Timing) -> SocketAddr {
@@ -378,7 +383,7 @@ async fn the_others_watch_the_current_players_table() {
 
 #[tokio::test]
 async fn no_live_turns_when_the_room_said_so() {
-    let options = RoomOptions { live_turns: false };
+    let options = RoomOptions { live_turns: false, ..RoomOptions::default() };
     let TwoPlayers { mut ann, mut bob, ann_view, .. } = two_player_game_with(SLOW, options).await;
     ann.send(ClientMessage::Draft { table: draft(&ann_view) }).await;
     ann.send(ClientMessage::Draw).await;
@@ -518,7 +523,7 @@ async fn open_racks_show_every_rack() {
 async fn a_valid_table_is_played_when_time_runs_out() {
     // Live turns off: the server keeps the table anyway, for the timer.
     let timing = Timing { turn: Duration::from_millis(800), ..SLOW };
-    let options = RoomOptions { live_turns: false };
+    let options = RoomOptions { live_turns: false, ..RoomOptions::default() };
     // Deals until Ann's rack has an initial meld (a bot finds it).
     for _ in 0..40 {
         let TwoPlayers { mut ann, mut bob, ann_view, .. } = two_player_game_with(timing, options.clone()).await;
@@ -542,4 +547,114 @@ async fn an_invalid_table_draws_when_time_runs_out() {
     let (view, _) = bob.state().await;
     assert!(view.table.is_empty());
     assert_eq!(view.rack_sizes, vec![15, 14], "Ann drew");
+}
+
+#[tokio::test]
+async fn the_bank_follows_the_turns_own_time() {
+    let timing = Timing { turn: Duration::from_millis(200), bank: Duration::from_millis(500), ..SLOW };
+    let options = RoomOptions { time_bank: true, ..RoomOptions::default() };
+    let started = tokio::time::Instant::now();
+    let TwoPlayers { mut bob, ann: _ann, .. } = two_player_game_with(timing, options).await;
+    // Ann (still here) does nothing: her turn's 200 ms, then her bank's 500.
+    let (view, _) = loop {
+        let state = bob.state().await;
+        if state.0.current == 1 {
+            break state;
+        }
+    };
+    assert!(started.elapsed() >= Duration::from_millis(650), "{:?}", started.elapsed());
+    assert_eq!(view.rack_sizes[0], 15, "then she drew");
+    bob.send(ClientMessage::Draw).await;
+    let ServerMessage::State { banks, .. } = bob.receive().await else { panic!() };
+    assert_eq!(banks.unwrap(), vec![0, 500], "Ann's bank is spent, Bob's untouched");
+}
+
+/// A two-player game in which Ann can make her initial meld; the table
+/// for it.
+async fn ann_can_meld(timing: Timing, options: RoomOptions) -> (TwoPlayers, Vec<Vec<engine::Tile>>) {
+    for _ in 0..40 {
+        let game = two_player_game_with(timing, options.clone()).await;
+        if let engine::Move::Play(table) = engine::bot_move(&game.ann_view, BotLevel::Hard) {
+            return (game, table);
+        }
+    }
+    panic!("no deal with an initial meld in 40 tries");
+}
+
+/// The next message of the kind `pick` finds, skipping others.
+async fn next<T>(client: &mut Client, pick: impl Fn(ServerMessage) -> Option<T>) -> T {
+    loop {
+        if let Some(found) = pick(client.receive().await) {
+            return found;
+        }
+    }
+}
+
+#[tokio::test]
+async fn tiles_put_down_earn_time_once() {
+    let options = RoomOptions { tile_bonus: true, ..RoomOptions::default() };
+    let (TwoPlayers { mut ann, mut bob, .. }, table) = ann_can_meld(SLOW, options).await;
+    let tiles = table.iter().flatten().count() as u32;
+    ann.send(ClientMessage::Draft { table: table.clone() }).await;
+    let clock = |m| match m {
+        ServerMessage::Clock { by, added_ms, turn_ms } => Some((by, added_ms, turn_ms)),
+        _ => None,
+    };
+    let (by, added_ms, turn_ms) = next(&mut bob, clock).await;
+    assert_eq!(by, 0);
+    // Every set is new and made of her tiles.
+    assert_eq!(added_ms, tiles * 15_000 + table.len() as u32 * 20_000);
+    assert!(turn_ms > 60_000 + added_ms - 2_000, "{turn_ms}");
+    // Taken back and put down again: nothing more.
+    ann.send(ClientMessage::Draft { table: vec![] }).await;
+    ann.send(ClientMessage::Draft { table: table.clone() }).await;
+    ann.send(ClientMessage::Play { table }).await;
+    let (view, _) = bob.state().await;
+    assert_eq!(view.current, 1, "no second Clock before the state");
+}
+
+#[tokio::test]
+async fn taking_back_tiles_given_time_for_warns_then_stops_it() {
+    let timing = Timing { unearned_warning: Duration::from_secs(1), unearned_limit: Duration::from_secs(1000), ..SLOW };
+    let options = RoomOptions { tile_bonus: true, ..RoomOptions::default() };
+    let (TwoPlayers { mut ann, .. }, table) = ann_can_meld(timing, options.clone()).await;
+    ann.send(ClientMessage::Draft { table }).await;
+    ann.send(ClientMessage::Draw).await;
+    let notice = |m| match m {
+        ServerMessage::Notice { message } => Some(message),
+        _ => None,
+    };
+    assert!(next(&mut ann, notice).await.contains("counts against you"));
+
+    let timing = Timing { unearned_limit: Duration::from_secs(1), ..SLOW };
+    let (TwoPlayers { mut ann, mut bob, .. }, table) = ann_can_meld(timing, options).await;
+    ann.send(ClientMessage::Draft { table: table.clone() }).await;
+    ann.send(ClientMessage::Draw).await;
+    assert!(next(&mut ann, notice).await.contains("No more extra time"));
+    // Bob past the extra time Ann was given before, to his turn.
+    while bob.state().await.0.current != 1 {}
+    bob.send(ClientMessage::Draw).await;
+    // Her meld again on her next turn: no extra time now.
+    ann.state().await;
+    ann.send(ClientMessage::Draft { table: table.clone() }).await;
+    ann.send(ClientMessage::Play { table }).await;
+    loop {
+        match bob.receive().await {
+            ServerMessage::Clock { .. } => panic!("extra time after it was stopped"),
+            ServerMessage::State { view, .. } if view.current == 1 => break,
+            _ => {}
+        }
+    }
+}
+
+#[tokio::test]
+async fn the_room_chooses_the_turn_length() {
+    // A turn of a minute takes 400 ms here; two minutes, 800.
+    let timing = Timing { turn: Duration::from_millis(400), ..SLOW };
+    let options = RoomOptions { turn_seconds: 120, ..RoomOptions::default() };
+    let TwoPlayers { mut ann, .. } = two_player_game_with(timing, options).await;
+    let started = tokio::time::Instant::now();
+    let (view, _) = ann.state().await;
+    assert_eq!(view.current, 1, "her time ran out");
+    assert!(started.elapsed() >= Duration::from_millis(700), "{:?}", started.elapsed());
 }

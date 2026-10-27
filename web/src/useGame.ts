@@ -28,6 +28,10 @@ export interface GameState {
    */
   racks?: Tile[][]
   log: TurnRecord[]
+  /** Milliseconds left in each player's time bank, as of `turnEnds` for the current player. */
+  banks?: number[]
+  /** The last extra time given for tiles: to whom, how much, and when (`Date.now()`). */
+  bonus?: { by: number; ms: number; at: number }
 }
 
 /** A finished turn, as open racks show it. */
@@ -104,6 +108,9 @@ export const SERVER_URL =
  */
 const SEAT_KEY = 'rummy.seat'
 
+/** How long a notice from the server stays up. */
+const NOTICE_MS = 15_000
+
 /** Wait before connecting again after losing the connection. */
 const RETRY_MS = 2000
 
@@ -146,6 +153,13 @@ export function useGame() {
   const [draft, setDraft] = useState<Draft | null>(null)
   /** The last refusal or error from the server, until the next change. */
   const [problem, setProblem] = useState<string | null>(null)
+  /** The last notice from the server, for a while (`NOTICE_MS`). */
+  const [notice, setNotice] = useState<string | null>(null)
+  useEffect(() => {
+    if (notice === null) return
+    const timer = setTimeout(() => setNotice(null), NOTICE_MS)
+    return () => clearTimeout(timer)
+  }, [notice])
   /** Set when the server speaks another protocol version than this page. */
   const [mismatch, setMismatch] = useState<number | null>(null)
   // Bumped to connect again.
@@ -208,12 +222,27 @@ export function useGame() {
               lastPlay: lastPlay(previous, message.view, next),
               racks: message.racks,
               log: turn ? [...log, turn].slice(-LOG_LENGTH) : log,
+              banks: message.banks,
             }
           })
           setDraft(null)
           setProblem(null)
           break
         }
+        case 'clock': {
+          const now = Date.now()
+          setGame((previous) => {
+            if (!previous) return previous
+            // Time already taken from the bank is spent; the turn's own time starts again.
+            const overdue = previous.turnEnds === undefined ? 0 : Math.max(0, now - previous.turnEnds)
+            const banks = previous.banks?.map((ms, seat) => (seat === message.by ? Math.max(0, ms - overdue) : ms))
+            return { ...previous, turnEnds: now + message.turnMs, banks, bonus: { by: message.by, ms: message.addedMs, at: now } }
+          })
+          break
+        }
+        case 'notice':
+          setNotice(message.message)
+          break
         case 'draft':
           setDraft({ by: message.by, table: message.table, version: version.current })
           break
@@ -252,5 +281,5 @@ export function useGame() {
     reconnect()
   }, [reconnect])
 
-  return { status, room, game, draft, problem, mismatch, send, reconnect, leave }
+  return { status, room, game, draft, problem, notice, mismatch, send, reconnect, leave }
 }

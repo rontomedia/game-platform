@@ -14,21 +14,41 @@ use tsify::Tsify;
 
 /// Bumped when a message changes in a way an older client can't read; the
 /// server says which it speaks in `Welcome`.
-pub const PROTOCOL_VERSION: u32 = 4;
+pub const PROTOCOL_VERSION: u32 = 5;
 
-/// How a room plays, chosen by whoever opens it.
+/// How a room plays, chosen by whoever opens it. Options left out take
+/// their defaults.
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[cfg_attr(feature = "wasm", derive(Tsify))]
-#[serde(rename_all = "camelCase")]
+#[serde(default, rename_all = "camelCase")]
 pub struct RoomOptions {
+    /// Seconds in a turn: one of `TURN_SECONDS`.
+    pub turn_seconds: u32,
     /// Whether the others see the current player's table as they rearrange
     /// it (`Draft`), as at a real table. Off: only finished turns.
     pub live_turns: bool,
+    /// Each player has a reserve of time for the whole game, used once a
+    /// turn's own time runs out.
+    pub time_bank: bool,
+    /// Extra time on a turn for tiles put down: given as the table becomes
+    /// a valid turn worth more than before (`Clock`).
+    pub tile_bonus: bool,
 }
 
 impl Default for RoomOptions {
     fn default() -> RoomOptions {
-        RoomOptions { live_turns: true }
+        RoomOptions { turn_seconds: 60, live_turns: true, time_bank: false, tile_bonus: false }
+    }
+}
+
+/// The turn lengths a room may choose, in seconds.
+pub const TURN_SECONDS: [u32; 5] = [30, 60, 90, 120, 180];
+
+impl RoomOptions {
+    /// The options with anything out of range back at its default.
+    pub fn checked(self) -> RoomOptions {
+        let turn_seconds = if TURN_SECONDS.contains(&self.turn_seconds) { self.turn_seconds } else { 60 };
+        RoomOptions { turn_seconds, ..self }
     }
 }
 
@@ -118,6 +138,11 @@ pub enum ServerMessage {
         #[serde(default, skip_serializing_if = "Option::is_none")]
         #[cfg_attr(feature = "wasm", tsify(optional))]
         turn_ms: Option<u32>,
+        /// Milliseconds left in each player's time bank, in seat order (the
+        /// current player's as of now): rooms with `time_bank`.
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        #[cfg_attr(feature = "wasm", tsify(optional))]
+        banks: Option<Vec<u32>>,
         /// Every player's rack, in seat order: only from a server started
         /// to show them (`--open-racks`), for judging the bots.
         #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -127,6 +152,11 @@ pub enum ServerMessage {
     /// The current player's table so far this turn (see `ClientMessage::Draft`).
     /// Gone with the next `State`.
     Draft { by: usize, table: Vec<Vec<Tile>> },
+    /// The current player was given extra time for tiles (`tile_bonus`):
+    /// their turn now has `turn_ms` left.
+    Clock { by: usize, added_ms: u32, turn_ms: u32 },
+    /// Something this player should know, such as a warning.
+    Notice { message: String },
     /// This player's move wasn't allowed; if it was their turn, it still is.
     Rejected { error: TurnError, message: String },
     /// A message the server couldn't act on: malformed, or not possible now.
@@ -160,12 +190,12 @@ mod tests {
         assert_eq!(ClientMessage::from_json(r#"{"type":"draw"}"#).unwrap(), ClientMessage::Draw);
         assert_eq!(
             ClientMessage::from_json(r#"{"type":"createRoom","name":"Ann"}"#).unwrap(),
-            ClientMessage::CreateRoom { name: "Ann".into(), options: RoomOptions { live_turns: true } },
+            ClientMessage::CreateRoom { name: "Ann".into(), options: RoomOptions::default() },
             "live turns unless asked otherwise"
         );
         assert_eq!(
             ClientMessage::from_json(r#"{"type":"createRoom","name":"Ann","options":{"liveTurns":false}}"#).unwrap(),
-            ClientMessage::CreateRoom { name: "Ann".into(), options: RoomOptions { live_turns: false } }
+            ClientMessage::CreateRoom { name: "Ann".into(), options: RoomOptions { live_turns: false, ..RoomOptions::default() } }
         );
         assert_eq!(
             ClientMessage::from_json(r#"{"type":"joinRoom","code":"ABCD","name":"Ann"}"#).unwrap(),
@@ -175,6 +205,8 @@ mod tests {
             ClientMessage::from_json(r#"{"type":"addBot","level":"hard"}"#).unwrap(),
             ClientMessage::AddBot { level: BotLevel::Hard }
         );
+        assert_eq!(RoomOptions { turn_seconds: 45, ..RoomOptions::default() }.checked().turn_seconds, 60);
+        assert_eq!(RoomOptions { turn_seconds: 180, ..RoomOptions::default() }.checked().turn_seconds, 180);
         assert!(ClientMessage::from_json(r#"{"type":"cheat"}"#).is_err());
         assert!(ClientMessage::from_json("hello").is_err());
     }
@@ -188,10 +220,10 @@ mod tests {
             r#"{"type":"rejected","error":{"kind":"invalidSet","index":2},"message":"set 3"}"#
         );
         let view = Game::new(2, Rules::default(), 1).view(0);
-        let state = ServerMessage::State { view: view.clone(), turn_ms: Some(1500), racks: None }.to_json();
+        let state = ServerMessage::State { view: view.clone(), turn_ms: Some(1500), banks: None, racks: None }.to_json();
         assert!(state.starts_with(r#"{"type":"state","view":{"you":0,"rules":{"#), "{state}");
         assert!(state.ends_with(r#""turnMs":1500}"#), "{state}");
-        let over = ServerMessage::State { view, turn_ms: None, racks: None }.to_json();
+        let over = ServerMessage::State { view, turn_ms: None, banks: None, racks: None }.to_json();
         assert!(!over.contains("turnMs") && !over.contains("null"), "{over}");
     }
 }

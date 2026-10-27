@@ -75,7 +75,16 @@ only builds it on start.
     so game state has no locks. Players are identified by a stable
     `PlayerId` (seats shift when those who left are dropped at the start)
     and keep their seat across lost connections with a token (`rejoin`).
-    `Timing`: turn 60 s (runs out: the table they left, their last
+    `RoomOptions` (chosen on the home screen): turn length (30 s to 3 min,
+    default 1 min; `checked()` keeps it to `TURN_SECONDS`), a time bank
+    (2 min a player, used once a turn's own time runs out; not while away;
+    `settle_bank` charges it before each move), extra time for tiles
+    (`clock.rs`: 15 s a tile and 20 s a set holding one, once a draft is a
+    valid turn, only the amount above the best so far this turn, sent as
+    `Clock`; time given for tiles then taken back counts against the
+    player: a `Notice` at 1 min, none for the rest of the game at 2), and
+    live turns. `Timing`: a minute's turn is 60 s, scaled by the room's
+    length (when it runs out, the table they left, their last
     `draft`, is played if it's a valid turn, else they draw), 5 s for a player who
     is away (their full time is given back if they return during that turn),
     room closes after 120 s with nobody connected. Bots (`AddBot`, host

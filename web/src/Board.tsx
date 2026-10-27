@@ -218,17 +218,29 @@ interface Target {
   width: number
 }
 
-/** The turn length the timer ring shows a fraction of. */
-const TURN_SECONDS = 60
+/** A time bank's size, which its ring shows a fraction of (the server's default). */
+const BANK_SECONDS = 120
+/** How long extra time given shows by the player. */
+const BONUS_SHOWN_MS = 3000
 
-/** Seconds until `ends`, ticking. */
-function useSecondsLeft(ends: number | undefined) {
+/** `Date.now()`, ticking. */
+function useNow() {
   const [now, setNow] = useState(() => Date.now())
   useEffect(() => {
     const timer = setInterval(() => setNow(Date.now()), 250)
     return () => clearInterval(timer)
   }, [])
-  return ends === undefined ? undefined : Math.max(0, Math.ceil((ends - now) / 1000))
+  return now
+}
+
+/** A player's clock: the turn's own time, then their bank. */
+interface Clock {
+  /** Seconds left in the turn's own time, for the current player. */
+  turn?: number
+  /** Seconds left in their bank, in rooms with one. */
+  bank?: number
+  /** Extra time just given, in seconds. */
+  bonus?: number
 }
 
 /** Give it `key={game.version}`: a new state from the server starts afresh from `arrangement`. */
@@ -237,6 +249,7 @@ export function Board({
   room,
   status,
   problem,
+  notice,
   settings,
   onSettings,
   arrangement,
@@ -249,6 +262,8 @@ export function Board({
   room: RoomInfo
   status: Status
   problem: string | null
+  /** A warning from the server, for a while. */
+  notice: string | null
   settings: Settings
   onSettings: (change: Partial<Settings>) => void
   arrangement: Arrangement
@@ -279,7 +294,19 @@ export function Board({
   const lastPlan = useRef<number | null>(null)
   const tableGrid = useRef<HTMLDivElement | null>(null)
   const [metrics, setMetrics] = useState<Metrics | null>(null)
-  const secondsLeft = useSecondsLeft(game.turnEnds)
+  const now = useNow()
+  const playing = !view.outcome
+  const overdue = game.turnEnds === undefined ? 0 : Math.max(0, now - game.turnEnds)
+  const clock = (seat: number): Clock => {
+    const current = playing && seat === view.current
+    const bank = game.banks?.[seat]
+    const bonus = game.bonus && game.bonus.by === seat && now - game.bonus.at < BONUS_SHOWN_MS ? game.bonus : undefined
+    return {
+      turn: current && game.turnEnds !== undefined ? Math.max(0, Math.ceil((game.turnEnds - now) / 1000)) : undefined,
+      bank: bank === undefined ? undefined : Math.max(0, Math.ceil((bank - (current ? overdue : 0)) / 1000)),
+      bonus: bonus && Math.round(bonus.ms / 1000),
+    }
+  }
 
   // Another player's turn, as they share it: their draft in place of the
   // table, until the next state (or the draft goes away).
@@ -663,6 +690,7 @@ export function Board({
   const name = (seat: number) => room.seats[seat]?.name ?? `Player ${seat + 1}`
   const note = ((): { tone: 'neutral' | 'good' | 'bad'; text: string } => {
     if (problem) return { tone: 'bad', text: problem }
+    if (notice) return { tone: 'bad', text: notice }
     if (view.outcome) return { tone: 'neutral', text: 'The game is over.' }
     if (!myTurn) {
       const placed = liveTable ? liveTable.flat().length - view.table.flat().length : 0
@@ -714,7 +742,7 @@ export function Board({
         <TopBar
           room={room}
           view={view}
-          secondsLeft={secondsLeft}
+          clock={clock}
           status={status}
           settings={settings}
           onSettings={changeSettings}
@@ -1113,14 +1141,14 @@ const seatColors = ['from-teal-400 to-cyan-600', 'from-violet-400 to-fuchsia-600
 function TopBar({
   room,
   view,
-  secondsLeft,
+  clock,
   status,
   settings,
   onSettings,
 }: {
   room: RoomInfo
   view: GameState['view']
-  secondsLeft?: number
+  clock: (seat: number) => Clock
   status: Status
   settings: Settings
   onSettings: (change: Partial<Settings>) => void
@@ -1141,7 +1169,8 @@ function TopBar({
             connected={room.seats[seat]?.connected ?? false}
             bot={room.seats[seat]?.bot !== undefined}
             tiles={size}
-            secondsLeft={seat === view.current && !view.outcome ? secondsLeft : undefined}
+            clock={clock(seat)}
+            turnSeconds={room.options.turnSeconds ?? 60}
             current={seat === view.current && !view.outcome}
           />
         ))}
@@ -1170,7 +1199,8 @@ function PlayerChip({
   bot,
   tiles,
   current,
-  secondsLeft,
+  clock,
+  turnSeconds,
 }: {
   seat: number
   name: string
@@ -1179,15 +1209,20 @@ function PlayerChip({
   bot: boolean
   tiles: number
   current: boolean
-  secondsLeft?: number
+  clock: Clock
+  turnSeconds: number
 }) {
-  const fraction = secondsLeft === undefined ? 0 : Math.min(1, secondsLeft / TURN_SECONDS)
-  const urgent = secondsLeft !== undefined && secondsLeft <= 10
+  // Once the turn's own time is up, the bank runs.
+  const banking = current && clock.turn === 0 && clock.bank !== undefined && clock.bank > 0
+  const seconds = banking ? clock.bank : clock.turn
+  const fraction = seconds === undefined ? 0 : Math.min(1, seconds / (banking ? BANK_SECONDS : turnSeconds))
+  const urgent = seconds !== undefined && seconds <= 10
+  const bankText = clock.bank === undefined ? '' : `, ${minutes(clock.bank)} in the bank`
   return (
     <div
-      title={`${name}: ${tiles} tiles${connected ? '' : ', away'}`}
+      title={`${name}: ${tiles} tiles${bankText}${connected ? '' : ', away'}`}
       data-seat={seat}
-      className={`flex shrink-0 items-center gap-2.5 rounded-2xl p-1.5 ring-1 transition md:pr-3 short:pr-1.5 ${
+      className={`relative flex shrink-0 items-center gap-2.5 rounded-2xl p-1.5 ring-1 transition md:pr-3 short:pr-1.5 ${
         current ? 'bg-white/10 ring-teal-300/50' : 'bg-white/[0.04] ring-white/10'
       } ${connected ? '' : 'opacity-50'}`}
     >
@@ -1200,7 +1235,7 @@ function PlayerChip({
               cy="18"
               r="16.5"
               fill="none"
-              stroke={urgent ? '#fbbf24' : '#5eead4'}
+              stroke={urgent ? '#fbbf24' : banking ? '#c4b5fd' : '#5eead4'}
               strokeWidth="2"
               strokeLinecap="round"
               strokeDasharray={`${fraction * 103.7} 103.7`}
@@ -1225,15 +1260,32 @@ function PlayerChip({
           {bot && <span className="font-normal text-violet-300"> · bot</span>}
         </div>
         <div className="text-xs text-slate-400">
-          {current && secondsLeft !== undefined ? (
-            <span className={`tabular-nums ${urgent ? 'text-amber-300' : 'text-teal-300'}`}>{secondsLeft}s · </span>
+          {current && seconds !== undefined ? (
+            <span className={`tabular-nums ${urgent ? 'text-amber-300' : banking ? 'text-violet-300' : 'text-teal-300'}`}>
+              {banking ? `bank ${minutes(seconds)}` : `${seconds}s`} ·{' '}
+            </span>
           ) : null}
           {tiles} tiles{connected ? '' : ' · away'}
         </div>
       </div>
+      <AnimatePresence>
+        {clock.bonus !== undefined && (
+          <motion.span
+            initial={{ opacity: 0, y: 6, scale: 0.8 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -6 }}
+            className="pointer-events-none absolute -top-2 right-0 rounded-full bg-emerald-400 px-1.5 text-[0.7rem] font-bold tabular-nums text-emerald-950 shadow"
+          >
+            +{clock.bonus}s
+          </motion.span>
+        )}
+      </AnimatePresence>
     </div>
   )
 }
+
+/** Seconds as minutes and seconds: "1:05". */
+const minutes = (seconds: number) => `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, '0')}`
 
 /** Whether the open racks panel is folded away, for the tab. */
 const OPEN_RACKS_KEY = 'rummy.openRacksFolded'

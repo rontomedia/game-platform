@@ -7,7 +7,7 @@ import { useSettings } from './settings.ts'
 import { remember, remembered } from './storage.ts'
 import { Button, inputClass, Note, Panel, Switch } from './ui.tsx'
 import { SERVER_URL, useGame, type Draft, type Status } from './useGame.ts'
-import { protocolVersion, type BotLevel, type ClientMessage, type RoomInfo } from './wasm/engine.js'
+import { protocolVersion, type BotLevel, type ClientMessage, type RoomInfo, type RoomOptions } from './wasm/engine.js'
 
 const statusLook: Record<Status, { label: string; dot: string }> = {
   connecting: { label: 'Connecting', dot: 'bg-amber-400 animate-pulse' },
@@ -49,6 +49,7 @@ function Demo() {
       room={demoRoom}
       status="open"
       problem={null}
+      notice={null}
       settings={settings}
       onSettings={changeSettings}
       arrangement={arrangement}
@@ -88,7 +89,7 @@ function useArrangement(code: string | undefined): [Arrangement, (arrangement: A
 }
 
 function Online() {
-  const { status, room, game, draft, problem, mismatch, send, reconnect, leave } = useGame()
+  const { status, room, game, draft, problem, notice, mismatch, send, reconnect, leave } = useGame()
   const [settings, changeSettings] = useSettings()
   const [arrangement, setArrangement] = useArrangement(room?.code)
   const look = statusLook[status]
@@ -101,6 +102,7 @@ function Online() {
         room={room}
         status={status}
         problem={problem}
+        notice={notice}
         settings={settings}
         onSettings={changeSettings}
         arrangement={arrangement}
@@ -147,11 +149,19 @@ function Home({ send, problem, ready }: { send: (m: ClientMessage) => void; prob
   const [name, setName] = useState(() => remembered<string>(NAME_KEY) ?? '')
   const [code, setCode] = useState('')
 
-  const [liveTurns, setLiveTurns] = useState(true)
+  const [options, setOptions] = useState<Required<RoomOptions>>(() => ({
+    ...defaultOptions,
+    ...remembered<RoomOptions>(OPTIONS_KEY),
+  }))
+  const change = (change: RoomOptions) => {
+    const next = { ...options, ...change }
+    remember(OPTIONS_KEY, next)
+    setOptions(next)
+  }
 
   const create = () => {
     remember(NAME_KEY, name.trim())
-    send({ type: 'createRoom', name, options: { liveTurns } })
+    send({ type: 'createRoom', name, options })
   }
   const join = (e: FormEvent) => {
     e.preventDefault()
@@ -166,15 +176,41 @@ function Home({ send, problem, ready }: { send: (m: ClientMessage) => void; prob
           <span className="text-sm font-medium text-slate-300">Your name</span>
           <input value={name} onChange={(e) => setName(e.target.value)} maxLength={20} placeholder="Name" className={inputClass} />
         </label>
-        <label className="mt-5 flex cursor-pointer items-start gap-3">
-          <span className="flex-1">
-            <span className="block text-sm font-medium text-slate-300">Show turns live</span>
-            <span className="mt-0.5 block text-xs text-slate-500">
-              Everyone sees the current player’s moves as they make them, as at a real table.
-            </span>
-          </span>
-          <Switch checked={liveTurns} onChange={setLiveTurns} />
-        </label>
+        <div className="mt-5">
+          <span className="block text-sm font-medium text-slate-300">Time for a turn</span>
+          <div className="mt-2 flex rounded-xl bg-black/30 p-1 text-sm font-semibold" role="group" aria-label="Time for a turn">
+            {TURN_LENGTHS.map(([seconds, label]) => (
+              <button
+                key={seconds}
+                onClick={() => change({ turnSeconds: seconds })}
+                aria-pressed={options.turnSeconds === seconds}
+                className={`flex-1 cursor-pointer rounded-lg py-1.5 transition ${
+                  options.turnSeconds === seconds ? 'bg-teal-500 text-slate-950' : 'text-slate-300 hover:bg-white/10'
+                }`}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+        </div>
+        <Option
+          title="Time bank"
+          detail="Each player also has 2 minutes for the whole game, used once a turn’s time runs out."
+          checked={options.timeBank}
+          onChange={(timeBank) => change({ timeBank })}
+        />
+        <Option
+          title="Extra time for tiles"
+          detail="15 s for each tile put down and 20 s for each set it makes or changes, once the table is a valid turn."
+          checked={options.tileBonus}
+          onChange={(tileBonus) => change({ tileBonus })}
+        />
+        <Option
+          title="Show turns live"
+          detail="Everyone sees the current player’s moves as they make them, as at a real table."
+          checked={options.liveTurns}
+          onChange={(liveTurns) => change({ liveTurns })}
+        />
         <Button look="primary" className="mt-4 w-full" disabled={!ready} onClick={create}>
           Create a room
         </Button>
@@ -206,6 +242,51 @@ function Home({ send, problem, ready }: { send: (m: ClientMessage) => void; prob
   )
 }
 
+/** The room options to start from, as the server has them. */
+const defaultOptions: Required<RoomOptions> = { turnSeconds: 60, liveTurns: true, timeBank: false, tileBonus: false }
+/** Remembered across visits: the options the player last created a room with. */
+const OPTIONS_KEY = 'rummy.roomOptions'
+/** The turn lengths a room may have (the server's `TURN_SECONDS`). */
+const TURN_LENGTHS: [number, string][] = [
+  [30, '30 s'],
+  [60, '1 min'],
+  [90, '90 s'],
+  [120, '2 min'],
+  [180, '3 min'],
+]
+
+/** The room's rules in a sentence, for the lobby. */
+function describe(options: RoomOptions): string {
+  const turn = TURN_LENGTHS.find(([seconds]) => seconds === (options.turnSeconds ?? 60))?.[1] ?? '1 min'
+  const parts = [`${turn} a turn`]
+  if (options.timeBank) parts.push('a 2-minute time bank')
+  if (options.tileBonus) parts.push('extra time for tiles')
+  parts.push(options.liveTurns ? 'turns shown live' : 'only finished turns shown')
+  return `${parts.join(', ')}.`.replace(/^./, (c) => c.toUpperCase())
+}
+
+function Option({
+  title,
+  detail,
+  checked,
+  onChange,
+}: {
+  title: string
+  detail: string
+  checked: boolean
+  onChange: (checked: boolean) => void
+}) {
+  return (
+    <label className="mt-5 flex cursor-pointer items-start gap-3">
+      <span className="flex-1">
+        <span className="block text-sm font-medium text-slate-300">{title}</span>
+        <span className="mt-0.5 block text-xs text-slate-500">{detail}</span>
+      </span>
+      <Switch checked={checked} onChange={onChange} />
+    </label>
+  )
+}
+
 /** Seats in a room (the server's limit too). */
 const MAX_PLAYERS = 4
 
@@ -230,9 +311,7 @@ function Lobby({
       <Panel>
         <p className="text-sm text-slate-400">Room code: share it with the other players</p>
         <p className="mt-1 font-mono text-5xl font-bold tracking-[0.2em] text-teal-300">{room.code}</p>
-        <p className="mt-3 text-sm text-slate-400">
-          {room.options.liveTurns ? 'Turns are shown live to everyone.' : 'Only finished turns are shown.'}
-        </p>
+        <p className="mt-3 text-sm text-slate-400">{describe(room.options)}</p>
         <ul className="mt-6 space-y-2">
           {room.seats.map((seat, i) => (
             <li key={i} className="flex items-center gap-3 rounded-xl bg-white/5 px-3 py-2">

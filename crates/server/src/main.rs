@@ -2,6 +2,7 @@
 //! running one game (crates/engine) with a turn timer. Clients speak
 //! crates/protocol over a WebSocket at /ws.
 
+mod clock;
 mod connection;
 mod room;
 mod rooms;

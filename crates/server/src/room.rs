@@ -15,6 +15,7 @@ use protocol::{RoomInfo, RoomOptions, Seat, ServerMessage};
 use tokio::sync::{mpsc, oneshot};
 use tokio::time::{sleep_until, Instant};
 
+use crate::clock::Bonus;
 use crate::rooms::Rooms;
 
 pub const MAX_PLAYERS: usize = 4;
@@ -25,7 +26,9 @@ const BOT_NAMES: [&str; 4] = ["Ada", "Bruno", "Cleo", "Dev"];
 /// How long things may take.
 #[derive(Clone, Copy, Debug)]
 pub struct Timing {
-    /// A turn; when it runs out the player draws.
+    /// A turn of a minute, the default; rooms that chose another length get
+    /// it in proportion. When it runs out, the table the player left is
+    /// played if it's a valid turn, else they draw.
     pub turn: Duration,
     /// A turn of a player who has lost their connection.
     pub absent_turn: Duration,
@@ -36,6 +39,14 @@ pub struct Timing {
     /// ...and, in rooms with live turns, how long its play is shown before
     /// the turn ends.
     pub bot_show: Duration,
+    /// Each player's reserve for the game, in rooms with a time bank.
+    pub bank: Duration,
+    /// Extra time for tiles, in rooms with `tile_bonus`.
+    pub bonus: Bonus,
+    /// Extra time a player may be given for tiles they then take back before
+    /// they're warned, and before they get no more for the game.
+    pub unearned_warning: Duration,
+    pub unearned_limit: Duration,
 }
 
 impl Default for Timing {
@@ -46,6 +57,10 @@ impl Default for Timing {
             abandoned: Duration::from_secs(120),
             bot_think: Duration::from_millis(1500),
             bot_show: Duration::from_millis(1500),
+            bank: Duration::from_secs(120),
+            bonus: Bonus { per_tile: Duration::from_secs(15), per_set: Duration::from_secs(20) },
+            unearned_warning: Duration::from_secs(60),
+            unearned_limit: Duration::from_secs(120),
         }
     }
 }
@@ -85,6 +100,14 @@ struct Player {
     connection: Option<Connection>,
     /// Set for a computer player.
     bot: Option<BotLevel>,
+    /// What's left of their time bank.
+    bank: Duration,
+    /// Extra time they were given for tiles they then took back...
+    unearned: Duration,
+    /// ...whether they've been warned about it...
+    warned: bool,
+    /// ...and whether it's too much: no more extra time this game.
+    no_bonus: bool,
 }
 
 impl Player {
@@ -140,6 +163,9 @@ pub struct Room {
     draft: Option<Vec<Vec<Tile>>>,
     /// On a bot's turn: what it's doing, and when it takes its next step.
     bot_turn: Option<(BotTurn, Instant)>,
+    /// Extra time given this turn for tiles: what the best table so far was
+    /// worth.
+    granted: Duration,
 }
 
 /// Starts a room's task; it removes itself from `rooms` when it closes.
@@ -159,6 +185,7 @@ pub fn spawn(code: String, config: Config, options: RoomOptions, rooms: Arc<Room
         closes: None,
         draft: None,
         bot_turn: None,
+        granted: Duration::ZERO,
     };
     tokio::spawn(room.run(commands, rooms));
     sender
@@ -172,7 +199,7 @@ impl Room {
         loop {
             // select! evaluates every branch's future, even a disabled one.
             let never = Instant::now() + Duration::from_secs(365 * 24 * 3600);
-            let (turn_ends, closes) = (self.turn_ends, self.closes);
+            let (turn_ends, closes) = (self.deadline(), self.closes);
             let bot_step = self.bot_turn.as_ref().filter(|(turn, _)| !matches!(turn, BotTurn::Choosing)).map(|(_, at)| *at);
             tokio::select! {
                 command = commands.recv() => match command {
@@ -200,8 +227,8 @@ impl Room {
             Command::AddBot { player, level } => self.add_bot(player, level),
             Command::RemoveBot { player, seat } => self.remove_bot(player, seat),
             Command::Start { player } => self.start(player),
-            Command::Play { player, table } => self.make_move(player, |game, seat| game.play(seat, table).map(|_| ())),
-            Command::Draw { player } => self.make_move(player, |game, seat| game.draw(seat).map(|_| ())),
+            Command::Play { player, table } => self.make_move(player, Some(table)),
+            Command::Draw { player } => self.make_move(player, None),
             Command::Draft { player, table } => self.share_draft(player, table),
             Command::BotMove { turn, choice } => self.bot_chose(turn, choice),
         }
@@ -229,7 +256,8 @@ impl Room {
     fn seat_player(&mut self, name: String, token: String, connection: Option<Connection>, bot: Option<BotLevel>) -> PlayerId {
         let id = self.next_id;
         self.next_id += 1;
-        self.players.push(Player { id, token, name, connection, bot });
+        let bank = self.config.timing.bank;
+        self.players.push(Player { id, token, name, connection, bot, bank, unearned: Duration::ZERO, warned: false, no_bonus: false });
         id
     }
 
@@ -264,6 +292,8 @@ impl Room {
         self.players[seat].connection = None;
         // Don't keep the others waiting for someone who isn't there.
         if self.game.as_ref().is_some_and(|g| g.current() == seat) {
+            // Their bank isn't used while they're away.
+            self.settle_bank();
             let soon = Instant::now() + self.config.timing.absent_turn;
             self.full_turn_ends = self.turn_ends;
             self.turn_ends = self.turn_ends.map(|t| t.min(soon));
@@ -332,22 +362,119 @@ impl Room {
         self.broadcast_state();
     }
 
-    /// A play or a draw by `player`: applied, or rejected to them.
-    fn make_move(&mut self, player: PlayerId, apply: impl FnOnce(&mut Game, usize) -> Result<(), engine::TurnError>) {
+    /// A play (the new table) or a draw (`None`) by `player`: applied, or
+    /// rejected to them.
+    fn make_move(&mut self, player: PlayerId, table: Option<Vec<Vec<Tile>>>) {
         let Some(seat) = self.seat(player) else { return };
-        let Some(game) = self.game.as_mut() else {
+        if self.game.is_none() {
             return self.send(seat, ServerMessage::Error { message: "the game hasn't started".into() });
-        };
+        }
         if self.players[seat].bot.is_some() {
             return; // only the room moves for bots
         }
-        match apply(game, seat) {
-            Ok(()) => {
-                self.start_turn();
-                self.broadcast_state();
-            }
+        let kept = table.as_ref().map_or(Duration::ZERO, |table| self.worth(seat, table));
+        if self.game.as_ref().is_some_and(|g| g.current() == seat) {
+            self.settle_bank();
+        }
+        let game = self.game.as_mut().expect("checked above");
+        let result = match table {
+            Some(table) => game.play(seat, table).map(|_| ()),
+            None => game.draw(seat).map(|_| ()),
+        };
+        match result {
+            Ok(()) => self.end_turn(seat, kept),
             Err(error) => self.send(seat, ServerMessage::Rejected { message: error.to_string(), error }),
         }
+    }
+
+    /// `seat`'s turn has ended, its play worth `kept` in extra time: counts
+    /// what they were given beyond that, and begins the next turn.
+    fn end_turn(&mut self, seat: usize, kept: Duration) {
+        let notice = self.count_unearned(seat, kept);
+        self.start_turn();
+        self.broadcast_state();
+        if let Some(message) = notice {
+            self.send(seat, ServerMessage::Notice { message });
+        }
+    }
+
+    /// What `table` would earn `seat` in extra time as their turn (rooms
+    /// with `tile_bonus`).
+    fn worth(&self, seat: usize, table: &[Vec<Tile>]) -> Duration {
+        let Some(game) = self.game.as_ref().filter(|_| self.options.tile_bonus) else { return Duration::ZERO };
+        self.config.timing.bonus.worth(game.table(), table, game.rack(seat), game.melded(seat), game.rules())
+    }
+
+    /// The current player's table is worth more extra time than any before
+    /// it this turn: they get the difference.
+    fn give_bonus(&mut self, seat: usize, table: &[Vec<Tile>]) {
+        if self.players[seat].no_bonus {
+            return;
+        }
+        let worth = self.worth(seat, table);
+        if worth <= self.granted {
+            return;
+        }
+        let added = worth - self.granted;
+        self.granted = worth;
+        // Into their bank already: the extra time starts from now.
+        self.settle_bank();
+        self.turn_ends = self.turn_ends.map(|t| t + added);
+        self.full_turn_ends = self.full_turn_ends.map(|t| t + added);
+        let turn_ms = self.turn_ends.map_or(0, |t| t.saturating_duration_since(Instant::now()).as_millis() as u32);
+        for other in 0..self.players.len() {
+            self.send(other, ServerMessage::Clock { by: seat, added_ms: added.as_millis() as u32, turn_ms });
+        }
+    }
+
+    /// Extra time `seat` was given this turn beyond what their play kept
+    /// (`kept`) counts against them: a warning, then no more for the game.
+    fn count_unearned(&mut self, seat: usize, kept: Duration) -> Option<String> {
+        let granted = std::mem::take(&mut self.granted);
+        let timing = self.config.timing;
+        let player = &mut self.players[seat];
+        if granted <= kept || player.no_bonus {
+            return None;
+        }
+        player.unearned += granted - kept;
+        if player.unearned >= timing.unearned_limit {
+            player.no_bonus = true;
+            return Some(format!(
+                "You took back tiles you'd been given {} of extra time for. No more extra time for tiles this game.",
+                minutes(player.unearned)
+            ));
+        }
+        if player.unearned >= timing.unearned_warning && !player.warned {
+            player.warned = true;
+            return Some(format!(
+                "Extra time for tiles you then take back counts against you: {} so far. At {} you get no more this game.",
+                minutes(player.unearned),
+                minutes(timing.unearned_limit)
+            ));
+        }
+        None
+    }
+
+    /// Charges the current player's bank for their time past the turn's own
+    /// (rooms with a time bank), so the turn's time ends now.
+    fn settle_bank(&mut self) {
+        let (Some(game), Some(ends)) = (&self.game, self.turn_ends) else { return };
+        let now = Instant::now();
+        if !self.options.time_bank || now <= ends {
+            return;
+        }
+        let bank = &mut self.players[game.current()].bank;
+        *bank = bank.saturating_sub(now - ends);
+        self.turn_ends = Some(now);
+    }
+
+    /// When the current turn runs out: its own time, then the player's bank
+    /// if they're here to use it.
+    fn deadline(&self) -> Option<Instant> {
+        let ends = self.turn_ends?;
+        let player = &self.players[self.game.as_ref()?.current()];
+        let banked = self.options.time_bank && player.connection.is_some();
+        Some(ends + if banked { player.bank } else { Duration::ZERO })
     }
 
     /// The current player's table so far: kept in case their time runs
@@ -363,6 +490,7 @@ impl Room {
         if !within_reach(game.table(), game.rack(seat), &table) {
             return self.send(seat, ServerMessage::Error { message: "that table has tiles you don't have".into() });
         }
+        self.give_bonus(seat, &table);
         self.pass_on_draft(seat, table);
     }
 
@@ -420,6 +548,7 @@ impl Room {
     /// The current player, a bot, makes this move (or draws, should the
     /// game refuse it).
     fn bot_moves(&mut self, choice: Move) {
+        self.settle_bank();
         let Some(game) = self.game.as_mut() else { return };
         let seat = game.current();
         let played = match choice {
@@ -429,21 +558,23 @@ impl Room {
         if played.is_err() {
             let _ = game.draw(seat);
         }
-        self.start_turn();
-        self.broadcast_state();
+        self.end_turn(seat, Duration::ZERO);
     }
 
     /// The current player ran out of time: the table they left is played
     /// if it's a valid turn, as if they had ended it; else they draw.
     fn time_out(&mut self) {
-        let Some(game) = self.game.as_mut() else { return };
-        let seat = game.current();
-        let played = self.draft.take().is_some_and(|table| game.play(seat, table).is_ok());
+        self.settle_bank();
+        let Some(seat) = self.game.as_ref().map(Game::current) else { return };
+        let draft = self.draft.take();
+        let mut kept = draft.as_ref().map_or(Duration::ZERO, |table| self.worth(seat, table));
+        let game = self.game.as_mut().expect("checked above");
+        let played = draft.is_some_and(|table| game.play(seat, table).is_ok());
         if !played {
+            kept = Duration::ZERO;
             let _ = game.draw(seat);
         }
-        self.start_turn();
-        self.broadcast_state();
+        self.end_turn(seat, kept);
     }
 
     /// Sets the timer for the turn now beginning (none once the game is
@@ -454,12 +585,12 @@ impl Room {
         self.full_turn_ends = None;
         self.draft = None;
         self.bot_turn = None;
+        self.granted = Duration::ZERO;
         let player = &self.players[game.current()];
         let timing = self.config.timing;
-        self.turn_ends = game
-            .outcome()
-            .is_none()
-            .then(|| Instant::now() + if player.present() { timing.turn } else { timing.absent_turn });
+        let turn = timing.turn * self.options.turn_seconds / 60;
+        self.turn_ends =
+            game.outcome().is_none().then(|| Instant::now() + if player.present() { turn } else { timing.absent_turn });
         if game.outcome().is_none() && player.bot.is_some() {
             self.bot_turn = Some((BotTurn::Thinking, Instant::now() + timing.bot_think));
         }
@@ -514,7 +645,20 @@ impl Room {
         let Some(game) = &self.game else { return };
         let turn_ms = self.turn_ends.map(|t| t.saturating_duration_since(Instant::now()).as_millis() as u32);
         let racks = self.config.open_racks.then(|| (0..game.players()).map(|p| game.rack(p).to_vec()).collect());
-        self.send(seat, ServerMessage::State { view: game.view(seat), turn_ms, racks });
+        // The current player's bank as of now, should they be using it.
+        let overdue = self.turn_ends.map_or(Duration::ZERO, |t| Instant::now().saturating_duration_since(t));
+        let banks = self.options.time_bank.then(|| {
+            let current = game.current();
+            self.players
+                .iter()
+                .enumerate()
+                .map(|(p, player)| {
+                    let left = if p == current { player.bank.saturating_sub(overdue) } else { player.bank };
+                    left.as_millis() as u32
+                })
+                .collect()
+        });
+        self.send(seat, ServerMessage::State { view: game.view(seat), turn_ms, banks, racks });
     }
 
     fn broadcast_state(&self) {
@@ -522,4 +666,10 @@ impl Room {
             self.send_state(seat);
         }
     }
+}
+
+/// A duration as minutes and seconds: "1:05".
+fn minutes(d: Duration) -> String {
+    let secs = d.as_secs();
+    format!("{}:{:02}", secs / 60, secs % 60)
 }
