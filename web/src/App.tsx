@@ -2,12 +2,12 @@ import { useCallback, useEffect, useState, type FormEvent } from 'react'
 
 import { emptyArrangement, type Arrangement, type RackSort } from './arrange.ts'
 import { Board } from './Board.tsx'
-import { demoDrafts, demoGame, demoRoom } from './demo.ts'
+import { demoDrafts, demoGame, demoRoom, withOpenRacks } from './demo.ts'
 import { useSettings } from './settings.ts'
 import { remember, remembered } from './storage.ts'
 import { Button, inputClass, Note, Panel, Switch } from './ui.tsx'
 import { SERVER_URL, useGame, type Draft, type Status } from './useGame.ts'
-import { protocolVersion, type ClientMessage, type RoomInfo } from './wasm/engine.js'
+import { protocolVersion, type BotLevel, type ClientMessage, type RoomInfo } from './wasm/engine.js'
 
 const statusLook: Record<Status, { label: string; dot: string }> = {
   connecting: { label: 'Connecting', dot: 'bg-amber-400 animate-pulse' },
@@ -24,11 +24,13 @@ export default function App() {
 
 /**
  * The demo game. `?demo=watch`: it's Maya's turn instead, and she shares it
- * live, a step every few seconds.
+ * live, a step every few seconds. `?demo=racks`: every rack is shown, as
+ * with a server started with `--open-racks`.
  */
 function Demo() {
-  const watch = new URLSearchParams(location.search).get('demo') === 'watch'
-  const [game] = useState(() => demoGame(watch))
+  const mode = new URLSearchParams(location.search).get('demo')
+  const watch = mode === 'watch'
+  const [game] = useState(() => (mode === 'racks' ? withOpenRacks(demoGame()) : demoGame(watch)))
   const [settings, changeSettings] = useSettings()
   const [arrangement, setArrangement] = useArrangement(demoRoom.code)
   const [step, setStep] = useState(0)
@@ -204,6 +206,11 @@ function Home({ send, problem, ready }: { send: (m: ClientMessage) => void; prob
   )
 }
 
+/** Seats in a room (the server's limit too). */
+const MAX_PLAYERS = 4
+
+const botLabel: Record<BotLevel, string> = { easy: 'Easy bot', hard: 'Hard bot' }
+
 function Lobby({
   room,
   problem,
@@ -217,6 +224,7 @@ function Lobby({
 }) {
   const present = room.seats.filter((s) => s.connected).length
   const isHost = room.you === room.host
+  const full = room.seats.length >= MAX_PLAYERS
   return (
     <div className="mx-auto w-full max-w-md">
       <Panel>
@@ -233,10 +241,31 @@ function Lobby({
                 {seat.name}
                 {i === room.you && <span className="text-slate-400"> (you)</span>}
               </span>
+              {seat.bot && <span className="text-xs uppercase tracking-wide text-violet-300">{botLabel[seat.bot]}</span>}
+              {seat.bot && isHost && (
+                <button
+                  className="-my-1 -mr-1 grid size-7 cursor-pointer place-items-center rounded-lg text-slate-400 hover:bg-white/10 hover:text-slate-100"
+                  aria-label={`Remove ${seat.name}`}
+                  title="Remove"
+                  onClick={() => send({ type: 'removeBot', seat: i })}
+                >
+                  ×
+                </button>
+              )}
               {i === room.host && <span className="text-xs uppercase tracking-wide text-teal-300">host</span>}
             </li>
           ))}
         </ul>
+        {isHost && !full && (
+          <div className="mt-3 flex items-center gap-2 text-sm text-slate-400">
+            <span className="flex-1">Add a computer player:</span>
+            {(['easy', 'hard'] as const).map((level) => (
+              <Button key={level} look="quiet" className="px-3 py-1.5 text-sm" onClick={() => send({ type: 'addBot', level })}>
+                + {botLabel[level]}
+              </Button>
+            ))}
+          </div>
+        )}
         <div className="mt-6 flex gap-2">
           <Button onClick={leave}>Leave</Button>
           {isHost ? (

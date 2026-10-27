@@ -1,4 +1,4 @@
-import type { GameState } from './useGame.ts'
+import type { GameState, TurnRecord } from './useGame.ts'
 import type { RoomInfo, Tile } from './wasm/engine.js'
 
 /**
@@ -15,7 +15,7 @@ export const demoRoom: RoomInfo = {
     { name: 'Alex', connected: true },
     { name: 'Maya', connected: true },
     { name: 'Jonas', connected: false },
-    { name: 'Priya', connected: true },
+    { name: 'Priya', connected: true, bot: 'hard' },
   ],
   you: 0,
   host: 0,
@@ -27,6 +27,7 @@ export const demoRoom: RoomInfo = {
 export function demoGame(watching = false): GameState {
   return {
     version: 1,
+    log: [],
     turnEnds: Date.now() + 42_000,
     // Maya's turn, just before this one (when watching, Maya plays now and
     // the turn before was this player's own).
@@ -80,4 +81,25 @@ export function demoDrafts(): (Tile[][] | null)[] {
     [n('orange', 7)],
   ]
   return [null, withRun, extended, split, table]
+}
+
+/**
+ * `?demo=racks`: the demo game as a server started with `--open-racks`
+ * shows it, every rack in view and the turns so far.
+ */
+export function withOpenRacks(game: GameState): GameState {
+  const others: Tile[][] = [
+    [n('blue', 1), n('blue', 5), n('red', 9), n('black', 13), n('orange', 4), n('red', 3), n('blue', 8), n('black', 1), n('orange', 12)],
+    [n('red', 2), n('red', 13), n('black', 7), n('blue', 11), n('orange', 9), n('black', 10), joker, n('blue', 3), n('red', 6), n('orange', 2), n('black', 4), n('blue', 12)],
+    [n('orange', 6), n('black', 8), n('red', 11), n('blue', 6), n('orange', 13), n('black', 2)],
+  ]
+  const log: TurnRecord[] = [
+    { by: 2, played: [], drew: [n('blue', 12)], sets: 0, version: 1 },
+    { by: 3, played: [n('black', 11), n('orange', 11), n('red', 11)], drew: [], sets: 1, version: 1 },
+    { by: 0, played: [], drew: [n('red', 4)], sets: 0, version: 1 },
+    { by: 1, played: [n('red', 8), n('red', 9), n('orange', 2), n('orange', 3)], drew: [], sets: 2, version: 1 },
+    { by: 2, played: [], drew: [n('black', 4)], sets: 0, version: 1 },
+    { by: 3, played: [], drew: [n('black', 2)], sets: 0, version: 1 },
+  ].map((turn, i) => ({ ...turn, version: i + 1 }))
+  return { ...game, racks: [game.view.rack, ...others], log }
 }

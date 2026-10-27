@@ -6,7 +6,7 @@
 //! `ServerMessage`) from the engine's WASM build. Fields are never `null`:
 //! an absent value is left out, which is what those types expect.
 
-use engine::{PlayerView, Tile, TurnError};
+use engine::{BotLevel, PlayerView, Tile, TurnError};
 use serde::{Deserialize, Serialize};
 
 #[cfg(feature = "wasm")]
@@ -14,7 +14,7 @@ use tsify::Tsify;
 
 /// Bumped when a message changes in a way an older client can't read; the
 /// server says which it speaks in `Welcome`.
-pub const PROTOCOL_VERSION: u32 = 3;
+pub const PROTOCOL_VERSION: u32 = 4;
 
 /// How a room plays, chosen by whoever opens it.
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
@@ -49,6 +49,11 @@ pub enum ClientMessage {
     /// Take back a seat after a lost connection, with the token from
     /// `Joined`.
     Rejoin { code: String, token: String },
+    /// Seat a computer player (the host only, before the start).
+    AddBot { level: BotLevel },
+    /// Take a computer player's seat away again (the host only, before the
+    /// start).
+    RemoveBot { seat: usize },
     /// Deal and play (the host only).
     Start,
     /// End the turn with the table rearranged to this (see
@@ -67,7 +72,12 @@ pub enum ClientMessage {
 #[serde(rename_all = "camelCase")]
 pub struct Seat {
     pub name: String,
+    /// Whether they're here: always, for a bot.
     pub connected: bool,
+    /// How well it plays, if this is a computer player.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[cfg_attr(feature = "wasm", tsify(optional))]
+    pub bot: Option<BotLevel>,
 }
 
 /// A room as one of its players sees it.
@@ -106,6 +116,11 @@ pub enum ServerMessage {
         #[serde(default, skip_serializing_if = "Option::is_none")]
         #[cfg_attr(feature = "wasm", tsify(optional))]
         turn_ms: Option<u32>,
+        /// Every player's rack, in seat order: only from a server started
+        /// to show them (`--open-racks`), for judging the bots.
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        #[cfg_attr(feature = "wasm", tsify(optional))]
+        racks: Option<Vec<Vec<Tile>>>,
     },
     /// The current player's table so far this turn (see `ClientMessage::Draft`).
     /// Gone with the next `State`.
@@ -154,6 +169,10 @@ mod tests {
             ClientMessage::from_json(r#"{"type":"joinRoom","code":"ABCD","name":"Ann"}"#).unwrap(),
             ClientMessage::JoinRoom { code: "ABCD".into(), name: "Ann".into() }
         );
+        assert_eq!(
+            ClientMessage::from_json(r#"{"type":"addBot","level":"hard"}"#).unwrap(),
+            ClientMessage::AddBot { level: BotLevel::Hard }
+        );
         assert!(ClientMessage::from_json(r#"{"type":"cheat"}"#).is_err());
         assert!(ClientMessage::from_json("hello").is_err());
     }
@@ -167,10 +186,10 @@ mod tests {
             r#"{"type":"rejected","error":{"kind":"invalidSet","index":2},"message":"set 3"}"#
         );
         let view = Game::new(2, Rules::default(), 1).view(0);
-        let state = ServerMessage::State { view: view.clone(), turn_ms: Some(1500) }.to_json();
+        let state = ServerMessage::State { view: view.clone(), turn_ms: Some(1500), racks: None }.to_json();
         assert!(state.starts_with(r#"{"type":"state","view":{"you":0,"rules":{"#), "{state}");
         assert!(state.ends_with(r#""turnMs":1500}"#), "{state}");
-        let over = ServerMessage::State { view, turn_ms: None }.to_json();
+        let over = ServerMessage::State { view, turn_ms: None, racks: None }.to_json();
         assert!(!over.contains("turnMs") && !over.contains("null"), "{over}");
     }
 }

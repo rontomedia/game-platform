@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { arrangeRack, arrangeTable, newOrChanged, sortTiles, splitRows } from './arrange.ts'
+import { arrangeRack, arrangeTable, newOrChanged, sortTiles, splitRows, without } from './arrange.ts'
 import type { Tile } from './wasm/engine.js'
 
 const n = (color: 'black' | 'blue' | 'orange' | 'red', value: number): Tile => ({ kind: 'number', color, value })
@@ -109,5 +109,14 @@ describe('newOrChanged', () => {
 
   it('counts a set that appears twice only as often as it was there', () => {
     expect(newOrChanged([group], [group, group])).toEqual([group])
+  })
+})
+
+describe('without', () => {
+  it('takes away each tile once', () => {
+    expect(without([n('red', 3), n('red', 3), J, n('blue', 1)], [n('red', 3), J, n('black', 9)])).toEqual([
+      n('red', 3),
+      n('blue', 1),
+    ])
   })
 })

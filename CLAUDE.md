@@ -16,6 +16,7 @@ From the repo root:
 
 ```sh
 cargo run -p server                 # match server, ws://0.0.0.0:3000/ws
+cargo run -p server -- --open-racks # the same, every rack shown to everyone (judging bots)
 cargo test --workspace              # one test: cargo test -p engine runs
 cargo clippy --workspace --all-targets
 ```
@@ -32,6 +33,10 @@ npm run wasm      # only rebuild the engine WASM (needs wasm-pack)
 
 `http://localhost:5173/?demo` shows the board with a made-up 4-player game
 and no server (`src/demo.ts`): the place to work on the board's look.
+`?demo=racks` adds the open racks panel.
+
+`cargo test -p engine --release -- --ignored --nocapture strength` plays
+Hard against Easy bots and prints wins and time per move.
 
 Run the server and `npm run dev` together. After changing Rust in
 `crates/engine*`, rerun `npm run wasm:dev` (Vite then reloads); `npm run dev`
@@ -44,7 +49,11 @@ only builds it on start.
   for rules, used by the server, bots and the browser. `check_turn` validates
   a turn by tile counts (table after = table before + tiles from the rack),
   so tiles have no IDs; `Game` runs a whole game (play/draw, end, scores) and
-  `view(player)` is what that player may see. Its `wasm` feature derives
+  `view(player)` is what that player may see. `bot_move(view, level)` is a
+  computer player's move: `solve.rs` finds the arrangement of table plus
+  rack tiles that plays the most (dynamic programming over the numbers
+  1-13); Easy only adds to the table, Hard rearranges it but keeps the sets
+  it needn't change. Its `wasm` feature derives
   `tsify::Tsify` on the types that cross into JS; serde attributes define the
   TS shape (e.g. `Tile` is `{ kind: "number", color, value } | { kind:
   "joker" }`), and JSON field names are camelCase.
@@ -68,7 +77,12 @@ only builds it on start.
     and keep their seat across lost connections with a token (`rejoin`).
     `Timing`: turn 60 s (runs out: the player draws), 5 s for a player who
     is away (their full time is given back if they return during that turn),
-    room closes after 120 s with nobody connected.
+    room closes after 120 s with nobody connected. Bots (`AddBot`, host
+    only, before the start) are players without a connection: on their
+    turn the room waits, works the move out on a blocking thread
+    (`Command::BotMove`, dropped if the turn has passed), shows it as a
+    draft in rooms with live turns, then plays it. With `--open-racks`
+    every `State` carries all racks (`racks`).
   - `connection.rs`: one task per WebSocket, `select!`ing over the socket
     and the room's messages for it.
   - The server is the authority; the client's engine checks are for
@@ -120,6 +134,11 @@ only builds it on start.
     across server states (the board remounts on every state,
     `key={game.version}`) by matching tiles and sets by content; saved per
     tab in sessionStorage. Pure, with Vitest tests.
+  - Open racks: when states carry `racks`, `useGame.ts` logs each turn
+    (tiles played, tile drawn) and the board shows the others' racks and
+    the log above the table (`OpenRacks`). Each of those racks can be
+    sorted or reordered by dragging (its own nested `DndContext`), the
+    order kept per tab like the player's own.
   - `settings.ts` / `SettingsMenu.tsx`: device preferences (rack style: flat
     tray or two-row rack; watching live turns) behind the gear in the top
     bar.

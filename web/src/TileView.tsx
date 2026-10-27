@@ -12,6 +12,8 @@ const sizes = {
   rack: 'h-16 w-11 text-2xl rounded-lg sm:h-[4.75rem] sm:w-[3.25rem] sm:text-[1.9rem] short:h-12 short:w-9 short:text-xl',
   /** The two-row rack: a little narrower on phones, so eight fit in a row. */
   ledge: 'h-14 w-10 text-[1.4rem] rounded-md sm:h-[4.75rem] sm:w-[3.25rem] sm:rounded-lg sm:text-[1.9rem] short:h-12 short:w-9 short:text-xl',
+  /** Others' racks when they're open (a debugging aid). */
+  mini: 'h-7 w-5 text-[0.8rem] rounded-[3px]',
 }
 
 export type TileSize = keyof typeof sizes

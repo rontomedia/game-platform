@@ -79,6 +79,10 @@ async fn handle(message: ClientMessage, rooms: &Arc<Rooms>, membership: &mut Opt
             Some(room) => *membership = enter(room, outbox, |reply| Command::Rejoin { token, connection: connection(), reply }).await,
             None => error(outbox, "that room has closed"),
         },
+        ClientMessage::AddBot { level } => forward(membership, outbox, |player| Command::AddBot { player, level }).await,
+        ClientMessage::RemoveBot { seat } => {
+            forward(membership, outbox, |player| Command::RemoveBot { player, seat }).await
+        }
         ClientMessage::Start => forward(membership, outbox, |player| Command::Start { player }).await,
         ClientMessage::Play { table } => forward(membership, outbox, |player| Command::Play { player, table }).await,
         ClientMessage::Draw => forward(membership, outbox, |player| Command::Draw { player }).await,

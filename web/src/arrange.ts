@@ -70,6 +70,12 @@ function take(counts: Map<string, number>, tile: Tile): boolean {
   return true
 }
 
+/** The tiles of `tiles` beyond those in `taken`, counting repeats. */
+export function without(tiles: Tile[], taken: Tile[]): Tile[] {
+  const left = counts(taken)
+  return tiles.filter((tile) => !take(left, tile))
+}
+
 /**
  * The rack `rack` laid out in two rows the way the player had it: sorted
  * again if they last sorted it; otherwise tiles keep their places and new

@@ -16,7 +16,7 @@ use axum::extract::{ConnectInfo, State};
 use axum::response::Response;
 use axum::routing::get;
 use axum::Router;
-use room::Timing;
+use room::{Config, Timing};
 use rooms::Rooms;
 use tokio::net::TcpListener;
 
@@ -27,11 +27,16 @@ const ADDRESS: &str = "0.0.0.0:3000";
 async fn main() {
     let listener = TcpListener::bind(ADDRESS).await.unwrap_or_else(|e| panic!("can't listen on {ADDRESS}: {e}"));
     println!("Listening on ws://{ADDRESS}/ws");
-    serve(listener, Timing::default()).await;
+    // A debugging aid: every player sees every rack, to judge the bots.
+    let open_racks = std::env::args().any(|arg| arg == "--open-racks");
+    if open_racks {
+        println!("--open-racks: every player sees every rack");
+    }
+    serve(listener, Config { timing: Timing::default(), open_racks }).await;
 }
 
-async fn serve(listener: TcpListener, timing: Timing) {
-    let app = Router::new().route("/ws", get(upgrade)).with_state(Arc::new(Rooms::new(timing)));
+async fn serve(listener: TcpListener, config: Config) {
+    let app = Router::new().route("/ws", get(upgrade)).with_state(Arc::new(Rooms::new(config)));
     axum::serve(listener, app.into_make_service_with_connect_info::<SocketAddr>()).await.expect("server failed");
 }
 

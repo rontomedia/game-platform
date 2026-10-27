@@ -7,7 +7,7 @@ use std::sync::{Arc, Mutex};
 use protocol::RoomOptions;
 use tokio::sync::mpsc;
 
-use crate::room::{self, Command, Timing};
+use crate::room::{self, Command, Config};
 
 /// Letters of room codes: no I or O, which read as 1 and 0.
 const CODE_LETTERS: &[u8] = b"ABCDEFGHJKLMNPQRSTUVWXYZ";
@@ -15,13 +15,13 @@ const CODE_LENGTH: usize = 4;
 
 pub struct Rooms {
     rooms: Mutex<HashMap<String, mpsc::Sender<Command>>>,
-    timing: Timing,
+    config: Config,
     connections: AtomicU64,
 }
 
 impl Rooms {
-    pub fn new(timing: Timing) -> Rooms {
-        Rooms { rooms: Mutex::default(), timing, connections: AtomicU64::new(0) }
+    pub fn new(config: Config) -> Rooms {
+        Rooms { rooms: Mutex::default(), config, connections: AtomicU64::new(0) }
     }
 
     /// Opens a room with a new code.
@@ -34,7 +34,7 @@ impl Rooms {
                 break code;
             }
         };
-        let sender = room::spawn(code.clone(), self.timing, options, self.clone());
+        let sender = room::spawn(code.clone(), self.config, options, self.clone());
         rooms.insert(code, sender.clone());
         sender
     }

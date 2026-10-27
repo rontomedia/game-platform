@@ -5,7 +5,8 @@ use std::time::Duration;
 
 use engine::{PlayerView, TurnError};
 use futures_util::{SinkExt, StreamExt};
-use protocol::{ClientMessage, RoomInfo, RoomOptions, ServerMessage, PROTOCOL_VERSION};
+use engine::BotLevel;
+use protocol::{ClientMessage, RoomInfo, RoomOptions, Seat, ServerMessage, PROTOCOL_VERSION};
 use tokio::net::{TcpListener, TcpStream};
 use tokio_tungstenite::tungstenite::Message;
 use tokio_tungstenite::{MaybeTlsStream, WebSocketStream};
@@ -17,12 +18,19 @@ const SLOW: Timing = Timing {
     turn: Duration::from_secs(60),
     absent_turn: Duration::from_secs(60),
     abandoned: Duration::from_secs(60),
+    // Bots don't keep tests waiting.
+    bot_think: Duration::from_millis(5),
+    bot_show: Duration::from_millis(5),
 };
 
 async fn start_server(timing: Timing) -> SocketAddr {
+    start_server_with(Config { timing, open_racks: false }).await
+}
+
+async fn start_server_with(config: Config) -> SocketAddr {
     let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
     let address = listener.local_addr().unwrap();
-    tokio::spawn(serve(listener, timing));
+    tokio::spawn(serve(listener, config));
     address
 }
 
@@ -70,7 +78,7 @@ impl Client {
     /// The next `State` message, skipping others.
     async fn state(&mut self) -> (PlayerView, Option<u32>) {
         loop {
-            if let ServerMessage::State { view, turn_ms } = self.receive().await {
+            if let ServerMessage::State { view, turn_ms, .. } = self.receive().await {
                 return (view, turn_ms);
             }
         }
@@ -414,4 +422,94 @@ async fn coming_back_mid_turn_shows_the_draft_until_the_turn_ends() {
     bob.state().await;
     bob.send(ClientMessage::Draw).await;
     assert!(matches!(bob.receive().await, ServerMessage::State { .. }), "no draft before it");
+}
+
+#[tokio::test]
+async fn the_host_seats_bots_before_the_start() {
+    let server = start_server(SLOW).await;
+    let mut ann = Client::connect(server).await;
+    let mut bob = Client::connect(server).await;
+    let (code, _) = ann.create("Ann").await;
+    ann.send(ClientMessage::AddBot { level: BotLevel::Hard }).await;
+    let room = ann.room().await;
+    assert_eq!(room.seats[1], Seat { name: "Ada".into(), connected: true, bot: Some(BotLevel::Hard) });
+    ann.send(ClientMessage::AddBot { level: BotLevel::Easy }).await;
+    assert_eq!(ann.room().await.seats[2].name, "Bruno");
+
+    bob.join(&code, "Bob").await;
+    ann.room().await;
+    bob.send(ClientMessage::AddBot { level: BotLevel::Easy }).await;
+    assert_eq!(bob.error().await, "only the host can do that");
+    bob.send(ClientMessage::RemoveBot { seat: 1 }).await;
+    assert_eq!(bob.error().await, "only the host can do that");
+    ann.send(ClientMessage::RemoveBot { seat: 3 }).await;
+    assert_eq!(ann.error().await, "that seat isn't a bot's");
+    ann.send(ClientMessage::RemoveBot { seat: 1 }).await;
+    let names: Vec<String> = ann.room().await.seats.into_iter().map(|s| s.name).collect();
+    assert_eq!(names, ["Ann", "Bruno", "Bob"]);
+
+    // Seats count bots: two more fill the room.
+    ann.send(ClientMessage::AddBot { level: BotLevel::Easy }).await;
+    ann.room().await;
+    ann.send(ClientMessage::AddBot { level: BotLevel::Easy }).await;
+    assert_eq!(ann.error().await, "the room is full (4 players)");
+}
+
+/// Ann against bots of `levels`: she only ever draws, they play. Returns
+/// the drafts the bots showed and the final view.
+async fn against_bots(config: Config, levels: &[BotLevel]) -> (usize, PlayerView, Vec<ServerMessage>) {
+    let server = start_server_with(config).await;
+    let mut ann = Client::connect(server).await;
+    ann.create("Ann").await;
+    for &level in levels {
+        ann.send(ClientMessage::AddBot { level }).await;
+        ann.room().await;
+    }
+    ann.send(ClientMessage::Start).await;
+    let mut drafts = 0;
+    let mut states = Vec::new();
+    loop {
+        let message = ann.receive().await;
+        match &message {
+            ServerMessage::Draft { by, .. } => {
+                assert_ne!(*by, 0);
+                drafts += 1;
+            }
+            ServerMessage::State { view, .. } => {
+                assert!(view.table.iter().all(|set| engine::classify(set).is_some()));
+                if let Some(_outcome) = &view.outcome {
+                    let view = view.clone();
+                    states.push(message);
+                    return (drafts, view, states);
+                }
+                if view.current == 0 {
+                    ann.send(ClientMessage::Draw).await;
+                }
+            }
+            _ => {}
+        }
+        states.push(message);
+    }
+}
+
+#[tokio::test]
+async fn a_game_against_bots() {
+    let (drafts, last, states) = against_bots(Config { timing: SLOW, open_racks: false }, &[BotLevel::Easy, BotLevel::Hard]).await;
+    assert!(drafts > 0, "the bots' plays are shown live first");
+    // Someone who never plays can't go out; the bots usually do.
+    assert!(!last.outcome.unwrap().winners.is_empty());
+    assert!(!last.table.is_empty(), "the bots played");
+    assert!(states.iter().all(|m| !matches!(m, ServerMessage::State { racks: Some(_), .. })), "racks stay hidden");
+}
+
+#[tokio::test]
+async fn open_racks_show_every_rack() {
+    let (_, _, states) = against_bots(Config { timing: SLOW, open_racks: true }, &[BotLevel::Easy]).await;
+    for message in states {
+        if let ServerMessage::State { view, racks, .. } = message {
+            let racks = racks.expect("every rack");
+            assert_eq!(racks.iter().map(Vec::len).collect::<Vec<_>>(), view.rack_sizes);
+            assert_eq!(racks[0], view.rack);
+        }
+    }
 }

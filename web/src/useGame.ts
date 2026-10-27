@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 
-import { newOrChanged } from './arrange.ts'
+import { newOrChanged, without } from './arrange.ts'
 
 import {
   protocolVersion,
@@ -22,7 +22,28 @@ export interface GameState {
   version: number
   /** The last play by another player, until the table changes again. */
   lastPlay?: LastPlay
+  /**
+   * Every player's rack, in seat order, from a server started with
+   * `--open-racks` (for judging the bots); with the turns it has seen.
+   */
+  racks?: Tile[][]
+  log: TurnRecord[]
 }
+
+/** A finished turn, as open racks show it. */
+export interface TurnRecord {
+  by: number
+  /** Tiles put down from their rack. */
+  played: Tile[]
+  /** The tile drawn, if they drew (none: the pool was empty). */
+  drew: Tile[]
+  /** Sets on the table that are new or changed. */
+  sets: number
+  version: number
+}
+
+/** Turns kept in the log. */
+const LOG_LENGTH = 60
 
 /** The current player's table so far this turn, as they shared it. */
 export interface Draft {
@@ -55,6 +76,19 @@ function lastPlay(previous: GameState | null, view: PlayerView, version: number)
   if (sets.length === 0 && played === 0) return previous.lastPlay
   const by = previous.view.current
   return by === view.you ? undefined : { by, sets, played, version }
+}
+
+/** The turn that led from `previous` to `view`, if both show every rack. */
+function turnRecord(previous: GameState | null, view: PlayerView, racks: Tile[][] | undefined, version: number) {
+  if (!previous?.racks || !racks) return undefined
+  const by = previous.view.current
+  return {
+    by,
+    played: without(previous.racks[by], racks[by]),
+    drew: without(racks[by], previous.racks[by]),
+    sets: newOrChanged(previous.view.table, view.table).length,
+    version,
+  } satisfies TurnRecord
 }
 
 /**
@@ -164,12 +198,18 @@ export function useGame() {
         case 'state': {
           const next = ++version.current
           const turnEnds = message.turnMs === undefined ? undefined : Date.now() + message.turnMs
-          setGame((previous) => ({
-            view: message.view,
-            turnEnds,
-            version: next,
-            lastPlay: lastPlay(previous, message.view, next),
-          }))
+          setGame((previous) => {
+            const turn = turnRecord(previous, message.view, message.racks, next)
+            const log = previous?.log ?? []
+            return {
+              view: message.view,
+              turnEnds,
+              version: next,
+              lastPlay: lastPlay(previous, message.view, next),
+              racks: message.racks,
+              log: turn ? [...log, turn].slice(-LOG_LENGTH) : log,
+            }
+          })
           setDraft(null)
           setProblem(null)
           break

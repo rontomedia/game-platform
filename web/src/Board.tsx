@@ -33,6 +33,7 @@ import {
   arrangeTable,
   compareTiles,
   newOrChanged,
+  sortTiles,
   splitRows,
   tileName,
   type Arrangement,
@@ -41,9 +42,10 @@ import {
 import { footprint, gridWithout, resolve, type Cell } from './grid.ts'
 import type { Settings } from './settings.ts'
 import { SettingsMenu } from './SettingsMenu.tsx'
+import { remember, remembered } from './storage.ts'
 import { TileFace, type TileSize } from './TileView.tsx'
 import { Button } from './ui.tsx'
-import type { Draft, GameState, Status } from './useGame.ts'
+import type { Draft, GameState, Status, TurnRecord } from './useGame.ts'
 import { checkTurn, classifySet, type ClientMessage, type RoomInfo, type Tile } from './wasm/engine.js'
 
 /**
@@ -632,6 +634,8 @@ export function Board({
           onSettings={changeSettings}
         />
 
+        {game.racks && <OpenRacks code={room.code} game={game} racks={game.racks} name={name} />}
+
         <main className="felt relative min-h-0 flex-1 overflow-auto rounded-3xl p-3 [scrollbar-color:rgb(255_255_255/0.15)_transparent] [scrollbar-width:thin] sm:p-6 short:rounded-2xl short:p-3">
           <TableGrid gridRef={tableGrid} droppable={myTurn} height={metrics ? rows * metrics.cellH : undefined}>
             {layout.sets.length === 0 && (
@@ -967,6 +971,7 @@ function TopBar({
             name={room.seats[seat]?.name ?? `Player ${seat + 1}`}
             you={seat === view.you}
             connected={room.seats[seat]?.connected ?? false}
+            bot={room.seats[seat]?.bot !== undefined}
             tiles={size}
             secondsLeft={seat === view.current && !view.outcome ? secondsLeft : undefined}
             current={seat === view.current && !view.outcome}
@@ -994,6 +999,7 @@ function PlayerChip({
   name,
   you,
   connected,
+  bot,
   tiles,
   current,
   secondsLeft,
@@ -1002,6 +1008,7 @@ function PlayerChip({
   name: string
   you: boolean
   connected: boolean
+  bot: boolean
   tiles: number
   current: boolean
   secondsLeft?: number
@@ -1047,6 +1054,7 @@ function PlayerChip({
         <div className="max-w-28 truncate text-sm font-semibold">
           {name}
           {you && <span className="font-normal text-slate-400"> · you</span>}
+          {bot && <span className="font-normal text-violet-300"> · bot</span>}
         </div>
         <div className="text-xs text-slate-400">
           {current && secondsLeft !== undefined ? (
@@ -1056,6 +1064,205 @@ function PlayerChip({
         </div>
       </div>
     </div>
+  )
+}
+
+/** Whether the open racks panel is folded away, for the tab. */
+const OPEN_RACKS_KEY = 'rummy.openRacksFolded'
+/** How the player ordered the others' open racks in a room, for the tab. */
+const OPEN_ORDERS_KEY = 'rummy.openRackOrders'
+
+/** An open rack's order: sorted, or as the player dragged it ('custom'). */
+interface RackOrder {
+  sort: RackSort
+  tiles: Tile[]
+}
+
+/** The orders of the others' racks in room `code`, by seat; kept across states. */
+function useRackOrders(code: string): [Record<number, RackOrder>, (seat: number, order: RackOrder) => void] {
+  const [saved, setSaved] = useState(() => {
+    const saved = remembered<{ code: string; orders: Record<number, RackOrder> }>(OPEN_ORDERS_KEY, 'session')
+    return saved?.code === code ? saved.orders : {}
+  })
+  const change = (seat: number, order: RackOrder) => {
+    const orders = { ...saved, [seat]: order }
+    remember(OPEN_ORDERS_KEY, { code, orders }, 'session')
+    setSaved(orders)
+  }
+  return [saved, change]
+}
+
+/**
+ * Everyone else's rack and the turns so far, when the server shows every
+ * rack (`--open-racks`): for judging how the bots play. The racks can be
+ * sorted and reordered by dragging, to think through their moves.
+ */
+function OpenRacks({
+  code,
+  game,
+  racks,
+  name,
+}: {
+  code: string
+  game: GameState
+  racks: Tile[][]
+  name: (seat: number) => string
+}) {
+  const [folded, setFolded] = useState(() => remembered<boolean>(OPEN_RACKS_KEY, 'session') ?? false)
+  const fold = (folded: boolean) => {
+    remember(OPEN_RACKS_KEY, folded, 'session')
+    setFolded(folded)
+  }
+  const [orders, setOrder] = useRackOrders(code)
+  const { view } = game
+  const others = racks.map((_, seat) => seat).filter((seat) => seat !== view.you)
+  return (
+    <section className="shrink-0 rounded-2xl bg-white/[0.04] px-3 py-2 ring-1 ring-white/10">
+      <div className="flex items-center gap-2 text-xs text-slate-400">
+        <span className="font-semibold uppercase tracking-wide text-violet-300">Open racks</span>
+        <span className="flex-1 max-sm:hidden">Debugging: every rack is shown. Sort or drag them to think their moves through.</span>
+        <Button look="quiet" className="ml-auto px-2 py-0.5 text-xs" onClick={() => fold(!folded)}>
+          {folded ? 'Show' : 'Hide'}
+        </Button>
+      </div>
+      {!folded && (
+        <div className="mt-2 flex max-h-52 gap-4 max-lg:flex-col max-lg:overflow-auto">
+          <ul className="min-w-0 space-y-1.5 overflow-auto lg:flex-1">
+            {others.map((seat) => {
+              const order = orders[seat] ?? { sort: 'color', tiles: [] }
+              return (
+                <OpenRack
+                  key={seat}
+                  seat={seat}
+                  name={name(seat)}
+                  tiles={arrangeRack([order.tiles, []], order.sort, racks[seat]).flat()}
+                  sort={order.sort}
+                  drew={game.log.findLast((turn) => turn.by === seat)?.drew ?? []}
+                  onSort={(by) => setOrder(seat, { sort: by, tiles: sortTiles(racks[seat], by) })}
+                  onReorder={(tiles) => setOrder(seat, { sort: 'custom', tiles })}
+                />
+              )
+            })}
+          </ul>
+          <ol className="min-w-0 space-y-1 overflow-auto text-xs text-slate-300 lg:w-[28rem]">
+            {game.log.length === 0 && <li className="text-slate-500">Turns appear here as they're played.</li>}
+            {[...game.log].reverse().map((turn) => (
+              <TurnLine key={turn.version} turn={turn} name={name(turn.by)} />
+            ))}
+          </ol>
+        </div>
+      )}
+    </section>
+  )
+}
+
+/**
+ * Another player's open rack, in the player's order. Its own DndContext, so
+ * its tiles only move within it, apart from the board's.
+ */
+function OpenRack({
+  seat,
+  name,
+  tiles,
+  sort,
+  drew,
+  onSort,
+  onReorder,
+}: {
+  seat: number
+  name: string
+  tiles: Tile[]
+  sort: RackSort
+  /** The tiles they drew last turn, to mark. */
+  drew: Tile[]
+  onSort: (by: 'number' | 'color') => void
+  onReorder: (tiles: Tile[]) => void
+}) {
+  const sensors = useSensors(
+    useSensor(MouseSensor, { activationConstraint: { distance: 4 } }),
+    useSensor(TouchSensor, { activationConstraint: { delay: 150, tolerance: 8 } }),
+  )
+  // Ids by place: the order only changes when a drag ends.
+  const ids = tiles.map((_, i) => `open-${seat}-${i}`)
+  const fresh = new Set<number>()
+  for (const drawn of drew) {
+    const at = tiles.findIndex((tile, i) => !fresh.has(i) && tileName(tile) === tileName(drawn))
+    if (at >= 0) fresh.add(at)
+  }
+  const onDragEnd = ({ active, over }: DragEndEvent) => {
+    const from = ids.indexOf(String(active.id))
+    const to = over ? ids.indexOf(String(over.id)) : -1
+    if (from >= 0 && to >= 0 && from !== to) onReorder(arrayMove(tiles, from, to))
+  }
+  return (
+    <li className="flex items-center gap-2">
+      <span
+        className={`grid size-6 shrink-0 place-items-center rounded-full bg-linear-to-br text-[0.7rem] font-bold text-slate-950 ${seatColors[seat % seatColors.length]}`}
+        title={name}
+      >
+        {name.slice(0, 1).toUpperCase()}
+      </span>
+      <div className="-mx-1 shrink-0 scale-90">
+        <SortButtons sort={sort} onSort={onSort} />
+      </div>
+      <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onDragEnd}>
+        <SortableContext items={ids} strategy={rectSortingStrategy}>
+          <div className="flex min-w-0 flex-1 flex-wrap gap-0.5">
+            {tiles.map((tile, i) => (
+              <OpenTile key={ids[i]} id={ids[i]} tile={tile} fresh={fresh.has(i)} />
+            ))}
+          </div>
+        </SortableContext>
+      </DndContext>
+    </li>
+  )
+}
+
+function OpenTile({ id, tile, fresh }: { id: string; tile: Tile; fresh: boolean }) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id })
+  return (
+    <div
+      ref={setNodeRef}
+      style={{ transform: CSS.Translate.toString(transform), transition }}
+      {...attributes}
+      {...listeners}
+      aria-label={tileName(tile)}
+      aria-roledescription="tile"
+      title={fresh ? 'Drawn last turn' : undefined}
+      className={`cursor-grab touch-manipulation rounded-[4px] active:cursor-grabbing ${fresh ? 'ring-2 ring-teal-300' : ''} ${
+        isDragging ? 'relative z-10 opacity-80' : ''
+      }`}
+    >
+      <TileFace tile={tile} size="mini" />
+    </div>
+  )
+}
+
+function TurnLine({ turn, name }: { turn: TurnRecord; name: string }) {
+  if (turn.played.length === 0) {
+    return (
+      <li className="flex items-center gap-1.5 text-slate-400">
+        <span className="font-semibold text-slate-300">{name}</span>
+        {turn.drew.length > 0 ? 'drew' : 'passed (the pool is empty)'}
+        {turn.drew.map((tile, i) => (
+          <TileFace key={i} tile={tile} size="mini" />
+        ))}
+      </li>
+    )
+  }
+  return (
+    <li className="flex flex-wrap items-center gap-1.5">
+      <span className="font-semibold">{name}</span>
+      played {turn.played.length}
+      <span className="flex gap-0.5">
+        {sortTiles(turn.played, 'color').map((tile, i) => (
+          <TileFace key={i} tile={tile} size="mini" />
+        ))}
+      </span>
+      <span className="text-slate-400">
+        · {turn.sets} set{turn.sets === 1 ? '' : 's'} new or changed
+      </span>
+    </li>
   )
 }
 
