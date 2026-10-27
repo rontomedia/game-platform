@@ -23,6 +23,7 @@ const SLOW: Timing = Timing {
     bot_think: Duration::from_millis(5),
     bot_show: Duration::from_millis(5),
     bank: Duration::from_secs(60),
+    bank_cap: Duration::from_secs(90),
     bonus: Bonus { per_tile: Duration::from_secs(15), per_set: Duration::from_secs(20) },
     unearned_warning: Duration::from_secs(60),
     unearned_limit: Duration::from_secs(120),
@@ -566,7 +567,9 @@ async fn the_bank_follows_the_turns_own_time() {
     assert_eq!(view.rack_sizes[0], 15, "then she drew");
     bob.send(ClientMessage::Draw).await;
     let ServerMessage::State { banks, .. } = bob.receive().await else { panic!() };
-    assert_eq!(banks.unwrap(), vec![0, 500], "Ann's bank is spent, Bob's untouched");
+    let banks = banks.unwrap();
+    assert_eq!(banks[0], 0, "Ann's bank is spent");
+    assert!((600..=700).contains(&banks[1]), "Bob's has his turn's time left over added: {banks:?}");
 }
 
 /// A two-player game in which Ann can make her initial meld; the table
@@ -657,4 +660,60 @@ async fn the_room_chooses_the_turn_length() {
     let (view, _) = ann.state().await;
     assert_eq!(view.current, 1, "her time ran out");
     assert!(started.elapsed() >= Duration::from_millis(700), "{:?}", started.elapsed());
+}
+
+#[tokio::test]
+async fn time_left_over_goes_into_the_bank() {
+    let timing = Timing { turn: Duration::from_secs(2), bank: Duration::from_millis(500), bank_cap: Duration::from_millis(800), ..SLOW };
+    let options = RoomOptions { time_bank: true, ..RoomOptions::default() };
+    let TwoPlayers { mut ann, mut bob, .. } = two_player_game_with(timing, options).await;
+    // Ann draws at once: nearly 2 s left, but the bank holds 800 ms at most.
+    ann.send(ClientMessage::Draw).await;
+    let ServerMessage::State { banks, .. } = next(&mut bob, |m| matches!(m, ServerMessage::State { .. }).then_some(m)).await else {
+        unreachable!()
+    };
+    assert_eq!(banks.unwrap(), vec![800, 500]);
+}
+
+#[tokio::test]
+async fn time_given_for_tiles_taken_back_is_not_banked() {
+    let timing = Timing { turn: Duration::from_secs(2), bank: Duration::ZERO, bank_cap: Duration::from_secs(1000), ..SLOW };
+    let options = RoomOptions { time_bank: true, tile_bonus: true, ..RoomOptions::default() };
+    let (TwoPlayers { mut ann, mut bob, .. }, table) = ann_can_meld(timing, options).await;
+    // A meld earns her extra time; she takes it back and draws.
+    ann.send(ClientMessage::Draft { table }).await;
+    ann.send(ClientMessage::Draw).await;
+    let banks = next(&mut bob, |m| match m {
+        ServerMessage::State { banks, .. } => banks,
+        _ => None,
+    })
+    .await;
+    // What was left of her own 2 s, not the extra time.
+    assert!((1_000..=2_000).contains(&banks[0]), "{banks:?}");
+}
+
+#[tokio::test]
+async fn the_valid_part_of_a_table_is_played_when_time_runs_out() {
+    let timing = Timing { turn: Duration::from_millis(800), ..SLOW };
+    let (TwoPlayers { mut ann, mut bob, ann_view, .. }, meld) = ann_can_meld(timing, RoomOptions::default()).await;
+    // Her meld, and two more of her tiles: not a set.
+    let mut left = ann_view.rack.clone();
+    for tile in meld.iter().flatten() {
+        left.remove(left.iter().position(|t| t == tile).unwrap());
+    }
+    let mut draft = meld.clone();
+    draft.push(left[..2].to_vec());
+    ann.send(ClientMessage::Draft { table: draft }).await;
+    let (view, _) = next(&mut bob, |m| match m {
+        ServerMessage::State { view, turn_ms, .. } => Some((view, turn_ms)),
+        _ => None,
+    })
+    .await;
+    assert_eq!(view.table, meld, "the meld, without the pair");
+    let message = next(&mut ann, |m| match m {
+        ServerMessage::Notice { message } => Some(message),
+        _ => None,
+    })
+    .await;
+    assert!(message.contains("2 tiles went back to your rack"), "{message}");
 }

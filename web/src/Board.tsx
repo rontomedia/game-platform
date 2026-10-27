@@ -218,8 +218,8 @@ interface Target {
   width: number
 }
 
-/** A time bank's size, which its ring shows a fraction of (the server's default). */
-const BANK_SECONDS = 120
+/** The most a time bank holds, which its ring shows a fraction of (the server's). */
+const BANK_SECONDS = 180
 /** How long extra time given shows by the player. */
 const BONUS_SHOWN_MS = 3000
 

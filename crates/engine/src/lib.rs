@@ -6,6 +6,7 @@
 mod bot;
 mod game;
 mod rng;
+mod salvage;
 mod set;
 mod solve;
 mod tile;
@@ -13,6 +14,7 @@ mod turn;
 
 pub use bot::{bot_move, BotLevel, Move};
 pub use game::{Game, Outcome, PlayerView, Rules};
+pub use salvage::salvage;
 pub use set::{classify, points, SetKind};
 pub use tile::{full_set, Color, Tile, MAX_VALUE};
 pub use turn::{check_turn, within_reach, TurnError};

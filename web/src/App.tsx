@@ -195,7 +195,7 @@ function Home({ send, problem, ready }: { send: (m: ClientMessage) => void; prob
         </div>
         <Option
           title="Time bank"
-          detail="Each player also has 2 minutes for the whole game, used once a turn’s time runs out."
+          detail="Each player also has 2 minutes for the whole game, used once a turn’s time runs out. Time left over from a turn is added, up to 3 minutes."
           checked={options.timeBank}
           onChange={(timeBank) => change({ timeBank })}
         />

@@ -53,7 +53,9 @@ only builds it on start.
   computer player's move: `solve.rs` finds the arrangement of table plus
   rack tiles that plays the most (dynamic programming over the numbers
   1-13); Easy only adds to the table, Hard rearranges it but keeps the sets
-  it needn't change. Its `wasm` feature derives
+  it needn't change. `salvage` makes a valid turn of what a player left
+  when their time ran out (their valid sets kept where it plays as many).
+  Its `wasm` feature derives
   `tsify::Tsify` on the types that cross into JS; serde attributes define the
   TS shape (e.g. `Tile` is `{ kind: "number", color, value } | { kind:
   "joker" }`), and JSON field names are camelCase.
@@ -78,14 +80,17 @@ only builds it on start.
     `RoomOptions` (chosen on the home screen): turn length (30 s to 3 min,
     default 1 min; `checked()` keeps it to `TURN_SECONDS`), a time bank
     (2 min a player, used once a turn's own time runs out; not while away;
-    `settle_bank` charges it before each move), extra time for tiles
+    `settle_bank` charges it before each move; time left when a player ends
+    their turn is added, up to 3 min, less any extra time they were given
+    for tiles they took back), extra time for tiles
     (`clock.rs`: 15 s a tile and 20 s a set holding one, once a draft is a
     valid turn, only the amount above the best so far this turn, sent as
     `Clock`; time given for tiles then taken back counts against the
     player: a `Notice` at 1 min, none for the rest of the game at 2), and
     live turns. `Timing`: a minute's turn is 60 s, scaled by the room's
-    length (when it runs out, the table they left, their last
-    `draft`, is played if it's a valid turn, else they draw), 5 s for a player who
+    length (when it runs out, the most of the table they left, their last
+    `draft`, that makes a valid turn is played, `engine::salvage`; the rest
+    goes back to their rack, and a `Notice` says so), 5 s for a player who
     is away (their full time is given back if they return during that turn),
     room closes after 120 s with nobody connected. Bots (`AddBot`, host
     only, before the start) are players without a connection: on their

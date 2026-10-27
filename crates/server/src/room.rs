@@ -10,7 +10,7 @@
 use std::sync::Arc;
 use std::time::Duration;
 
-use engine::{bot_move, within_reach, BotLevel, Game, Move, Rules, Tile};
+use engine::{bot_move, salvage, within_reach, BotLevel, Game, Move, Rules, Tile};
 use protocol::{RoomInfo, RoomOptions, Seat, ServerMessage};
 use tokio::sync::{mpsc, oneshot};
 use tokio::time::{sleep_until, Instant};
@@ -39,8 +39,10 @@ pub struct Timing {
     /// ...and, in rooms with live turns, how long its play is shown before
     /// the turn ends.
     pub bot_show: Duration,
-    /// Each player's reserve for the game, in rooms with a time bank.
+    /// Each player's reserve for the game, in rooms with a time bank...
     pub bank: Duration,
+    /// ...and the most it holds: time left over from turns is added to it.
+    pub bank_cap: Duration,
     /// Extra time for tiles, in rooms with `tile_bonus`.
     pub bonus: Bonus,
     /// Extra time a player may be given for tiles they then take back before
@@ -58,6 +60,7 @@ impl Default for Timing {
             bot_think: Duration::from_millis(1500),
             bot_show: Duration::from_millis(1500),
             bank: Duration::from_secs(120),
+            bank_cap: Duration::from_secs(180),
             bonus: Bonus { per_tile: Duration::from_secs(15), per_set: Duration::from_secs(20) },
             unearned_warning: Duration::from_secs(60),
             unearned_limit: Duration::from_secs(120),
@@ -373,6 +376,8 @@ impl Room {
             return; // only the room moves for bots
         }
         let kept = table.as_ref().map_or(Duration::ZERO, |table| self.worth(seat, table));
+        // Their turn's time left, should this end it.
+        let left = self.turn_ends.map_or(Duration::ZERO, |t| t.saturating_duration_since(Instant::now()));
         if self.game.as_ref().is_some_and(|g| g.current() == seat) {
             self.settle_bank();
         }
@@ -382,14 +387,22 @@ impl Room {
             None => game.draw(seat).map(|_| ()),
         };
         match result {
-            Ok(()) => self.end_turn(seat, kept),
+            Ok(()) => self.end_turn(seat, kept, left),
             Err(error) => self.send(seat, ServerMessage::Rejected { message: error.to_string(), error }),
         }
     }
 
-    /// `seat`'s turn has ended, its play worth `kept` in extra time: counts
-    /// what they were given beyond that, and begins the next turn.
-    fn end_turn(&mut self, seat: usize, kept: Duration) {
+    /// `seat`'s turn has ended with `left` of its time unused, its play
+    /// worth `kept` in extra time: banks the time left (not what was given
+    /// for tiles then taken back), counts what they were given beyond what
+    /// they kept, and begins the next turn.
+    fn end_turn(&mut self, seat: usize, kept: Duration, left: Duration) {
+        if self.options.time_bank && self.players[seat].bot.is_none() {
+            let unearned = self.granted.saturating_sub(kept);
+            let cap = self.config.timing.bank_cap;
+            let player = &mut self.players[seat];
+            player.bank = (player.bank + left.saturating_sub(unearned)).min(cap).max(player.bank);
+        }
         let notice = self.count_unearned(seat, kept);
         self.start_turn();
         self.broadcast_state();
@@ -558,23 +571,46 @@ impl Room {
         if played.is_err() {
             let _ = game.draw(seat);
         }
-        self.end_turn(seat, Duration::ZERO);
+        self.end_turn(seat, Duration::ZERO, Duration::ZERO);
     }
 
-    /// The current player ran out of time: the table they left is played
-    /// if it's a valid turn, as if they had ended it; else they draw.
+    /// The current player ran out of time: as much of the table they left
+    /// as makes a valid turn is played (see `engine::salvage`), the rest of
+    /// their tiles going back to their rack; if nothing can be, they draw.
     fn time_out(&mut self) {
         self.settle_bank();
-        let Some(seat) = self.game.as_ref().map(Game::current) else { return };
+        let Some(game) = self.game.as_ref() else { return };
+        let seat = game.current();
         let draft = self.draft.take();
-        let mut kept = draft.as_ref().map_or(Duration::ZERO, |table| self.worth(seat, table));
+        let table = draft
+            .as_ref()
+            .and_then(|draft| salvage(game.table(), draft, game.rack(seat), game.melded(seat), game.rules()));
+        // What they had put down, and what of it is played.
+        let size = |table: &[Vec<Tile>]| table.iter().map(Vec::len).sum::<usize>();
+        let put_down = draft.as_ref().map_or(0, |d| size(d).saturating_sub(size(game.table())));
+        let played = table.as_ref().map_or(0, |t| size(t) - size(game.table()));
+        let kept = table.as_ref().map_or(Duration::ZERO, |table| self.worth(seat, table));
         let game = self.game.as_mut().expect("checked above");
-        let played = draft.is_some_and(|table| game.play(seat, table).is_ok());
-        if !played {
-            kept = Duration::ZERO;
+        let played = if table.is_some_and(|table| game.play(seat, table).is_ok()) {
+            played
+        } else {
             let _ = game.draw(seat);
+            0
+        };
+        self.end_turn(seat, kept, Duration::ZERO);
+        let message = match (played, put_down.saturating_sub(played)) {
+            (0, 0) => None,
+            (0, _) => Some("Time ran out and the table wasn't a valid turn, so you drew a tile.".to_string()),
+            (played, 0) => Some(format!("Time ran out: your {} played.", tiles(played, "tile was", "tiles were"))),
+            (played, back) => Some(format!(
+                "Time ran out: {} played, the valid part of your turn; {} back to your rack.",
+                tiles(played, "tile", "tiles"),
+                tiles(back, "tile went", "tiles went")
+            )),
+        };
+        if let Some(message) = message {
+            self.send(seat, ServerMessage::Notice { message });
         }
-        self.end_turn(seat, kept);
     }
 
     /// Sets the timer for the turn now beginning (none once the game is
@@ -672,4 +708,9 @@ impl Room {
 fn minutes(d: Duration) -> String {
     let secs = d.as_secs();
     format!("{}:{:02}", secs / 60, secs % 60)
+}
+
+/// "1 tile", "3 tiles", with words for one and for more.
+fn tiles(count: usize, one: &str, more: &str) -> String {
+    format!("{count} {}", if count == 1 { one } else { more })
 }
