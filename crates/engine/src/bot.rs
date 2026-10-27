@@ -1,13 +1,17 @@
 //! Computer players: the move a bot makes, from what its player sees.
 //!
-//! Both levels make the initial meld as soon as their rack allows and,
-//! once melded, play as many tiles as they can find a place for:
+//! Every level makes the initial meld as soon as its rack allows and,
+//! once melded, plays as many tiles as it can find a place for. They
+//! differ in how much of the table they look at, as players do:
 //! - `Easy` doesn't rearrange the table: it puts down new sets from its
 //!   rack, then adds single tiles to the ends of runs and to groups.
+//! - `Medium` also makes small rearrangements, as a good player spots
+//!   them: it changes at most `MEDIUM_REACH` of the table's sets (splitting
+//!   a run, moving a tile from one set to another, freeing a joker).
 //! - `Hard` rearranges the whole table (see `solve`), leaving alone each
 //!   set it doesn't need to change.
 //!
-//! Neither holds tiles back on purpose. A joker is played only when it lets
+//! None holds tiles back on purpose. A joker is played only when it lets
 //! more tiles go down, or to go out.
 
 use serde::{Deserialize, Serialize};
@@ -26,6 +30,7 @@ use crate::turn::check_turn;
 #[serde(rename_all = "lowercase")]
 pub enum BotLevel {
     Easy,
+    Medium,
     Hard,
 }
 
@@ -40,16 +45,20 @@ pub enum Move {
 const KEEP_JOKERS: Objective = Objective::Tiles { joker: -1 };
 /// Plays jokers too: only taken when it empties the rack.
 const GO_OUT: Objective = Objective::Tiles { joker: 1000 };
+/// How many of the table's sets a Medium bot may change in a turn.
+const MEDIUM_REACH: usize = 2;
 
 /// The bot's move for the player whose view this is, on their turn.
 pub fn bot_move(view: &PlayerView, level: BotLevel) -> Move {
     let melded = view.melded[view.you];
     let table = if !melded {
         initial_meld(view)
-    } else if level == BotLevel::Hard {
-        rearrange(view).or_else(|| add_to_table(view))
     } else {
-        add_to_table(view)
+        match level {
+            BotLevel::Easy => add_to_table(view),
+            BotLevel::Medium => rearrange_a_little(view),
+            BotLevel::Hard => rearrange(view).or_else(|| add_to_table(view)),
+        }
     };
     let valid = |table: &Vec<Vec<Tile>>| {
         let ok = check_turn(&view.table, table, &view.rack, melded, &view.rules).is_ok();
@@ -77,19 +86,67 @@ fn initial_meld(view: &PlayerView) -> Option<Vec<Vec<Tile>>> {
 /// the table's sets. `None` if nothing fits.
 fn add_to_table(view: &PlayerView) -> Option<Vec<Vec<Tile>>> {
     let (_, solution) = most_tiles(&[], &view.rack)?;
-    let mut table = [view.table.clone(), solution.sets].concat();
     let rest = without(&view.rack, &solution.played);
+    let table = with_singles([view.table.clone(), solution.sets].concat(), rest);
+    (played(view, &table) > 0).then_some(table)
+}
+
+/// Medium, once melded: the best play that changes at most `MEDIUM_REACH`
+/// of the table's sets (the rest left as they are), then single tiles
+/// added; at least as good as Easy's. `None` if nothing fits.
+fn rearrange_a_little(view: &PlayerView) -> Option<Vec<Vec<Tile>>> {
+    let mut best = add_to_table(view);
+    let mut most = best.as_ref().map_or(0, |table| played(view, table));
+    for chosen in choices(view.table.len(), MEDIUM_REACH) {
+        let loose: Vec<Tile> = chosen.iter().flat_map(|&i| view.table[i].iter().copied()).collect();
+        let Some((_, solution)) = most_tiles(&loose, &view.rack) else { continue };
+        let kept = view.table.iter().enumerate().filter(|(i, _)| !chosen.contains(i)).map(|(_, set)| set.clone());
+        let rest = without(&view.rack, &solution.played);
+        let table = with_singles(kept.chain(solution.sets).collect(), rest);
+        let count = played(view, &table);
+        if count > most {
+            (best, most) = (Some(table), count);
+        }
+    }
+    best
+}
+
+/// Each choice of 1 to `reach` of `n` sets, fewest first (so on a tie the
+/// fewer win).
+fn choices(n: usize, reach: usize) -> Vec<Vec<usize>> {
+    let mut all = Vec::new();
+    let mut layer: Vec<Vec<usize>> = vec![Vec::new()];
+    for _ in 0..reach {
+        layer = layer
+            .iter()
+            .flat_map(|chosen| {
+                let from = chosen.last().map_or(0, |&last| last + 1);
+                (from..n).map(move |i| [chosen.as_slice(), &[i]].concat())
+            })
+            .collect();
+        all.extend(layer.iter().cloned());
+    }
+    all
+}
+
+/// `table` with single tiles of `rest` added to its sets; jokers only if
+/// that empties the rack.
+fn with_singles(mut table: Vec<Vec<Tile>>, rest: Vec<Tile>) -> Vec<Vec<Tile>> {
     let (jokers, numbers): (Vec<Tile>, Vec<Tile>) = rest.into_iter().partition(|&t| t == Tile::Joker);
     let numbers = add_singles(&mut table, numbers);
     if numbers.is_empty() && !jokers.is_empty() {
-        // Only jokers left: play them too if that empties the rack.
         let mut out = table.clone();
         if add_singles(&mut out, jokers).is_empty() {
-            table = out;
+            return out;
         }
     }
+    table
+}
+
+/// Tiles `table` has beyond the view's table: those played from the rack.
+fn played(view: &PlayerView, table: &[Vec<Tile>]) -> usize {
     let size = |table: &[Vec<Tile>]| table.iter().map(Vec::len).sum::<usize>();
-    (size(&table) > size(&view.table)).then_some(table)
+    size(table).saturating_sub(size(&view.table))
 }
 
 /// Hard, once melded: the whole table rearranged to play the most tiles.
@@ -284,35 +341,74 @@ mod tests {
         assert!(gone_out > 6, "most games end with someone going out: {gone_out} of 12");
     }
 
+    #[test]
+    fn medium_makes_small_rearrangements() {
+        // A red 5 splits 3-4-5-6-7 into 3-4-5 and 5-6-7: one set changed.
+        let run: Vec<Tile> = (3..=7).map(|v| n(Red, v)).collect();
+        let v = view(vec![run.clone()], vec![n(Red, 5), n(Blue, 1)], true);
+        assert_eq!(played(&v.table, &bot_move(&v, BotLevel::Medium)), 1);
+        // An orange 1 makes a group with the 1s taken from two runs: two
+        // sets changed, as far as Medium looks.
+        let runs = vec![(1..=4).map(|v| n(Red, v)).collect(), (1..=4).map(|v| n(Blue, v)).collect()];
+        let v = view(runs, vec![n(Orange, 1)], true);
+        assert_eq!(played(&v.table, &bot_move(&v, BotLevel::Medium)), 1);
+    }
+
+    #[test]
+    fn medium_sits_between_easy_and_hard() {
+        // On every turn of some whole games: Easy plays no more than Medium,
+        // Medium no more than Hard, and each is beaten sometimes.
+        let (mut medium_better, mut hard_better) = (0, 0);
+        for seed in 0..3 {
+            let mut game = Game::new(3, Rules::default(), seed);
+            let levels = [BotLevel::Hard; 3];
+            while game.outcome().is_none() {
+                let view = game.view(game.current());
+                let count = |level| played(&view.table, &bot_move(&view, level));
+                let (easy, medium, hard) = (count(BotLevel::Easy), count(BotLevel::Medium), count(BotLevel::Hard));
+                assert!(easy <= medium && medium <= hard, "seed {seed}: {easy}, {medium}, {hard}");
+                medium_better += (medium > easy) as usize;
+                hard_better += (hard > medium) as usize;
+                play(&mut game, &levels);
+            }
+        }
+        assert!(medium_better > 0 && hard_better > 0, "{medium_better}, {hard_better}");
+    }
+
     /// How the levels fare against each other, and how long a move takes:
     /// `cargo test -p engine --release -- --ignored --nocapture strength`.
     #[test]
     #[ignore]
     fn strength() {
+        use BotLevel::*;
         let games = 200;
-        let mut wins = [0.0; 2];
-        let mut slowest = std::time::Duration::ZERO;
-        let mut total = std::time::Duration::ZERO;
-        let mut moves = 0;
-        for seed in 0..games {
-            // Hard sits first in half the games.
-            let levels =
-                if seed % 2 == 0 { [BotLevel::Hard, BotLevel::Easy] } else { [BotLevel::Easy, BotLevel::Hard] };
-            let mut game = Game::new(2, Rules::default(), seed);
-            while game.outcome().is_none() {
-                let start = std::time::Instant::now();
-                play(&mut game, &levels);
-                let took = start.elapsed();
-                slowest = slowest.max(took);
-                total += took;
-                moves += 1;
+        for (a, b) in [(Hard, Easy), (Medium, Easy), (Hard, Medium)] {
+            let mut wins = [0.0; 2];
+            let mut slowest = [std::time::Duration::ZERO; 2];
+            let mut total = [std::time::Duration::ZERO; 2];
+            let mut moves = [0u32; 2];
+            for seed in 0..games {
+                // Each sits first in half the games.
+                let levels = if seed % 2 == 0 { [a, b] } else { [b, a] };
+                let mut game = Game::new(2, Rules::default(), seed);
+                while game.outcome().is_none() {
+                    let who = (levels[game.current()] == b) as usize;
+                    let start = std::time::Instant::now();
+                    play(&mut game, &levels);
+                    let took = start.elapsed();
+                    slowest[who] = slowest[who].max(took);
+                    total[who] += took;
+                    moves[who] += 1;
+                }
+                let winners = &game.outcome().unwrap().winners;
+                for &w in winners {
+                    wins[(levels[w] == b) as usize] += 1.0 / winners.len() as f64;
+                }
             }
-            let winners = &game.outcome().unwrap().winners;
-            for &w in winners {
-                wins[(levels[w] == BotLevel::Easy) as usize] += 1.0 / winners.len() as f64;
+            println!("{a:?} vs {b:?} over {games} two-player games: {:.0} to {:.0}", wins[0], wins[1]);
+            for (i, level) in [a, b].iter().enumerate() {
+                println!("  {level:?}: {} moves, average {:?}, slowest {:?}", moves[i], total[i] / moves[i], slowest[i]);
             }
         }
-        println!("Hard vs Easy over {games} two-player games: Hard won {:.0}, Easy {:.0}", wins[0], wins[1]);
-        println!("moves: {moves}, average {:?}, slowest {slowest:?}", total / moves);
     }
 }

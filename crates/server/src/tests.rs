@@ -500,7 +500,7 @@ async fn against_bots(config: Config, levels: &[BotLevel]) -> (usize, PlayerView
 
 #[tokio::test]
 async fn a_game_against_bots() {
-    let (drafts, last, states) = against_bots(Config { timing: SLOW, open_racks: false }, &[BotLevel::Easy, BotLevel::Hard]).await;
+    let (drafts, last, states) = against_bots(Config { timing: SLOW, open_racks: false }, &[BotLevel::Easy, BotLevel::Medium, BotLevel::Hard]).await;
     assert!(drafts > 0, "the bots' plays are shown live first");
     // Someone who never plays can't go out; the bots usually do.
     assert!(!last.outcome.unwrap().winners.is_empty());

@@ -290,7 +290,7 @@ function Option({
 /** Seats in a room (the server's limit too). */
 const MAX_PLAYERS = 4
 
-const botLabel: Record<BotLevel, string> = { easy: 'Easy bot', hard: 'Hard bot' }
+const botLabel: Record<BotLevel, string> = { easy: 'Easy bot', medium: 'Medium bot', hard: 'Hard bot' }
 
 function Lobby({
   room,
@@ -338,7 +338,7 @@ function Lobby({
         {isHost && !full && (
           <div className="mt-3 flex items-center gap-2 text-sm text-slate-400">
             <span className="flex-1">Add a computer player:</span>
-            {(['easy', 'hard'] as const).map((level) => (
+            {(['easy', 'medium', 'hard'] as const).map((level) => (
               <Button key={level} look="quiet" className="px-3 py-1.5 text-sm" onClick={() => send({ type: 'addBot', level })}>
                 + {botLabel[level]}
               </Button>
