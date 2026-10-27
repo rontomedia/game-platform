@@ -32,7 +32,7 @@ import {
   arrangeRack,
   arrangeTable,
   compareTiles,
-  joinEnd,
+  joinAt,
   keepPlans,
   newOrChanged,
   sortTiles,
@@ -150,15 +150,16 @@ function dropEmptySets(layout: Layout): Layout {
   return { holders, sets, at, plans }
 }
 
-/** `tile` moved from holder `from` to an end of holder `to`. */
-function moveTile(l: Layout, tile: Placed, from: string, to: string, end: 'start' | 'end' = 'end'): Layout {
+/** `tile` moved from holder `from` into holder `to`, at `at` (else at its end). */
+function moveTile(l: Layout, tile: Placed, from: string, to: string, at?: number): Layout {
   const rest = l.holders[to] ?? []
+  const place = at ?? rest.length
   return {
     ...l,
     holders: {
       ...l.holders,
       [from]: l.holders[from].filter((p) => p.id !== tile.id),
-      [to]: end === 'end' ? [...rest, tile] : [tile, ...rest],
+      [to]: [...rest.slice(0, place), tile, ...rest.slice(place)],
     },
   }
 }
@@ -629,11 +630,11 @@ export function Board({
         ? lastPlan.current
         : (layout.plans.at(-1) ?? null)
     const holder = myTurn ? setHolder : planHolder
-    const end = last === null ? null : joinEnd(tilesOf(layout.holders[holder(last)]), tile.tile)
-    if (last !== null && end) {
+    const at = last === null ? null : joinAt(tilesOf(layout.holders[holder(last)]), tile.tile)
+    if (last !== null && at !== null) {
       if (myTurn) lastSet.current = last
       else lastPlan.current = last
-      return setLayout((l) => moveTile(l, tile, from, holder(last), end))
+      return setLayout((l) => moveTile(l, tile, from, holder(last), at))
     }
     if (!myTurn) {
       const key = nextPlan.current++
@@ -1248,6 +1249,21 @@ function PlayerChip({
         >
           {name.slice(0, 1).toUpperCase()}
         </div>
+        {/* Extra time just given, over the avatar: the row of chips clips anything outside them. */}
+        <AnimatePresence>
+          {clock.bonus !== undefined && (
+            <span className="pointer-events-none absolute -top-1 left-1/2 z-10 -translate-x-1/2">
+              <motion.span
+                initial={{ opacity: 0, y: 4, scale: 0.8 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0 }}
+                className="block rounded-full bg-emerald-400 px-1.5 text-[0.7rem] font-bold leading-4 tabular-nums text-emerald-950 shadow"
+              >
+                +{clock.bonus}s
+              </motion.span>
+            </span>
+          )}
+        </AnimatePresence>
         {/* On small screens the chip is just the avatar: the tile count rides on it. */}
         <span className="absolute -bottom-1 -right-1.5 hidden min-w-5 rounded-full bg-slate-900 px-1 text-center text-[0.7rem] font-semibold tabular-nums text-slate-200 ring-1 ring-white/15 max-md:block short:block">
           {tiles}
@@ -1268,18 +1284,6 @@ function PlayerChip({
           {tiles} tiles{connected ? '' : ' · away'}
         </div>
       </div>
-      <AnimatePresence>
-        {clock.bonus !== undefined && (
-          <motion.span
-            initial={{ opacity: 0, y: 6, scale: 0.8 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: -6 }}
-            className="pointer-events-none absolute -top-2 right-0 rounded-full bg-emerald-400 px-1.5 text-[0.7rem] font-bold tabular-nums text-emerald-950 shadow"
-          >
-            +{clock.bonus}s
-          </motion.span>
-        )}
-      </AnimatePresence>
     </div>
   )
 }

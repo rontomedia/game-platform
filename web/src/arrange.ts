@@ -108,11 +108,19 @@ export function couldBeSet(tiles: Tile[]): boolean {
   return run || group
 }
 
-/** Where `tile` can join `set` (its end, else its start), if it can. */
-export function joinEnd(set: Tile[], tile: Tile): 'end' | 'start' | null {
-  if (couldBeSet([...set, tile])) return 'end'
-  if (couldBeSet([tile, ...set])) return 'start'
-  return null
+/**
+ * Where `tile` can join `set`, if it can: at an end if the set could then
+ * still become one, else (a set of numbers of one colour) at its place by
+ * number, leaving gaps to fill later.
+ */
+export function joinAt(set: Tile[], tile: Tile): number | null {
+  if (couldBeSet([...set, tile])) return set.length
+  if (couldBeSet([tile, ...set])) return 0
+  if (tile.kind !== 'number') return null
+  const sameColour = set.every((t) => t.kind === 'number' && t.color === tile.color && t.value !== tile.value)
+  if (set.length === 0 || !sameColour) return null
+  const at = set.findIndex((t) => t.kind === 'number' && t.value > tile.value)
+  return at < 0 ? set.length : at
 }
 
 /**

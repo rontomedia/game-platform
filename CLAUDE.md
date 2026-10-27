@@ -144,8 +144,9 @@ only builds it on start.
     the arrangement like the rack order (`keepPlans`).
   - Double-clicking a rack tile: on your turn it goes onto the table, else
     into a plan. It joins the set last changed there (by drag or
-    double-click) if it fits (`joinEnd`), else starts a new one, after the
-    last row. Double-clicking a planned tile off your turn sends it back to
+    double-click) if it fits (`joinAt`: at an end, or into a run of its
+    colour at its place by number, gaps left to fill), else starts a new
+    one, after the last row. Double-clicking a planned tile off your turn sends it back to
     the rack.
   - `grid.ts`: the table as a grid of cells (one table tile wide, one row
     high; sizes as CSS variables on `.table-grid` in `index.css`, in step

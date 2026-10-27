@@ -4,7 +4,7 @@ import {
   arrangeRack,
   arrangeTable,
   couldBeSet,
-  joinEnd,
+  joinAt,
   keepPlans,
   newOrChanged,
   sortTiles,
@@ -161,11 +161,17 @@ describe('couldBeSet', () => {
   })
 })
 
-describe('joinEnd', () => {
+describe('joinAt', () => {
   it('puts a tile where it fits', () => {
-    expect(joinEnd([n('red', 5), n('red', 6)], n('red', 7))).toBe('end')
-    expect(joinEnd([n('red', 5), n('red', 6)], n('red', 4))).toBe('start')
-    expect(joinEnd([n('red', 5), n('red', 6)], n('blue', 7))).toBe(null)
-    expect(joinEnd([n('red', 5), n('blue', 5)], n('black', 5))).toBe('end')
+    expect(joinAt([n('red', 5), n('red', 6)], n('red', 7))).toBe(2)
+    expect(joinAt([n('red', 5), n('red', 6)], n('red', 4))).toBe(0)
+    expect(joinAt([n('red', 5), n('blue', 5)], n('black', 5))).toBe(2)
+    expect(joinAt([n('red', 5), n('red', 6)], n('blue', 7))).toBe(null)
+  })
+  it('leaves gaps in a run to fill later', () => {
+    expect(joinAt([n('black', 3)], n('black', 6))).toBe(1)
+    expect(joinAt([n('black', 3), n('black', 6)], n('black', 5))).toBe(1)
+    expect(joinAt([n('black', 3), n('black', 6)], n('black', 1))).toBe(0)
+    expect(joinAt([n('black', 3), n('black', 6)], n('black', 6)), 'a number twice').toBe(null)
   })
 })
