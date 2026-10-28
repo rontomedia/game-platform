@@ -53,6 +53,7 @@ import { SettingsMenu } from './SettingsMenu.tsx'
 import { remember, remembered } from './storage.ts'
 import { TileFace, type TileSize } from './TileView.tsx'
 import { Button } from './ui.tsx'
+import { useNow } from './useNow.ts'
 import type { Draft, GameState, Status, TurnRecord } from './useGame.ts'
 import { checkTurn, classifySet, type ClientMessage, type Notice, type RoomInfo, type Tile } from './wasm/engine.js'
 
@@ -231,18 +232,8 @@ const BANK_SECONDS = 180
 /** How long extra time given shows by the player. */
 const BONUS_SHOWN_MS = 3000
 
-/** `Date.now()`, ticking. */
-function useNow() {
-  const [now, setNow] = useState(() => Date.now())
-  useEffect(() => {
-    const timer = setInterval(() => setNow(Date.now()), 250)
-    return () => clearInterval(timer)
-  }, [])
-  return now
-}
-
 /** A player's clock: the turn's own time, then their bank. */
-interface Clock {
+export interface Clock {
   /** Seconds left in the turn's own time, for the current player. */
   turn?: number
   /** Seconds left in their bank, in rooms with one. */
@@ -1257,7 +1248,17 @@ function SortButtons({ sort, onSort }: { sort: RackSort; onSort: (by: 'number' |
 /** One colour per seat, for avatars. */
 const seatColors = ['from-teal-400 to-cyan-600', 'from-violet-400 to-fuchsia-600', 'from-amber-300 to-orange-500', 'from-rose-400 to-pink-600']
 
-function TopBar({
+/** What the top bar shows of a game, classic or Okey 101. */
+export interface TopBarView {
+  rackSizes: number[]
+  you?: number
+  current: number
+  pool: number
+  /** Set once the game is over. */
+  outcome?: unknown
+}
+
+export function TopBar({
   room,
   view,
   clock,
@@ -1267,7 +1268,7 @@ function TopBar({
   leave,
 }: {
   room: RoomInfo
-  view: GameState['view']
+  view: TopBarView
   clock: (seat: number) => Clock
   status: Status
   settings: Settings
@@ -1628,7 +1629,7 @@ function TurnLine({ turn, name }: { turn: TurnRecord; name: string }) {
  * In place of the tray for someone watching: what's going on and, for the
  * host of a game only bots play, buttons to pause it and step through it.
  */
-function WatchBar({
+export function WatchBar({
   room,
   over,
   note,

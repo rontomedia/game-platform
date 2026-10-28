@@ -4,7 +4,7 @@
 //! Engine types cross as `Ts<T>` and are converted inside each function, so
 //! bad input from JS is an ordinary error instead of leaking WASM memory.
 
-use engine::{Rules, Tile, TurnError};
+use engine::{okey101, Rules, Tile, TurnError};
 use serde::{Deserialize, Serialize};
 use tsify::{Ts, Tsify};
 use wasm_bindgen::prelude::*;
@@ -61,4 +61,45 @@ pub fn check_turn(input: Ts<TurnInput>) -> Result<Ts<TurnVerdict>, JsError> {
         Err(error) => TurnVerdict::Rejected { error },
     };
     Ok(Ts::from_rust(&verdict)?)
+}
+
+/// `engine::okey101::check_view_turn`'s answer.
+#[derive(Serialize, Deserialize, Tsify)]
+#[serde(tag = "verdict", rename_all = "lowercase")]
+pub enum OkeyVerdict {
+    Allowed,
+    Rejected { error: okey101::OkeyError },
+}
+
+/// Checks an Okey 101 turn from the player's view, for instant feedback;
+/// the server checks it again.
+#[wasm_bindgen(js_name = checkOkeyTurn)]
+pub fn check_okey_turn(view: Ts<okey101::HandView>, turn: Ts<okey101::Turn>) -> Result<Ts<OkeyVerdict>, JsError> {
+    let verdict = match okey101::check_view_turn(&view.to_rust()?, &turn.to_rust()?) {
+        Ok(()) => OkeyVerdict::Allowed,
+        Err(error) => OkeyVerdict::Rejected { error },
+    };
+    Ok(Ts::from_rust(&verdict)?)
+}
+
+/// A table as an Okey 101 player has arranged it, with their view.
+#[derive(Serialize, Deserialize, Tsify)]
+pub struct OkeyTable {
+    pub view: okey101::HandView,
+    pub table: Vec<Vec<Tile>>,
+}
+
+/// See `engine::okey101::progress`: what a table adds up to towards opening.
+#[wasm_bindgen(js_name = okeyProgress)]
+pub fn okey_progress(input: Ts<OkeyTable>) -> Result<Ts<okey101::Progress>, JsError> {
+    let input = input.to_rust()?;
+    Ok(Ts::from_rust(&okey101::progress(&input.view, &input.table))?)
+}
+
+/// See `engine::okey101::meld_kind`. `undefined` when the tiles aren't a
+/// valid set.
+#[wasm_bindgen(js_name = okeyMeldKind)]
+pub fn okey_meld_kind(okey: Ts<Tile>, tiles: Vec<Ts<Tile>>) -> Result<Option<Ts<okey101::MeldKind>>, JsError> {
+    let tiles = tiles.into_iter().map(|tile| tile.to_rust()).collect::<Result<Vec<_>, _>>()?;
+    Ok(okey101::meld_kind(okey.to_rust()?, &tiles).map(|kind| Ts::from_rust(&kind)).transpose()?)
 }

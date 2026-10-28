@@ -48,7 +48,15 @@
     "code": "Rumskod",
     "codePlaceholder": "KOD",
     "join": "Gå med",
-    "watch": "Titta"
+    "watch": "Titta",
+    "game": "Spel",
+    "classic": "Klassiskt",
+    "okey101": "Okey 101",
+    "hands": "Givar per match",
+    "progressive": "Stigande öppning",
+    "progressiveDetail": "Varje öppning måste slå den förra i given: efter 120 poäng, 121.",
+    "penalties": "Straff",
+    "penaltiesDetail": "101 poäng för att kasta okey eller en bricka som passar på bordet, och för en okey som tas från din kombination; kastets tal ×10 när nästa spelare öppnar med den."
   },
   "room": {
     "summary": "{{parts}}.",
@@ -63,7 +71,11 @@
       "medium": "en medelsvår bott för den som lämnar",
       "hard": "en svår bott för den som lämnar",
       "extraHard": "en mycket svår bott för den som lämnar"
-    }
+    },
+    "classic": "Klassiska regler",
+    "okey101": "Okey 101, givar: {{hands}}",
+    "progressive": "stigande öppning",
+    "noPenalties": "inga straff"
   },
   "lobby": {
     "code": "Rumskod: dela den med de andra spelarna",
@@ -237,5 +249,51 @@
     "tilesBack_other": "{{count}} brickor gick tillbaka till ditt ställ",
     "unearnedWarning": "Extra tid för brickor som du sedan tar tillbaka räknas mot dig: {{soFar}} hittills. Vid {{limit}} får du ingen mer i det här spelet.",
     "noMoreBonus": "Du tog tillbaka brickor som du hade fått {{time}} extra tid för. Ingen mer extra tid för brickor i det här spelet."
+  },
+  "okey": {
+    "indicator": "Indikator",
+    "okey": "Okey",
+    "discardsOf": "Kastat av {{name}}",
+    "emptyTable": "Bordet är tomt. Första öppningen kräver 101 poäng eller fem par.",
+    "newSet": "Släpp en bricka här för att börja en kombination",
+    "discardHere": "Släpp en bricka här för att kasta den och avsluta draget",
+    "hand": "Giv {{n}} av {{total}}",
+    "yourTurnDraw": "Din tur: dra en bricka.",
+    "yourTurnDrawOrTake": "Din tur: dra en bricka, eller ta brickan {{name}} kastade om du kan använda den nu.",
+    "yourTurnFirst": "Lägg ut kombinationer värda {{points}} (eller fem par) för att öppna, kasta sedan en bricka.",
+    "yourTurn": "Lägg ut kombinationer eller lägg till på bordet, kasta sedan en bricka.",
+    "ready": "Klart: kasta en bricka för att avsluta draget.",
+    "openingPoints": "Öppning: {{points}} av {{needed}} poäng.",
+    "openingPairs": "Öppning: {{pairs}} av {{needed}} par.",
+    "takenMustBeUsed": "Brickan {{name}} kastade måste läggas på bordet detta drag, eller tillbaka.",
+    "takenTile": "Den kastade brickan du tog: den måste läggas på bordet",
+    "handOver": "Given är slut.",
+    "void": "Alla öppnade med par: given delas om.",
+    "poolRanOut": "Högen är slut.",
+    "youWentOut": "Du gick ut!",
+    "wentOut": "{{name}} gick ut.",
+    "nextHand": "nästa giv om {{n}} s",
+    "thisHand": "Denna giv",
+    "total": "Totalt",
+    "lowestWins": "Straffpoäng: lägst summa vinner."
+  },
+  "okeyError": {
+    "notYourTurn": "Det är inte din tur.",
+    "handOver": "Given är slut.",
+    "noSuchTile": "En bricka som inte finns i spelet.",
+    "drawFirst": "Dra en bricka eller ta den kastade först.",
+    "alreadyDrawn": "Du har redan dragit detta drag.",
+    "noDiscard": "Det finns ingen kastad bricka att ta.",
+    "okeyDiscard": "En kastad okey kan inte tas.",
+    "invalidSet": "Kombination {{n}} är ingen följd, grupp eller par.",
+    "setChanged": "Kombination {{n}} får bara byggas på i ändarna (högst två brickor i varje ände av en följd).",
+    "okeyNotFree": "Okey i kombination {{n}} kan inte tas: öppna först, och en grupp behöver alla fyra färger.",
+    "tileTakenFromTable": "Brickor på bordet måste ligga kvar.",
+    "tileNotOnRack": "En bricka du inte har: behåll en att kasta.",
+    "notOpened": "Öppna innan du bygger på kombinationerna på bordet.",
+    "setsAndPairs": "Följder och grupper kan inte blandas med par.",
+    "openingTooLow": "Din öppning är värd {{points}} poäng; det krävs {{needed}}.",
+    "tooFewPairs": "{{pairs}} par; öppningen kräver {{needed}}.",
+    "discardNotUsed": "Brickan du tog måste läggas på bordet (i din öppning, om du öppnar)."
   }
 }

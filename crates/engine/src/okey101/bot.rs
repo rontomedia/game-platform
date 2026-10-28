@@ -13,7 +13,7 @@
 use crate::solve::{solve, Objective};
 use crate::tile::{Counts, Tile};
 
-use super::{face, fits, kind, plain, safe_discard, set_points, HandView, Kind, Opened, Phase, Turn, RUN_END_TILES};
+use super::{face, fits, kind, plain, safe_discard, set_points, HandView, MeldKind, Opened, Phase, Turn, RUN_END_TILES};
 
 /// A computer player's move in Okey 101.
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -211,7 +211,7 @@ fn add_to_table(okey: Tile, table: &mut [Vec<Tile>], left: &mut Vec<Tile>) {
             let fit = table.iter().enumerate().filter(|(_, set)| set.len() > 2).find_map(|(s, set)| {
                 let back = [set.as_slice(), &[tile]].concat();
                 let front = [&[tile], set.as_slice()].concat();
-                let fits = |set: &[Tile]| matches!(kind(okey, set), Some(Kind::Run | Kind::Group));
+                let fits = |set: &[Tile]| matches!(kind(okey, set), Some(MeldKind::Run | MeldKind::Group));
                 if added[s].1 < RUN_END_TILES && fits(&back) {
                     Some((s, back, false))
                 } else if added[s].0 < RUN_END_TILES && fits(&front) {

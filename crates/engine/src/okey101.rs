@@ -508,11 +508,11 @@ impl Hand {
             let kind = self.kind(new).ok_or(OkeyError::InvalidSet { index })?;
             kinds.push(kind);
             let end = new.len() - old.len() - start;
-            if kind == Kind::Run && (start > RUN_END_TILES || end > RUN_END_TILES) {
+            if kind == MeldKind::Run && (start > RUN_END_TILES || end > RUN_END_TILES) {
                 return Err(OkeyError::SetChanged { index });
             }
             if !swapped.is_empty() {
-                let complete = kind != Kind::Group || new.len() == 4;
+                let complete = kind != MeldKind::Group || new.len() == 4;
                 if opened_before == Opened::No || !complete {
                     return Err(OkeyError::OkeyNotFree { index });
                 }
@@ -539,7 +539,7 @@ impl Hand {
 
         let new_sets = &after[before.len()..];
         let new_kinds = &kinds[before.len()..];
-        let pairs = new_kinds.iter().filter(|&&k| k == Kind::Pair).count();
+        let pairs = new_kinds.iter().filter(|&&k| k == MeldKind::Pair).count();
         let sets = new_kinds.len() - pairs;
         if pairs > 0 && sets > 0 {
             return Err(OkeyError::SetsAndPairs);
@@ -604,7 +604,7 @@ impl Hand {
         })
     }
 
-    fn kind(&self, set: &[Tile]) -> Option<Kind> {
+    fn kind(&self, set: &[Tile]) -> Option<MeldKind> {
         kind(self.okey, set)
     }
 
@@ -693,11 +693,66 @@ impl Hand {
     }
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-enum Kind {
+/// What makes a set valid in Okey 101.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "wasm", derive(Tsify))]
+#[serde(rename_all = "lowercase")]
+pub enum MeldKind {
     Run,
     Group,
+    /// Two of the same tile (or one and an okey).
     Pair,
+}
+
+/// What a player's turn so far adds up to towards opening: the points of
+/// the runs and groups laid down and added to the table, and the pairs.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "wasm", derive(Tsify))]
+#[serde(rename_all = "camelCase")]
+pub struct Progress {
+    pub points: u32,
+    pub pairs: usize,
+}
+
+/// What `tiles` make, with `okey` wild: `None` if not a valid set.
+pub fn meld_kind(okey: Tile, tiles: &[Tile]) -> Option<MeldKind> {
+    kind(okey, tiles)
+}
+
+/// What the table `after` adds up to towards opening, from the view's
+/// table: new sets after the table's own, and tiles added to its sets.
+pub fn progress(view: &HandView, after: &[Vec<Tile>]) -> Progress {
+    let okey = view.okey;
+    let before = &view.table;
+    let new = after.get(before.len()..).unwrap_or_default();
+    let added: u32 = before
+        .iter()
+        .zip(after)
+        .map(|(old, new)| set_points(okey, new).saturating_sub(set_points(okey, old)))
+        .sum();
+    let points = new.iter().filter(|s| kind(okey, s) != Some(MeldKind::Pair)).map(|s| set_points(okey, s)).sum::<u32>();
+    let pairs = new.iter().filter(|s| kind(okey, s) == Some(MeldKind::Pair)).count();
+    Progress { points: points + added, pairs }
+}
+
+/// Checks `turn` from what its player sees, as `Hand::check_turn` would:
+/// for instant feedback in the browser (the server checks it again).
+pub fn check_view_turn(view: &HandView, turn: &Turn) -> Result<(), OkeyError> {
+    let Some(you) = view.you else { return Err(OkeyError::NotYourTurn) };
+    let players = view.rack_sizes.len();
+    // Others' racks and the pool don't matter to a check; who laid which
+    // tile only to penalties.
+    let racks = (0..players).map(|p| if p == you { view.rack.clone() } else { Vec::new() }).collect();
+    let mut hand = Hand::from_deal(racks, Vec::new(), view.indicator, view.current, view.rules.clone());
+    hand.owners = view.table.iter().map(|set| vec![you; set.len()]).collect();
+    hand.table = view.table.clone();
+    hand.discards = view.discards.clone();
+    hand.opened = view.opened.clone();
+    hand.opening_points = view.opening_points;
+    hand.opening_pairs = view.opening_pairs;
+    hand.phase = view.phase;
+    hand.end = view.end.clone();
+    hand.check_turn(you, turn)
 }
 
 /// How a table's set was added to: tiles before it (`start`), and which
@@ -728,14 +783,14 @@ fn plain(okey: Tile, tiles: &[Tile]) -> Vec<Tile> {
         .collect()
 }
 
-fn kind(okey: Tile, set: &[Tile]) -> Option<Kind> {
+fn kind(okey: Tile, set: &[Tile]) -> Option<MeldKind> {
     let plain = plain(okey, set);
     if let [a, b] = plain[..] {
-        return (a == b || a == Tile::Joker || b == Tile::Joker).then_some(Kind::Pair);
+        return (a == b || a == Tile::Joker || b == Tile::Joker).then_some(MeldKind::Pair);
     }
     classify(&plain).map(|kind| match kind {
-        SetKind::Run => Kind::Run,
-        SetKind::Group => Kind::Group,
+        SetKind::Run => MeldKind::Run,
+        SetKind::Group => MeldKind::Group,
     })
 }
 
@@ -753,7 +808,7 @@ fn fits(okey: Tile, table: &[Vec<Tile>], tile: Tile) -> bool {
             [0, set.len()].into_iter().any(|at| {
                 let mut longer = set.clone();
                 longer.insert(at, tile);
-                matches!(kind(okey, &longer), Some(Kind::Run | Kind::Group))
+                matches!(kind(okey, &longer), Some(MeldKind::Run | MeldKind::Group))
             })
         })
 }
@@ -986,12 +1041,12 @@ mod tests {
     #[test]
     fn sets_with_the_okey_and_false_okeys() {
         let h = hand(vec![vec![], vec![]], vec![]);
-        assert_eq!(h.kind(&[n(Blue, 3), OKEY, n(Blue, 5)]), Some(Kind::Run), "the okey is wild");
-        assert_eq!(h.kind(&[n(Red, 4), F, n(Red, 6)]), Some(Kind::Run), "a false okey is red 5");
+        assert_eq!(h.kind(&[n(Blue, 3), OKEY, n(Blue, 5)]), Some(MeldKind::Run), "the okey is wild");
+        assert_eq!(h.kind(&[n(Red, 4), F, n(Red, 6)]), Some(MeldKind::Run), "a false okey is red 5");
         assert_eq!(h.kind(&[n(Blue, 4), F, n(Blue, 6)]), None, "and nothing else");
-        assert_eq!(h.kind(&[n(Black, 9), n(Blue, 9), OKEY]), Some(Kind::Group));
-        assert_eq!(h.kind(&[n(Black, 9), n(Black, 9)]), Some(Kind::Pair));
-        assert_eq!(h.kind(&[n(Black, 9), OKEY]), Some(Kind::Pair));
+        assert_eq!(h.kind(&[n(Black, 9), n(Blue, 9), OKEY]), Some(MeldKind::Group));
+        assert_eq!(h.kind(&[n(Black, 9), n(Black, 9)]), Some(MeldKind::Pair));
+        assert_eq!(h.kind(&[n(Black, 9), OKEY]), Some(MeldKind::Pair));
         assert_eq!(h.kind(&[n(Black, 9), n(Blue, 9)]), None, "a pair is two of the same tile");
         assert_eq!(h.kind(&[n(Black, 12), n(Black, 13), n(Black, 1)]), None, "1 only below 2");
         assert_eq!(h.points(&[n(Blue, 3), OKEY, n(Blue, 5)]), 12);
@@ -1299,7 +1354,7 @@ mod tests {
                             continue;
                         }
                         let set = vec![rack[i], rack[j], rack[k]];
-                        if matches!(h.kind(&set), Some(Kind::Run | Kind::Group)) && rack.len() > 3 {
+                        if matches!(h.kind(&set), Some(MeldKind::Run | MeldKind::Group)) && rack.len() > 3 {
                             let mut picked = [i, j, k];
                             picked.sort_unstable();
                             for p in picked.into_iter().rev() {
@@ -1325,7 +1380,7 @@ mod tests {
             // One tile at most on each set already down.
             for set in table.iter_mut().take(h.table().len()) {
                 let fit = rack.iter().position(|&tile| {
-                    set.len() > 2 && matches!(h.kind(&[set.as_slice(), &[tile]].concat()), Some(Kind::Run | Kind::Group))
+                    set.len() > 2 && matches!(h.kind(&[set.as_slice(), &[tile]].concat()), Some(MeldKind::Run | MeldKind::Group))
                 });
                 if let (Some(i), true) = (fit, rack.len() > 1) {
                     set.push(rack.remove(i));
@@ -1359,6 +1414,24 @@ mod tests {
             assert!(m.winners().is_some_and(|w| !w.is_empty()));
         }
         assert!(went_out > 0, "someone goes out now and then");
+    }
+
+    #[test]
+    fn a_turn_checked_from_the_view_and_its_progress() {
+        let mut rack: Vec<Tile> = opening().concat();
+        rack.extend([n(Red, 1), n(Black, 2)]);
+        let h = hand(vec![rack, vec![n(Blue, 1)]], vec![]);
+        let view = h.view(0);
+        let low = vec![vec![n(Black, 11), n(Black, 12), n(Black, 13)]];
+        assert_eq!(progress(&view, &low), Progress { points: 36, pairs: 0 });
+        assert_eq!(
+            check_view_turn(&view, &turn(low, n(Red, 1))),
+            Err(OkeyError::OpeningTooLow { points: 36, needed: 101 })
+        );
+        assert_eq!(progress(&view, &opening()).points, 108);
+        assert_eq!(check_view_turn(&view, &turn(opening(), n(Red, 1))), Ok(()));
+        assert_eq!(check_view_turn(&h.view(1), &turn(vec![], n(Blue, 1))), Err(OkeyError::NotYourTurn));
+        assert_eq!(meld_kind(OKEY, &[n(Blue, 2), OKEY]), Some(MeldKind::Pair));
     }
 
     #[test]

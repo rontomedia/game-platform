@@ -48,7 +48,15 @@
     "code": "Raumcode",
     "codePlaceholder": "CODE",
     "join": "Beitreten",
-    "watch": "Zuschauen"
+    "watch": "Zuschauen",
+    "game": "Spiel",
+    "classic": "Klassisch",
+    "okey101": "Okey 101",
+    "hands": "Runden im Spiel",
+    "progressive": "Steigende Eröffnung",
+    "progressiveDetail": "Jede Eröffnung muss die vorige der Runde übertreffen: nach 120 Punkten 121.",
+    "penalties": "Strafen",
+    "penaltiesDetail": "101 Punkte fürs Abwerfen des Okey oder eines Steins, der an den Tisch passt, und für ein Okey, das aus deiner Kombination genommen wird; die Zahl des Abwurfs ×10, wenn der Nächste damit eröffnet."
   },
   "room": {
     "summary": "{{parts}}.",
@@ -63,7 +71,11 @@
       "medium": "ein mittlerer Bot für alle, die gehen",
       "hard": "ein schwerer Bot für alle, die gehen",
       "extraHard": "ein sehr schwerer Bot für alle, die gehen"
-    }
+    },
+    "classic": "Klassische Regeln",
+    "okey101": "Okey 101, Runden: {{hands}}",
+    "progressive": "steigende Eröffnung",
+    "noPenalties": "ohne Strafen"
   },
   "lobby": {
     "code": "Raumcode: Teile ihn mit den anderen",
@@ -237,5 +249,51 @@
     "tilesBack_other": "{{count}} Steine gingen zurück auf deine Ablage",
     "unearnedWarning": "Extrazeit für Steine, die du danach zurücknimmst, zählt gegen dich: bisher {{soFar}}. Ab {{limit}} bekommst du in diesem Spiel keine mehr.",
     "noMoreBonus": "Du hast Steine zurückgenommen, für die du {{time}} Extrazeit bekommen hattest. In diesem Spiel gibt es keine Extrazeit für Steine mehr."
+  },
+  "okey": {
+    "indicator": "Anzeiger",
+    "okey": "Okey",
+    "discardsOf": "Abwürfe von {{name}}",
+    "emptyTable": "Der Tisch ist leer. Die erste Eröffnung braucht 101 Punkte oder fünf Paare.",
+    "newSet": "Stein hier ablegen, um eine Kombination zu beginnen",
+    "discardHere": "Stein hier ablegen, um ihn abzuwerfen und den Zug zu beenden",
+    "hand": "Runde {{n}} von {{total}}",
+    "yourTurnDraw": "Du bist dran: zieh einen Stein.",
+    "yourTurnDrawOrTake": "Du bist dran: zieh einen Stein oder nimm den Abwurf von {{name}}, wenn du ihn gleich verwenden kannst.",
+    "yourTurnFirst": "Lege Kombinationen im Wert von {{points}} (oder fünf Paare) aus, um zu eröffnen, dann wirf einen Stein ab.",
+    "yourTurn": "Lege Kombinationen aus oder an den Tisch an, dann wirf einen Stein ab.",
+    "ready": "Bereit: wirf einen Stein ab, um den Zug zu beenden.",
+    "openingPoints": "Eröffnung: {{points}} von {{needed}} Punkten.",
+    "openingPairs": "Eröffnung: {{pairs}} von {{needed}} Paaren.",
+    "takenMustBeUsed": "Der Abwurf von {{name}} muss in diesem Zug auf den Tisch oder zurück.",
+    "takenTile": "Der genommene Abwurf: er muss auf den Tisch",
+    "handOver": "Die Runde ist vorbei.",
+    "void": "Alle haben mit Paaren eröffnet: die Runde wird neu gegeben.",
+    "poolRanOut": "Der Vorrat ist leer.",
+    "youWentOut": "Du bist raus!",
+    "wentOut": "{{name}} ist raus.",
+    "nextHand": "nächste Runde in {{n}} s",
+    "thisHand": "Diese Runde",
+    "total": "Gesamt",
+    "lowestWins": "Strafpunkte: die niedrigste Summe gewinnt."
+  },
+  "okeyError": {
+    "notYourTurn": "Du bist nicht dran.",
+    "handOver": "Die Runde ist vorbei.",
+    "noSuchTile": "Ein Stein, den es im Spiel nicht gibt.",
+    "drawFirst": "Zieh zuerst einen Stein oder nimm den Abwurf.",
+    "alreadyDrawn": "Du hast in diesem Zug schon gezogen.",
+    "noDiscard": "Es gibt keinen Abwurf zum Nehmen.",
+    "okeyDiscard": "Ein abgeworfenes Okey kann nicht genommen werden.",
+    "invalidSet": "Kombination {{n}} ist keine Reihe, Gruppe oder Paar.",
+    "setChanged": "An Kombination {{n}} darf nur an den Enden angelegt werden (höchstens zwei Steine an jedem Ende einer Reihe).",
+    "okeyNotFree": "Das Okey in Kombination {{n}} kann nicht genommen werden: zuerst eröffnen, und eine Gruppe braucht alle vier Farben.",
+    "tileTakenFromTable": "Steine auf dem Tisch müssen dort bleiben.",
+    "tileNotOnRack": "Ein Stein, den du nicht hast: behalte einen zum Abwerfen.",
+    "notOpened": "Eröffne, bevor du an Kombinationen auf dem Tisch anlegst.",
+    "setsAndPairs": "Reihen und Gruppen lassen sich nicht mit Paaren mischen.",
+    "openingTooLow": "Deine Eröffnung ist {{points}} Punkte wert; nötig sind {{needed}}.",
+    "tooFewPairs": "{{pairs}} Paare; zum Eröffnen nötig: {{needed}}.",
+    "discardNotUsed": "Der genommene Abwurf muss auf den Tisch (in deine Eröffnung, wenn du eröffnest)."
   }
 }

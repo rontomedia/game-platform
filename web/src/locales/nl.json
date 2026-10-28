@@ -48,7 +48,15 @@
     "code": "Kamercode",
     "codePlaceholder": "CODE",
     "join": "Meedoen",
-    "watch": "Kijken"
+    "watch": "Kijken",
+    "game": "Spel",
+    "classic": "Klassiek",
+    "okey101": "Okey 101",
+    "hands": "Rondes per partij",
+    "progressive": "Stijgende opening",
+    "progressiveDetail": "Elke opening moet de vorige in de ronde overtreffen: na 120 punten 121.",
+    "penalties": "Strafpunten",
+    "penaltiesDetail": "101 punten voor het weggooien van de okey of een steen die op tafel past, en voor een okey die uit je combinatie wordt gehaald; het getal van de weggegooide steen ×10 als de volgende speler ermee opent."
   },
   "room": {
     "summary": "{{parts}}.",
@@ -63,7 +71,11 @@
       "medium": "een gemiddelde bot voor wie weggaat",
       "hard": "een moeilijke bot voor wie weggaat",
       "extraHard": "een heel moeilijke bot voor wie weggaat"
-    }
+    },
+    "classic": "Klassieke regels",
+    "okey101": "Okey 101, rondes: {{hands}}",
+    "progressive": "stijgende opening",
+    "noPenalties": "geen strafpunten"
   },
   "lobby": {
     "code": "Kamercode: deel hem met de andere spelers",
@@ -237,5 +249,51 @@
     "tilesBack_other": "{{count}} stenen gingen terug naar je rekje",
     "unearnedWarning": "Extra tijd voor stenen die je daarna terugneemt telt tegen je: tot nu toe {{soFar}}. Bij {{limit}} krijg je in dit spel geen extra tijd meer.",
     "noMoreBonus": "Je hebt stenen teruggenomen waarvoor je {{time}} extra tijd had gekregen. Geen extra tijd voor stenen meer in dit spel."
+  },
+  "okey": {
+    "indicator": "Wijzer",
+    "okey": "Okey",
+    "discardsOf": "Weggegooid door {{name}}",
+    "emptyTable": "De tafel is leeg. De eerste opening vraagt 101 punten of vijf paren.",
+    "newSet": "Laat hier een steen los om een combinatie te beginnen",
+    "discardHere": "Laat hier een steen los om hem weg te gooien en je beurt te beëindigen",
+    "hand": "Ronde {{n}} van {{total}}",
+    "yourTurnDraw": "Jouw beurt: pak een steen.",
+    "yourTurnDrawOrTake": "Jouw beurt: pak een steen, of neem de weggegooide steen van {{name}} als je hem nu kunt gebruiken.",
+    "yourTurnFirst": "Leg combinaties ter waarde van {{points}} (of vijf paren) om te openen en gooi dan een steen weg.",
+    "yourTurn": "Leg combinaties of leg aan op tafel en gooi dan een steen weg.",
+    "ready": "Klaar: gooi een steen weg om je beurt te beëindigen.",
+    "openingPoints": "Opening: {{points}} van {{needed}} punten.",
+    "openingPairs": "Opening: {{pairs}} van {{needed}} paren.",
+    "takenMustBeUsed": "De steen van {{name}} moet deze beurt op tafel, of terug.",
+    "takenTile": "De steen die je nam: hij moet op tafel",
+    "handOver": "De ronde is voorbij.",
+    "void": "Iedereen opende met paren: de ronde wordt opnieuw gedeeld.",
+    "poolRanOut": "De pot is leeg.",
+    "youWentOut": "Je bent uit!",
+    "wentOut": "{{name}} is uit.",
+    "nextHand": "volgende ronde over {{n}} s",
+    "thisHand": "Deze ronde",
+    "total": "Totaal",
+    "lowestWins": "Strafpunten: het laagste totaal wint."
+  },
+  "okeyError": {
+    "notYourTurn": "Het is niet jouw beurt.",
+    "handOver": "De ronde is voorbij.",
+    "noSuchTile": "Een steen die niet in het spel zit.",
+    "drawFirst": "Pak eerst een steen of neem de weggegooide steen.",
+    "alreadyDrawn": "Je hebt deze beurt al gepakt.",
+    "noDiscard": "Er is geen weggegooide steen om te nemen.",
+    "okeyDiscard": "Een weggegooide okey kan niet worden genomen.",
+    "invalidSet": "Combinatie {{n}} is geen reeks, groep of paar.",
+    "setChanged": "Aan combinatie {{n}} mag alleen aan de uiteinden worden aangelegd (hooguit twee stenen aan elk eind van een reeks).",
+    "okeyNotFree": "De okey in combinatie {{n}} kan niet worden genomen: open eerst, en een groep heeft alle vier de kleuren nodig.",
+    "tileTakenFromTable": "Stenen op tafel moeten daar blijven.",
+    "tileNotOnRack": "Een steen die je niet hebt: houd er een over om weg te gooien.",
+    "notOpened": "Open voordat je aanlegt bij combinaties op tafel.",
+    "setsAndPairs": "Reeksen en groepen gaan niet samen met paren.",
+    "openingTooLow": "Je opening is {{points}} punten waard; nodig is {{needed}}.",
+    "tooFewPairs": "{{pairs}} paren; openen vraagt {{needed}}.",
+    "discardNotUsed": "De genomen steen moet op tafel (in je opening, als je opent)."
   }
 }

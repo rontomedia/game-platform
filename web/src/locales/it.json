@@ -49,7 +49,15 @@
     "code": "Codice della stanza",
     "codePlaceholder": "CODICE",
     "join": "Entra",
-    "watch": "Guarda"
+    "watch": "Guarda",
+    "game": "Gioco",
+    "classic": "Classico",
+    "okey101": "Okey 101",
+    "hands": "Mani per partita",
+    "progressive": "Apertura crescente",
+    "progressiveDetail": "Ogni apertura deve superare la precedente della mano: dopo 120 punti, 121.",
+    "penalties": "Penalità",
+    "penaltiesDetail": "101 punti per scartare l’okey o una tessera che va sul tavolo, e per un okey tolto dalla tua combinazione; il numero dello scarto ×10 se il giocatore successivo apre con esso."
   },
   "room": {
     "summary": "{{parts}}.",
@@ -64,7 +72,11 @@
       "medium": "un bot medio per chi se ne va",
       "hard": "un bot difficile per chi se ne va",
       "extraHard": "un bot molto difficile per chi se ne va"
-    }
+    },
+    "classic": "Regole classiche",
+    "okey101": "Okey 101, mani: {{hands}}",
+    "progressive": "apertura crescente",
+    "noPenalties": "senza penalità"
   },
   "lobby": {
     "code": "Codice della stanza: condividilo con gli altri giocatori",
@@ -256,5 +268,51 @@
     "tilesBack_other": "{{count}} tessere sono tornate sul tuo leggio",
     "unearnedWarning": "Il tempo extra per tessere che poi riprendi conta contro di te: {{soFar}} finora. A {{limit}} non ne avrai più in questa partita.",
     "noMoreBonus": "Hai ripreso tessere per cui avevi ricevuto {{time}} di tempo extra. Niente più tempo extra per le tessere in questa partita."
+  },
+  "okey": {
+    "indicator": "Indicatore",
+    "okey": "Okey",
+    "discardsOf": "Scarti di {{name}}",
+    "emptyTable": "Il tavolo è vuoto. La prima apertura richiede 101 punti o cinque coppie.",
+    "newSet": "Rilascia qui una tessera per iniziare una combinazione",
+    "discardHere": "Rilascia qui una tessera per scartarla e finire il turno",
+    "hand": "Mano {{n}} di {{total}}",
+    "yourTurnDraw": "Tocca a te: pesca una tessera.",
+    "yourTurnDrawOrTake": "Tocca a te: pesca una tessera o prendi lo scarto di {{name}} se puoi usarlo subito.",
+    "yourTurnFirst": "Cala combinazioni da {{points}} (o cinque coppie) per aprire, poi scarta una tessera.",
+    "yourTurn": "Cala combinazioni o aggiungi al tavolo, poi scarta una tessera.",
+    "ready": "Pronto: scarta una tessera per finire il turno.",
+    "openingPoints": "Apertura: {{points}} di {{needed}} punti.",
+    "openingPairs": "Apertura: {{pairs}} di {{needed}} coppie.",
+    "takenMustBeUsed": "Lo scarto di {{name}} deve andare sul tavolo in questo turno, o tornare indietro.",
+    "takenTile": "Lo scarto che hai preso: deve andare sul tavolo",
+    "handOver": "La mano è finita.",
+    "void": "Tutti hanno aperto con coppie: la mano si ridistribuisce.",
+    "poolRanOut": "Il mazzo è finito.",
+    "youWentOut": "Hai chiuso!",
+    "wentOut": "{{name}} ha chiuso.",
+    "nextHand": "prossima mano tra {{n}} s",
+    "thisHand": "Questa mano",
+    "total": "Totale",
+    "lowestWins": "Punti di penalità: vince il totale più basso."
+  },
+  "okeyError": {
+    "notYourTurn": "Non è il tuo turno.",
+    "handOver": "La mano è finita.",
+    "noSuchTile": "Una tessera che non esiste nel gioco.",
+    "drawFirst": "Prima pesca una tessera o prendi lo scarto.",
+    "alreadyDrawn": "Hai già pescato in questo turno.",
+    "noDiscard": "Non c’è nessuno scarto da prendere.",
+    "okeyDiscard": "Un okey scartato non si può prendere.",
+    "invalidSet": "La combinazione {{n}} non è una scala, un gruppo o una coppia.",
+    "setChanged": "Alla combinazione {{n}} si aggiunge solo alle estremità (al massimo due tessere per estremità di una scala).",
+    "okeyNotFree": "L’okey della combinazione {{n}} non si può prendere: prima apri, e un gruppo deve avere tutti e quattro i colori.",
+    "tileTakenFromTable": "Le tessere sul tavolo devono restarci.",
+    "tileNotOnRack": "Una tessera che non hai: tienine una da scartare.",
+    "notOpened": "Apri prima di aggiungere alle combinazioni sul tavolo.",
+    "setsAndPairs": "Scale e gruppi non si mescolano con le coppie.",
+    "openingTooLow": "La tua apertura vale {{points}} punti; ne servono {{needed}}.",
+    "tooFewPairs": "{{pairs}} coppie; per aprire ne servono {{needed}}.",
+    "discardNotUsed": "Lo scarto che hai preso deve andare sul tavolo (nella tua apertura, se stai aprendo)."
   }
 }

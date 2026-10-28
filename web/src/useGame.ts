@@ -6,6 +6,7 @@ import type { Problem } from './messages.ts'
 import {
   protocolVersion,
   type ClientMessage,
+  type MatchView,
   type Notice,
   type PlayerView,
   type RoomInfo,
@@ -38,6 +39,22 @@ export interface GameState {
   drawn?: { tile: Tile; version: number }
   /** The state in which the tiles were dealt (nobody has moved yet), seen as it happened. */
   dealt?: number
+  /** The state in which the current turn began. */
+  turnSince: number
+}
+
+/** The latest state of an Okey 101 match. */
+export interface OkeyGame {
+  view: MatchView
+  /** `Date.now()` when the current turn runs out, if it can. */
+  turnEnds?: number
+  /** Between hands: `Date.now()` when the next is dealt. */
+  nextHandAt?: number
+  banks?: number[]
+  /** Every rack, for watchers of a game only bots play (or `--open-racks`). */
+  racks?: Tile[][]
+  /** Bumped on every state, so the board starts afresh from it. */
+  version: number
   /** The state in which the current turn began. */
   turnSince: number
 }
@@ -180,6 +197,7 @@ export function useGame() {
   const [status, setStatus] = useState<Status>('connecting')
   const [room, setRoom] = useState<RoomInfo | null>(null)
   const [game, setGame] = useState<GameState | null>(null)
+  const [okey, setOkey] = useState<OkeyGame | null>(null)
   const [draft, setDraft] = useState<Draft | null>(null)
   /** The last refusal or error from the server, until the next change. */
   const [problem, setProblem] = useState<Problem | null>(null)
@@ -264,6 +282,28 @@ export function useGame() {
           setProblem(null)
           break
         }
+        case 'okeyState': {
+          const next = ++version.current
+          const now = Date.now()
+          setOkey((previous) => ({
+            view: message.view,
+            turnEnds: message.turnMs === undefined ? undefined : now + message.turnMs,
+            nextHandAt: message.nextHandMs === undefined ? undefined : now + message.nextHandMs,
+            banks: message.banks,
+            racks: message.racks,
+            version: next,
+            turnSince:
+              previous && previous.view.hand.current === message.view.hand.current && !previous.view.hand.end
+                ? previous.turnSince
+                : next,
+          }))
+          setDraft(null)
+          setProblem(null)
+          break
+        }
+        case 'okeyRejected':
+          setProblem({ kind: 'okey', error: message.error })
+          break
         case 'clock': {
           const now = Date.now()
           setGame((previous) => {
@@ -321,10 +361,11 @@ export function useGame() {
     saveSeat(null)
     setRoom(null)
     setGame(null)
+    setOkey(null)
     setDraft(null)
     setProblem(null)
     reconnect()
   }, [send, reconnect])
 
-  return { status, room, game, draft, problem, notice, mismatch, send, reconnect, leave }
+  return { status, room, game, okey, draft, problem, notice, mismatch, send, reconnect, leave }
 }

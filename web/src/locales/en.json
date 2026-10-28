@@ -48,7 +48,15 @@
     "code": "Room code",
     "codePlaceholder": "CODE",
     "join": "Join",
-    "watch": "Watch"
+    "watch": "Watch",
+    "game": "Game",
+    "classic": "Classic",
+    "okey101": "Okey 101",
+    "hands": "Hands in a match",
+    "progressive": "Rising opening",
+    "progressiveDetail": "Each opening must beat the one before it in the hand: after 120 points, 121.",
+    "penalties": "Penalties",
+    "penaltiesDetail": "101 points for discarding the okey or a tile that fits the table, and for an okey taken from your set; the discard’s number ×10 when the next player opens with it."
   },
   "room": {
     "summary": "{{parts}}.",
@@ -63,7 +71,11 @@
       "medium": "a medium bot for anyone who leaves",
       "hard": "a hard bot for anyone who leaves",
       "extraHard": "an extra hard bot for anyone who leaves"
-    }
+    },
+    "classic": "Classic rules",
+    "okey101": "Okey 101, hands: {{hands}}",
+    "progressive": "rising opening",
+    "noPenalties": "no penalties"
   },
   "lobby": {
     "code": "Room code: share it with the other players",
@@ -237,5 +249,51 @@
     "tilesBack_other": "{{count}} tiles went back to your rack",
     "unearnedWarning": "Extra time for tiles you then take back counts against you: {{soFar}} so far. At {{limit}} you get no more this game.",
     "noMoreBonus": "You took back tiles you’d been given {{time}} of extra time for. No more extra time for tiles this game."
+  },
+  "okey": {
+    "indicator": "Indicator",
+    "okey": "Okey",
+    "discardsOf": "{{name}}’s discards",
+    "emptyTable": "The table is empty. The first opening needs 101 points or five pairs.",
+    "newSet": "Drop a tile here to start a set",
+    "discardHere": "Drop a tile here to discard it and end your turn",
+    "hand": "Hand {{n}} of {{total}}",
+    "yourTurnDraw": "Your turn: draw a tile.",
+    "yourTurnDrawOrTake": "Your turn: draw a tile, or take {{name}}’s discard if you can use it now.",
+    "yourTurnFirst": "Lay down sets worth {{points}} (or five pairs) to open, then discard a tile.",
+    "yourTurn": "Lay down sets or add to the table, then discard a tile.",
+    "ready": "Ready: discard a tile to end your turn.",
+    "openingPoints": "Opening: {{points}} of {{needed}} points.",
+    "openingPairs": "Opening: {{pairs}} of {{needed}} pairs.",
+    "takenMustBeUsed": "{{name}}’s discard must go on the table this turn, or back.",
+    "takenTile": "The discard you took: it must go on the table",
+    "handOver": "The hand is over.",
+    "void": "Everyone opened with pairs: the hand is dealt again.",
+    "poolRanOut": "The pool ran out.",
+    "youWentOut": "You went out!",
+    "wentOut": "{{name}} went out.",
+    "nextHand": "next hand in {{n}} s",
+    "thisHand": "This hand",
+    "total": "Total",
+    "lowestWins": "Penalty points: the lowest total wins."
+  },
+  "okeyError": {
+    "notYourTurn": "It isn’t your turn.",
+    "handOver": "The hand is over.",
+    "noSuchTile": "A tile that isn’t in the game.",
+    "drawFirst": "Draw a tile, or take the discard, first.",
+    "alreadyDrawn": "You have already drawn this turn.",
+    "noDiscard": "There’s no discard to take.",
+    "okeyDiscard": "A discarded okey can’t be taken.",
+    "invalidSet": "Set {{n}} isn’t a run, group or pair.",
+    "setChanged": "Set {{n}} can only be added to at its ends (two tiles at most on each end of a run).",
+    "okeyNotFree": "The okey in set {{n}} can’t be taken: open first, and a group needs all four colours.",
+    "tileTakenFromTable": "Tiles on the table must stay there.",
+    "tileNotOnRack": "A tile that isn’t on your rack: keep one to discard.",
+    "notOpened": "Open before adding to the table’s sets.",
+    "setsAndPairs": "Runs and groups can’t be mixed with pairs.",
+    "openingTooLow": "Your opening is worth {{points}} points; it needs {{needed}}.",
+    "tooFewPairs": "{{pairs}} pairs; opening needs {{needed}}.",
+    "discardNotUsed": "The discard you took must go on the table (into your opening, if you’re opening)."
   }
 }

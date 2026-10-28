@@ -49,7 +49,15 @@
     "code": "Código da sala",
     "codePlaceholder": "CÓDIGO",
     "join": "Entrar",
-    "watch": "Assistir"
+    "watch": "Assistir",
+    "game": "Jogo",
+    "classic": "Clássico",
+    "okey101": "Okey 101",
+    "hands": "Mãos por partida",
+    "progressive": "Abertura crescente",
+    "progressiveDetail": "Cada abertura precisa superar a anterior da mão: depois de 120 pontos, 121.",
+    "penalties": "Penalidades",
+    "penaltiesDetail": "101 pontos por descartar o okey ou uma peça que cabe na mesa, e por um okey tirado da sua combinação; o número do descarte ×10 quando o próximo jogador abre com ele."
   },
   "room": {
     "summary": "{{parts}}.",
@@ -64,7 +72,11 @@
       "medium": "um bot médio para quem sair",
       "hard": "um bot difícil para quem sair",
       "extraHard": "um bot muito difícil para quem sair"
-    }
+    },
+    "classic": "Regras clássicas",
+    "okey101": "Okey 101, mãos: {{hands}}",
+    "progressive": "abertura crescente",
+    "noPenalties": "sem penalidades"
   },
   "lobby": {
     "code": "Código da sala: compartilhe com os outros jogadores",
@@ -256,5 +268,51 @@
     "tilesBack_other": "{{count}} peças voltaram para o seu suporte",
     "unearnedWarning": "O tempo extra por peças que você depois retira conta contra você: {{soFar}} até agora. Ao chegar a {{limit}}, você não ganha mais nesta partida.",
     "noMoreBonus": "Você retirou peças pelas quais tinha ganhado {{time}} de tempo extra. Não haverá mais tempo extra por peças nesta partida."
+  },
+  "okey": {
+    "indicator": "Indicador",
+    "okey": "Okey",
+    "discardsOf": "Descartes de {{name}}",
+    "emptyTable": "A mesa está vazia. A primeira abertura precisa de 101 pontos ou cinco pares.",
+    "newSet": "Solte uma peça aqui para começar uma combinação",
+    "discardHere": "Solte uma peça aqui para descartá-la e encerrar a vez",
+    "hand": "Mão {{n}} de {{total}}",
+    "yourTurnDraw": "Sua vez: compre uma peça.",
+    "yourTurnDrawOrTake": "Sua vez: compre uma peça ou pegue o descarte de {{name}} se puder usá-lo agora.",
+    "yourTurnFirst": "Baixe combinações que valham {{points}} (ou cinco pares) para abrir e depois descarte uma peça.",
+    "yourTurn": "Baixe combinações ou acrescente à mesa e depois descarte uma peça.",
+    "ready": "Pronto: descarte uma peça para encerrar a vez.",
+    "openingPoints": "Abertura: {{points}} de {{needed}} pontos.",
+    "openingPairs": "Abertura: {{pairs}} de {{needed}} pares.",
+    "takenMustBeUsed": "O descarte de {{name}} precisa ir para a mesa nesta vez, ou voltar.",
+    "takenTile": "O descarte que você pegou: precisa ir para a mesa",
+    "handOver": "A mão acabou.",
+    "void": "Todos abriram com pares: a mão é distribuída de novo.",
+    "poolRanOut": "O monte acabou.",
+    "youWentOut": "Você bateu!",
+    "wentOut": "{{name}} bateu.",
+    "nextHand": "próxima mão em {{n}} s",
+    "thisHand": "Esta mão",
+    "total": "Total",
+    "lowestWins": "Pontos de penalidade: vence o menor total."
+  },
+  "okeyError": {
+    "notYourTurn": "Não é a sua vez.",
+    "handOver": "A mão acabou.",
+    "noSuchTile": "Uma peça que não existe no jogo.",
+    "drawFirst": "Primeiro compre uma peça ou pegue o descarte.",
+    "alreadyDrawn": "Você já comprou nesta vez.",
+    "noDiscard": "Não há descarte para pegar.",
+    "okeyDiscard": "Um okey descartado não pode ser pego.",
+    "invalidSet": "A combinação {{n}} não é sequência, grupo nem par.",
+    "setChanged": "Na combinação {{n}} só se acrescenta nas pontas (no máximo duas peças em cada ponta de uma sequência).",
+    "okeyNotFree": "O okey da combinação {{n}} não pode ser pego: abra primeiro, e um grupo precisa das quatro cores.",
+    "tileTakenFromTable": "As peças da mesa precisam ficar nela.",
+    "tileNotOnRack": "Uma peça que você não tem: guarde uma para descartar.",
+    "notOpened": "Abra antes de acrescentar às combinações da mesa.",
+    "setsAndPairs": "Sequências e grupos não se misturam com pares.",
+    "openingTooLow": "Sua abertura vale {{points}} pontos; precisa de {{needed}}.",
+    "tooFewPairs": "{{pairs}} pares; a abertura precisa de {{needed}}.",
+    "discardNotUsed": "O descarte que você pegou precisa ir para a mesa (na sua abertura, se estiver abrindo)."
   }
 }

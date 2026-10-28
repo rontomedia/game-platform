@@ -49,7 +49,15 @@
     "code": "Codul camerei",
     "codePlaceholder": "COD",
     "join": "Intră",
-    "watch": "Privește"
+    "watch": "Privește",
+    "game": "Joc",
+    "classic": "Clasic",
+    "okey101": "Okey 101",
+    "hands": "Mâini pe partidă",
+    "progressive": "Deschidere crescătoare",
+    "progressiveDetail": "Fiecare deschidere trebuie să o depășească pe cea dinainte din mână: după 120 de puncte, 121.",
+    "penalties": "Penalizări",
+    "penaltiesDetail": "101 puncte pentru aruncarea okey-ului sau a unei piese care se potrivește pe masă și pentru un okey luat din formația ta; numărul piesei aruncate ×10 când următorul jucător deschide cu ea."
   },
   "room": {
     "summary": "{{parts}}.",
@@ -64,7 +72,11 @@
       "medium": "un bot mediu pentru cine pleacă",
       "hard": "un bot greu pentru cine pleacă",
       "extraHard": "un bot foarte greu pentru cine pleacă"
-    }
+    },
+    "classic": "Reguli clasice",
+    "okey101": "Okey 101, mâini: {{hands}}",
+    "progressive": "deschidere crescătoare",
+    "noPenalties": "fără penalizări"
   },
   "lobby": {
     "code": "Codul camerei: trimite-l celorlalți jucători",
@@ -256,5 +268,51 @@
     "tilesBack_other": "{{count}} de piese s-au întors pe suportul tău",
     "unearnedWarning": "Timpul în plus pentru piesele pe care apoi le iei înapoi contează împotriva ta: {{soFar}} până acum. La {{limit}} nu mai primești deloc în jocul acesta.",
     "noMoreBonus": "Ai luat înapoi piese pentru care primiseși {{time}} în plus. Gata cu timpul în plus pentru piese în jocul acesta."
+  },
+  "okey": {
+    "indicator": "Indicator",
+    "okey": "Okey",
+    "discardsOf": "Aruncate de {{name}}",
+    "emptyTable": "Masa e goală. Prima deschidere cere 101 puncte sau cinci perechi.",
+    "newSet": "Lasă aici o piesă ca să începi o formație",
+    "discardHere": "Lasă aici o piesă ca să o arunci și să-ți închei tura",
+    "hand": "Mâna {{n}} din {{total}}",
+    "yourTurnDraw": "Rândul tău: trage o piesă.",
+    "yourTurnDrawOrTake": "Rândul tău: trage o piesă sau ia piesa aruncată de {{name}} dacă o poți folosi acum.",
+    "yourTurnFirst": "Pune formații de {{points}} (sau cinci perechi) ca să deschizi, apoi aruncă o piesă.",
+    "yourTurn": "Pune formații sau adaugă pe masă, apoi aruncă o piesă.",
+    "ready": "Gata: aruncă o piesă ca să-ți închei tura.",
+    "openingPoints": "Deschidere: {{points}} din {{needed}} puncte.",
+    "openingPairs": "Deschidere: {{pairs}} din {{needed}} perechi.",
+    "takenMustBeUsed": "Piesa aruncată de {{name}} trebuie să ajungă pe masă în tura asta sau înapoi.",
+    "takenTile": "Piesa aruncată pe care ai luat-o: trebuie să ajungă pe masă",
+    "handOver": "Mâna s-a terminat.",
+    "void": "Toți au deschis cu perechi: mâna se împarte din nou.",
+    "poolRanOut": "Grămada s-a terminat.",
+    "youWentOut": "Ai închis!",
+    "wentOut": "{{name}} a închis.",
+    "nextHand": "următoarea mână în {{n}} s",
+    "thisHand": "Mâna asta",
+    "total": "Total",
+    "lowestWins": "Puncte de penalizare: câștigă totalul cel mai mic."
+  },
+  "okeyError": {
+    "notYourTurn": "Nu e rândul tău.",
+    "handOver": "Mâna s-a terminat.",
+    "noSuchTile": "O piesă care nu există în joc.",
+    "drawFirst": "Întâi trage o piesă sau ia piesa aruncată.",
+    "alreadyDrawn": "Ai tras deja în tura asta.",
+    "noDiscard": "Nu e nicio piesă aruncată de luat.",
+    "okeyDiscard": "Un okey aruncat nu poate fi luat.",
+    "invalidSet": "Formația {{n}} nu e serie, grup sau pereche.",
+    "setChanged": "La formația {{n}} se adaugă doar la capete (cel mult două piese la fiecare capăt al unei serii).",
+    "okeyNotFree": "Okey-ul din formația {{n}} nu poate fi luat: deschide întâi, iar un grup are nevoie de toate cele patru culori.",
+    "tileTakenFromTable": "Piesele de pe masă trebuie să rămână acolo.",
+    "tileNotOnRack": "O piesă pe care nu o ai: păstrează una de aruncat.",
+    "notOpened": "Deschide înainte să adaugi la formațiile de pe masă.",
+    "setsAndPairs": "Seriile și grupurile nu se amestecă cu perechi.",
+    "openingTooLow": "Deschiderea ta valorează {{points}} de puncte; trebuie {{needed}}.",
+    "tooFewPairs": "{{pairs}} perechi; deschiderea cere {{needed}}.",
+    "discardNotUsed": "Piesa luată trebuie să ajungă pe masă (în deschiderea ta, dacă deschizi)."
   }
 }

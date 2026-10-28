@@ -47,7 +47,15 @@
     "code": "ルームコード",
     "codePlaceholder": "コード",
     "join": "参加",
-    "watch": "観戦"
+    "watch": "観戦",
+    "game": "ゲーム",
+    "classic": "クラシック",
+    "okey101": "Okey 101",
+    "hands": "1試合のハンド数",
+    "progressive": "上がっていくオープン",
+    "progressiveDetail": "オープンはハンド内で前のオープンを上回る必要があります。120点の後は121点。",
+    "penalties": "ペナルティ",
+    "penaltiesDetail": "オーケイや場に付けられる牌を捨てると101点、自分のセットからオーケイを取られると101点。次の人が捨て牌でオープンしたら、その数字×10。"
   },
   "room": {
     "summary": "{{parts}}。",
@@ -62,7 +70,11 @@
       "medium": "抜けた人の代わりにふつうのボット",
       "hard": "抜けた人の代わりにむずかしいボット",
       "extraHard": "抜けた人の代わりにとてもむずかしいボット"
-    }
+    },
+    "classic": "クラシックのルール",
+    "okey101": "Okey 101、ハンド数：{{hands}}",
+    "progressive": "上がっていくオープン",
+    "noPenalties": "ペナルティなし"
   },
   "lobby": {
     "code": "ルームコード：ほかのプレイヤーに知らせてください",
@@ -218,5 +230,51 @@
     "tilesBack_other": "{{count}}枚はラックに戻りました",
     "unearnedWarning": "追加時間をもらったタイルを戻すと、その時間はあなたの不利に数えられます：ここまで{{soFar}}。{{limit}}に達すると、このゲームでは追加時間がなくなります。",
     "noMoreBonus": "{{time}}の追加時間をもらったタイルを戻しました。このゲームではタイルの追加時間はもうありません。"
+  },
+  "okey": {
+    "indicator": "表示牌",
+    "okey": "Okey",
+    "discardsOf": "{{name}}さんの捨て牌",
+    "emptyTable": "場は空です。最初のオープンには101点か5ペアが必要です。",
+    "newSet": "ここに牌を置いてセットを始める",
+    "discardHere": "ここに牌を置いて捨て、手番を終える",
+    "hand": "ハンド {{n}} / {{total}}",
+    "yourTurnDraw": "あなたの番：牌を1枚引いてください。",
+    "yourTurnDrawOrTake": "あなたの番：牌を引くか、すぐ使えるなら{{name}}さんの捨て牌を取ってください。",
+    "yourTurnFirst": "{{points}}点分のセット（または5ペア）を出してオープンし、牌を1枚捨ててください。",
+    "yourTurn": "セットを出すか場に付けて、牌を1枚捨ててください。",
+    "ready": "準備完了：牌を1枚捨てて手番を終えてください。",
+    "openingPoints": "オープン：{{points}} / {{needed}}点。",
+    "openingPairs": "オープン：{{pairs}} / {{needed}}ペア。",
+    "takenMustBeUsed": "{{name}}さんの捨て牌はこの手番で場に出すか、戻してください。",
+    "takenTile": "取った捨て牌：場に出す必要があります",
+    "handOver": "ハンド終了。",
+    "void": "全員がペアでオープン：配り直します。",
+    "poolRanOut": "山がなくなりました。",
+    "youWentOut": "上がりました！",
+    "wentOut": "{{name}}さんが上がりました。",
+    "nextHand": "次のハンドまで{{n}}秒",
+    "thisHand": "このハンド",
+    "total": "合計",
+    "lowestWins": "ペナルティ点：合計が最も低い人の勝ち。"
+  },
+  "okeyError": {
+    "notYourTurn": "あなたの番ではありません。",
+    "handOver": "ハンド終了。",
+    "noSuchTile": "ゲームにない牌です。",
+    "drawFirst": "先に牌を引くか、捨て牌を取ってください。",
+    "alreadyDrawn": "この手番ではもう引きました。",
+    "noDiscard": "取れる捨て牌がありません。",
+    "okeyDiscard": "捨てられたオーケイは取れません。",
+    "invalidSet": "セット{{n}}は順子・刻子・ペアのどれでもありません。",
+    "setChanged": "セット{{n}}には両端にしか付けられません（順子の各端に最大2枚）。",
+    "okeyNotFree": "セット{{n}}のオーケイは取れません：先にオープンし、刻子なら4色すべてが必要です。",
+    "tileTakenFromTable": "場の牌は場に残してください。",
+    "tileNotOnRack": "手元にない牌です：捨てる牌を1枚残してください。",
+    "notOpened": "場のセットに付ける前にオープンしてください。",
+    "setsAndPairs": "順子・刻子とペアは混ぜられません。",
+    "openingTooLow": "オープンは{{points}}点です。{{needed}}点必要です。",
+    "tooFewPairs": "{{pairs}}ペア。オープンには{{needed}}必要です。",
+    "discardNotUsed": "取った捨て牌は場に出してください（オープン中ならオープンの中に）。"
   }
 }

@@ -50,7 +50,15 @@
     "code": "Kód místnosti",
     "codePlaceholder": "KÓD",
     "join": "Připojit",
-    "watch": "Sledovat"
+    "watch": "Sledovat",
+    "game": "Hra",
+    "classic": "Klasická",
+    "okey101": "Okey 101",
+    "hands": "Rozdání v zápase",
+    "progressive": "Rostoucí otevření",
+    "progressiveDetail": "Každé otevření musí překonat předchozí v rozdání: po 120 bodech 121.",
+    "penalties": "Tresty",
+    "penaltiesDetail": "101 bodů za odhození okeye nebo kamene, který pasuje na stůl, a za okey vzatý z vaší sestavy; číslo odhozeného kamene ×10, když s ním další hráč otevře."
   },
   "room": {
     "summary": "{{parts}}.",
@@ -65,7 +73,11 @@
       "medium": "střední bot za každého, kdo odejde",
       "hard": "těžký bot za každého, kdo odejde",
       "extraHard": "velmi těžký bot za každého, kdo odejde"
-    }
+    },
+    "classic": "Klasická pravidla",
+    "okey101": "Okey 101, rozdání: {{hands}}",
+    "progressive": "rostoucí otevření",
+    "noPenalties": "bez trestů"
   },
   "lobby": {
     "code": "Kód místnosti: pošlete ho ostatním hráčům",
@@ -275,5 +287,51 @@
     "tilesBack_other": "{{count}} kamenů se vrátilo na stojánek",
     "unearnedWarning": "Čas navíc za kameny, které pak vezmete zpět, se počítá proti vám: zatím {{soFar}}. Při {{limit}} už v této hře žádný nedostanete.",
     "noMoreBonus": "Kameny, za které vám přibylo {{time}} času navíc, šly zpět na stojánek. V této hře už čas navíc za kameny nebude."
+  },
+  "okey": {
+    "indicator": "Ukazatel",
+    "okey": "Okey",
+    "discardsOf": "Odhozené hráčem {{name}}",
+    "emptyTable": "Stůl je prázdný. První otevření potřebuje 101 bodů nebo pět párů.",
+    "newSet": "Pusťte sem kámen a začněte sestavu",
+    "discardHere": "Pusťte sem kámen, odhodíte ho a ukončíte tah",
+    "hand": "Rozdání {{n}} z {{total}}",
+    "yourTurnDraw": "Jste na tahu: lízněte si kámen.",
+    "yourTurnDrawOrTake": "Jste na tahu: lízněte si kámen, nebo vezměte kámen odhozený hráčem {{name}}, pokud ho hned použijete.",
+    "yourTurnFirst": "Vyložte sestavy za {{points}} (nebo pět párů) a otevřete, pak odhoďte kámen.",
+    "yourTurn": "Vyložte sestavy nebo přiložte ke stolu, pak odhoďte kámen.",
+    "ready": "Hotovo: odhoďte kámen a ukončete tah.",
+    "openingPoints": "Otevření: {{points}} z {{needed}} bodů.",
+    "openingPairs": "Otevření: párů {{pairs}} z {{needed}}.",
+    "takenMustBeUsed": "Kámen odhozený hráčem {{name}} musí v tomto tahu na stůl, nebo zpět.",
+    "takenTile": "Vzatý odhozený kámen: musí na stůl",
+    "handOver": "Rozdání skončilo.",
+    "void": "Všichni otevřeli páry: rozdává se znovu.",
+    "poolRanOut": "Zásoba došla.",
+    "youWentOut": "Vyšli jste!",
+    "wentOut": "{{name}} vyšel/vyšla.",
+    "nextHand": "další rozdání za {{n}} s",
+    "thisHand": "Toto rozdání",
+    "total": "Celkem",
+    "lowestWins": "Trestné body: vyhrává nejnižší součet."
+  },
+  "okeyError": {
+    "notYourTurn": "Nejste na tahu.",
+    "handOver": "Rozdání skončilo.",
+    "noSuchTile": "Kámen, který ve hře není.",
+    "drawFirst": "Nejdřív si lízněte kámen nebo vezměte odhozený.",
+    "alreadyDrawn": "V tomto tahu jste už lízali.",
+    "noDiscard": "Není žádný odhozený kámen k vzetí.",
+    "okeyDiscard": "Odhozený okey nelze vzít.",
+    "invalidSet": "Sestava {{n}} není postupka, skupina ani pár.",
+    "setChanged": "K sestavě {{n}} lze přikládat jen na koncích (nejvýš dva kameny na každý konec postupky).",
+    "okeyNotFree": "Okey ze sestavy {{n}} nelze vzít: nejdřív otevřete a skupina potřebuje všechny čtyři barvy.",
+    "tileTakenFromTable": "Kameny na stole tam musí zůstat.",
+    "tileNotOnRack": "Kámen, který nemáte: nechte si jeden na odhození.",
+    "notOpened": "Otevřete, než začnete přikládat k sestavám na stole.",
+    "setsAndPairs": "Postupky a skupiny nelze míchat s páry.",
+    "openingTooLow": "Vaše otevření má {{points}} bodů; potřeba je {{needed}}.",
+    "tooFewPairs": "Párů: {{pairs}}; otevření potřebuje {{needed}}.",
+    "discardNotUsed": "Vzatý kámen musí na stůl (do vašeho otevření, pokud otevíráte)."
   }
 }

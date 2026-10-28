@@ -1,5 +1,5 @@
-import type { GameState, TurnRecord } from './useGame.ts'
-import type { RoomInfo, Tile } from './wasm/engine.js'
+import type { GameState, OkeyGame, TurnRecord } from './useGame.ts'
+import type { HandView, RoomInfo, Tile } from './wasm/engine.js'
 
 /**
  * A game in progress with no server, for working on the board's look:
@@ -127,4 +127,56 @@ export function withOpenRacks(game: GameState): GameState {
     { by: 3, played: [], drew: [n('black', 2)], sets: 0, version: 1 },
   ].map((turn, i) => ({ ...turn, version: i + 1 }))
   return { ...game, racks: [game.view.rack, ...others], log }
+}
+
+/** `?demo=okey`: an Okey 101 room. */
+export const demoOkeyRoom: RoomInfo = {
+  ...demoRoom,
+  options: { liveTurns: true, rules: { kind: 'okey101', hands: 7, progressive: false, penalties: true } },
+}
+
+/**
+ * An Okey 101 hand: the indicator blue 5, so the blue 6s are okeys; Maya
+ * and Jonas have opened; it's the player's turn to draw or take Priya's 9.
+ * `scores`: the hand has just ended, Maya out.
+ */
+export function demoOkey(scores = false): OkeyGame {
+  const okey = n('blue', 6)
+  const table = [
+    [n('red', 10), n('red', 11), n('red', 12), n('red', 13)],
+    [n('black', 8), n('orange', 8), okey],
+    // The false okey: the blue 6 the okey stands for.
+    [n('blue', 3), n('blue', 4), n('blue', 5), joker],
+    [n('blue', 11), n('blue', 12), n('blue', 13)],
+  ]
+  const rack = [
+    n('black', 11), n('black', 12), n('black', 13), n('orange', 11), n('orange', 12), n('orange', 13),
+    n('blue', 1), n('blue', 2), okey, n('red', 7), n('red', 7), n('black', 2), n('orange', 9),
+    n('red', 4), n('black', 5), n('blue', 9), n('orange', 1), n('red', 2), n('black', 9), n('red', 9), n('black', 6),
+  ]
+  const hand: HandView = {
+    you: 0,
+    rules: { hands: 7, progressive: false, penalties: true },
+    indicator: n('blue', 5),
+    okey,
+    rack,
+    table,
+    rackSizes: [21, 9, 12, 20],
+    opened: ['no', 'sets', 'sets', 'no'],
+    openingPoints: 101,
+    openingPairs: 5,
+    discards: [[n('blue', 3)], [n('red', 1), n('black', 4)], [n('orange', 13)], [n('black', 9)]],
+    written: [0, 0, 101, 0],
+    pool: 24,
+    current: 0,
+    phase: 'draw',
+    end: scores ? { winner: 1, scores: [202, -101, 223, 202] } : undefined,
+  }
+  return {
+    view: { hand, played: scores ? 3 : 2, totals: scores ? [91, -147, 457, 404] : [-111, -46, 234, 202] },
+    turnEnds: scores ? undefined : Date.now() + 45_000,
+    nextHandAt: scores ? Date.now() + 12_000 : undefined,
+    version: 1,
+    turnSince: 1,
+  }
 }

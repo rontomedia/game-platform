@@ -88,7 +88,6 @@ only builds it on start.
   tiles, pairs if it can't open with sets, single tiles onto the table's
   ends, the discard taken only when it opens or plays more with it, and
   the least linked tile that costs nothing discarded. One level for now.
-  The board doesn't play Okey 101 yet.
   Its `wasm` feature derives
   `tsify::Tsify` on the types that cross into JS; serde attributes define the
   TS shape (e.g. `Tile` is `{ kind: "number", color, value } | { kind:
@@ -273,6 +272,17 @@ only builds it on start.
     Arabic) set `<html dir>`: use logical classes (`ms-`, `pe-`, `start-`,
     `end-`, `text-start`), and the playing surface (table, rack, plans,
     open racks' tiles) stays `dir="ltr"` so runs read 1 2 3.
+  - `OkeyBoard.tsx`: Okey 101's board (rooms whose `rules` are Okey 101
+    get `okeyState`, kept as `OkeyGame` in `useGame.ts`). The turn is built
+    on the board and sent whole as `discard` when a tile is dropped on the
+    discard spot (checked first in the browser, `checkOkeyTurn`): draw
+    (button or pool), or drag the previous player's discard in; drop tiles
+    on a set to add them at its nearer end (or in an okey's place, taking
+    the okey back), or on "new set". Only this turn's tiles move again.
+    Indicator, okey and pool top left, everyone's discards top right, the
+    opening total as it builds (`okeyProgress`), the scores between hands
+    and at the end. Shares `TopBar` and `WatchBar` with `Board.tsx`; the
+    rack order is kept per tab. `?demo=okey` and `?demo=okey-scores`.
   - Planned: shadcn/ui for menus, `@heroiclabs/nakama-js` for
     accounts/matchmaking.
 

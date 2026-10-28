@@ -48,7 +48,15 @@
     "code": "Oda kodu",
     "codePlaceholder": "KOD",
     "join": "Katıl",
-    "watch": "İzle"
+    "watch": "İzle",
+    "game": "Oyun",
+    "classic": "Klasik",
+    "okey101": "Okey 101",
+    "hands": "Maçtaki el sayısı",
+    "progressive": "Katlamalı açma",
+    "progressiveDetail": "Her açış eldeki bir öncekini geçmeli: 120 puandan sonra 121.",
+    "penalties": "Cezalar",
+    "penaltiesDetail": "Okey atmak, masaya işlenebilen taşı atmak ve perinden okey alınması 101 puan; sonraki oyuncu attığın taşla açarsa taşın sayısı ×10."
   },
   "room": {
     "summary": "{{parts}}.",
@@ -63,7 +71,11 @@
       "medium": "ayrılan herkesin yerine orta bir bot",
       "hard": "ayrılan herkesin yerine zor bir bot",
       "extraHard": "ayrılan herkesin yerine çok zor bir bot"
-    }
+    },
+    "classic": "Klasik kurallar",
+    "okey101": "Okey 101, el sayısı: {{hands}}",
+    "progressive": "katlamalı açma",
+    "noPenalties": "cezasız"
   },
   "lobby": {
     "code": "Oda kodu: diğer oyuncularla paylaşın",
@@ -237,5 +249,51 @@
     "tilesBack_other": "{{count}} taş ıstakanıza geri döndü",
     "unearnedWarning": "Sonradan geri aldığınız taşlar için verilen ek süre aleyhinize sayılır: şimdiye kadar {{soFar}}. {{limit}} olunca bu oyunda artık ek süre almazsınız.",
     "noMoreBonus": "{{time}} ek süre aldığınız taşları geri aldınız. Bu oyunda taşlar için artık ek süre yok."
+  },
+  "okey": {
+    "indicator": "Gösterge",
+    "okey": "Okey",
+    "discardsOf": "{{name}} adlı oyuncunun attıkları",
+    "emptyTable": "Masa boş. İlk açış 101 puan ya da beş çift ister.",
+    "newSet": "Yeni per için taşı buraya bırak",
+    "discardHere": "Taşı atıp sıranı bitirmek için buraya bırak",
+    "hand": "El {{n}} / {{total}}",
+    "yourTurnDraw": "Sıra sende: taş çek.",
+    "yourTurnDrawOrTake": "Sıra sende: taş çek ya da hemen kullanabileceksen {{name}} adlı oyuncunun attığı taşı al.",
+    "yourTurnFirst": "Açmak için {{points}} puanlık per (ya da beş çift) indir, sonra bir taş at.",
+    "yourTurn": "Per indir ya da masaya işle, sonra bir taş at.",
+    "ready": "Hazır: sıranı bitirmek için bir taş at.",
+    "openingPoints": "Açış: {{points}} / {{needed}} puan.",
+    "openingPairs": "Açış: {{pairs}} / {{needed}} çift.",
+    "takenMustBeUsed": "{{name}} adlı oyuncunun taşı bu el masaya inmeli ya da geri dönmeli.",
+    "takenTile": "Aldığın taş: masaya inmeli",
+    "handOver": "El bitti.",
+    "void": "Herkes çiftle açtı: el yeniden dağıtılıyor.",
+    "poolRanOut": "Yerdeki taşlar bitti.",
+    "youWentOut": "Elini bitirdin!",
+    "wentOut": "{{name}} elini bitirdi.",
+    "nextHand": "sonraki el {{n}} sn sonra",
+    "thisHand": "Bu el",
+    "total": "Toplam",
+    "lowestWins": "Ceza puanı: en düşük toplam kazanır."
+  },
+  "okeyError": {
+    "notYourTurn": "Sıra sende değil.",
+    "handOver": "El bitti.",
+    "noSuchTile": "Oyunda olmayan bir taş.",
+    "drawFirst": "Önce taş çek ya da atılan taşı al.",
+    "alreadyDrawn": "Bu el zaten taş çektin.",
+    "noDiscard": "Alınacak atılmış taş yok.",
+    "okeyDiscard": "Atılan okey alınamaz.",
+    "invalidSet": "{{n}}. per seri, grup ya da çift değil.",
+    "setChanged": "{{n}}. pere yalnızca uçlarından işlenebilir (serinin her ucuna en çok iki taş).",
+    "okeyNotFree": "{{n}}. perdeki okey alınamaz: önce el aç; grupta dört rengin hepsi olmalı.",
+    "tileTakenFromTable": "Masadaki taşlar masada kalmalı.",
+    "tileNotOnRack": "Istakanda olmayan bir taş: atmak için bir taş bırak.",
+    "notOpened": "Masadaki perlere işlemeden önce el aç.",
+    "setsAndPairs": "Seri ve gruplar çiftlerle karıştırılamaz.",
+    "openingTooLow": "Açışın {{points}} puan; {{needed}} gerekiyor.",
+    "tooFewPairs": "{{pairs}} çift; açış için {{needed}} gerekiyor.",
+    "discardNotUsed": "Aldığın taş masaya inmeli (açıyorsan açışında)."
   }
 }

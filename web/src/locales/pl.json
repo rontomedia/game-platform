@@ -50,7 +50,15 @@
     "code": "Kod pokoju",
     "codePlaceholder": "KOD",
     "join": "Dołącz",
-    "watch": "Oglądaj"
+    "watch": "Oglądaj",
+    "game": "Gra",
+    "classic": "Klasyczna",
+    "okey101": "Okey 101",
+    "hands": "Rozdania w meczu",
+    "progressive": "Rosnące otwarcie",
+    "progressiveDetail": "Każde otwarcie musi przebić poprzednie w rozdaniu: po 120 punktach 121.",
+    "penalties": "Kary",
+    "penaltiesDetail": "101 punktów za odrzucenie okeya lub kamienia pasującego do stołu i za okeya zabranego z twojego układu; liczba z odrzuconego kamienia ×10, gdy następny gracz nim otworzy."
   },
   "room": {
     "summary": "{{parts}}.",
@@ -65,7 +73,11 @@
       "medium": "średni bot za każdego, kto wyjdzie",
       "hard": "trudny bot za każdego, kto wyjdzie",
       "extraHard": "bardzo trudny bot za każdego, kto wyjdzie"
-    }
+    },
+    "classic": "Zasady klasyczne",
+    "okey101": "Okey 101, rozdania: {{hands}}",
+    "progressive": "rosnące otwarcie",
+    "noPenalties": "bez kar"
   },
   "lobby": {
     "code": "Kod pokoju: przekaż go pozostałym graczom",
@@ -275,5 +287,51 @@
     "tilesBack_other": "{{count}} płytki wróciło na twój stojak",
     "unearnedWarning": "Dodatkowy czas za płytki, które potem zabierasz z powrotem, liczy się przeciwko tobie: na razie {{soFar}}. Po {{limit}} nie dostaniesz go już w tej grze.",
     "noMoreBonus": "Zabrano z powrotem płytki, za które przyznano ci {{time}} dodatkowego czasu. W tej grze nie będzie już dodatkowego czasu za płytki."
+  },
+  "okey": {
+    "indicator": "Wskaźnik",
+    "okey": "Okey",
+    "discardsOf": "Odrzucone przez: {{name}}",
+    "emptyTable": "Stół jest pusty. Pierwsze otwarcie wymaga 101 punktów lub pięciu par.",
+    "newSet": "Upuść tu kamień, by zacząć układ",
+    "discardHere": "Upuść tu kamień, by go odrzucić i zakończyć turę",
+    "hand": "Rozdanie {{n}} z {{total}}",
+    "yourTurnDraw": "Twoja tura: dobierz kamień.",
+    "yourTurnDrawOrTake": "Twoja tura: dobierz kamień albo weź kamień odrzucony przez gracza {{name}}, jeśli możesz go teraz użyć.",
+    "yourTurnFirst": "Wyłóż układy warte {{points}} (lub pięć par), by otworzyć, a potem odrzuć kamień.",
+    "yourTurn": "Wyłóż układy lub dołóż do stołu, a potem odrzuć kamień.",
+    "ready": "Gotowe: odrzuć kamień, by zakończyć turę.",
+    "openingPoints": "Otwarcie: {{points}} z {{needed}} punktów.",
+    "openingPairs": "Otwarcie: {{pairs}} z {{needed}} par.",
+    "takenMustBeUsed": "Kamień odrzucony przez gracza {{name}} musi w tej turze trafić na stół albo wrócić.",
+    "takenTile": "Wzięty kamień: musi trafić na stół",
+    "handOver": "Rozdanie skończone.",
+    "void": "Wszyscy otworzyli parami: rozdanie od nowa.",
+    "poolRanOut": "Pula się skończyła.",
+    "youWentOut": "Wyszedłeś!",
+    "wentOut": "{{name}} wychodzi.",
+    "nextHand": "następne rozdanie za {{n}} s",
+    "thisHand": "To rozdanie",
+    "total": "Razem",
+    "lowestWins": "Punkty karne: wygrywa najniższa suma."
+  },
+  "okeyError": {
+    "notYourTurn": "To nie twoja tura.",
+    "handOver": "Rozdanie skończone.",
+    "noSuchTile": "Kamień, którego nie ma w grze.",
+    "drawFirst": "Najpierw dobierz kamień albo weź odrzucony.",
+    "alreadyDrawn": "W tej turze już dobrałeś.",
+    "noDiscard": "Nie ma odrzuconego kamienia do wzięcia.",
+    "okeyDiscard": "Odrzuconego okeya nie można wziąć.",
+    "invalidSet": "Układ {{n}} nie jest strit, grupą ani parą.",
+    "setChanged": "Do układu {{n}} można dokładać tylko na końcach (najwyżej dwa kamienie z każdej strony strita).",
+    "okeyNotFree": "Okeya z układu {{n}} nie można zabrać: najpierw otwórz, a grupa musi mieć wszystkie cztery kolory.",
+    "tileTakenFromTable": "Kamienie na stole muszą na nim zostać.",
+    "tileNotOnRack": "Kamień, którego nie masz: zostaw jeden do odrzucenia.",
+    "notOpened": "Otwórz, zanim dołożysz do układów na stole.",
+    "setsAndPairs": "Stritów i grup nie można łączyć z parami.",
+    "openingTooLow": "Twoje otwarcie jest warte {{points}} punktów; potrzeba {{needed}}.",
+    "tooFewPairs": "Par: {{pairs}}; otwarcie wymaga {{needed}}.",
+    "discardNotUsed": "Wzięty kamień musi trafić na stół (do otwarcia, jeśli otwierasz)."
   }
 }

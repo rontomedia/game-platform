@@ -49,7 +49,15 @@
     "code": "Code de la salle",
     "codePlaceholder": "CODE",
     "join": "Rejoindre",
-    "watch": "Regarder"
+    "watch": "Regarder",
+    "game": "Jeu",
+    "classic": "Classique",
+    "okey101": "Okey 101",
+    "hands": "Manches par partie",
+    "progressive": "Ouverture montante",
+    "progressiveDetail": "Chaque ouverture doit battre la précédente de la manche : après 120 points, 121.",
+    "penalties": "Pénalités",
+    "penaltiesDetail": "101 points pour défausser l’okey ou une tuile qui va sur la table, et pour un okey pris dans votre combinaison ; le chiffre de la défausse ×10 quand le joueur suivant ouvre avec."
   },
   "room": {
     "summary": "{{parts}}.",
@@ -64,7 +72,11 @@
       "medium": "un bot moyen pour qui part",
       "hard": "un bot difficile pour qui part",
       "extraHard": "un bot très difficile pour qui part"
-    }
+    },
+    "classic": "Règles classiques",
+    "okey101": "Okey 101, manches : {{hands}}",
+    "progressive": "ouverture montante",
+    "noPenalties": "sans pénalités"
   },
   "lobby": {
     "code": "Code de la salle : partagez-le avec les autres joueurs",
@@ -256,5 +268,51 @@
     "tilesBack_other": "{{count}} tuiles sont revenues sur votre chevalet",
     "unearnedWarning": "Le temps en plus reçu pour des tuiles que vous reprenez ensuite compte contre vous : {{soFar}} jusqu’ici. À {{limit}}, vous n’en aurez plus pour cette partie.",
     "noMoreBonus": "Vous avez repris des tuiles pour lesquelles vous aviez reçu {{time}} de temps en plus. Plus de temps en plus pour les tuiles dans cette partie."
+  },
+  "okey": {
+    "indicator": "Indicateur",
+    "okey": "Okey",
+    "discardsOf": "Défausses de {{name}}",
+    "emptyTable": "La table est vide. La première ouverture demande 101 points ou cinq paires.",
+    "newSet": "Déposez une tuile ici pour commencer une combinaison",
+    "discardHere": "Déposez une tuile ici pour la défausser et finir votre tour",
+    "hand": "Manche {{n}} sur {{total}}",
+    "yourTurnDraw": "À vous : piochez une tuile.",
+    "yourTurnDrawOrTake": "À vous : piochez une tuile, ou prenez la défausse de {{name}} si vous pouvez l’utiliser tout de suite.",
+    "yourTurnFirst": "Posez des combinaisons valant {{points}} (ou cinq paires) pour ouvrir, puis défaussez une tuile.",
+    "yourTurn": "Posez des combinaisons ou complétez la table, puis défaussez une tuile.",
+    "ready": "Prêt : défaussez une tuile pour finir votre tour.",
+    "openingPoints": "Ouverture : {{points}} sur {{needed}} points.",
+    "openingPairs": "Ouverture : {{pairs}} sur {{needed}} paires.",
+    "takenMustBeUsed": "La défausse de {{name}} doit aller sur la table ce tour-ci, ou y retourner.",
+    "takenTile": "La défausse prise : elle doit aller sur la table",
+    "handOver": "La manche est finie.",
+    "void": "Tout le monde a ouvert par paires : la manche est redistribuée.",
+    "poolRanOut": "La pioche est vide.",
+    "youWentOut": "Vous êtes sorti !",
+    "wentOut": "{{name}} est sorti.",
+    "nextHand": "manche suivante dans {{n}} s",
+    "thisHand": "Cette manche",
+    "total": "Total",
+    "lowestWins": "Points de pénalité : le total le plus bas gagne."
+  },
+  "okeyError": {
+    "notYourTurn": "Ce n’est pas votre tour.",
+    "handOver": "La manche est finie.",
+    "noSuchTile": "Une tuile qui n’existe pas dans le jeu.",
+    "drawFirst": "Piochez une tuile, ou prenez la défausse, d’abord.",
+    "alreadyDrawn": "Vous avez déjà pioché ce tour-ci.",
+    "noDiscard": "Il n’y a pas de défausse à prendre.",
+    "okeyDiscard": "Un okey défaussé ne peut pas être pris.",
+    "invalidSet": "La combinaison {{n}} n’est ni une suite, ni un groupe, ni une paire.",
+    "setChanged": "La combinaison {{n}} ne se complète qu’à ses extrémités (deux tuiles au plus à chaque bout d’une suite).",
+    "okeyNotFree": "L’okey de la combinaison {{n}} ne peut pas être pris : ouvrez d’abord, et un groupe doit avoir les quatre couleurs.",
+    "tileTakenFromTable": "Les tuiles de la table doivent y rester.",
+    "tileNotOnRack": "Une tuile que vous n’avez pas : gardez-en une à défausser.",
+    "notOpened": "Ouvrez avant de compléter les combinaisons de la table.",
+    "setsAndPairs": "On ne mélange pas suites et groupes avec des paires.",
+    "openingTooLow": "Votre ouverture vaut {{points}} points ; il en faut {{needed}}.",
+    "tooFewPairs": "{{pairs}} paires ; l’ouverture en demande {{needed}}.",
+    "discardNotUsed": "La défausse prise doit aller sur la table (dans votre ouverture, si vous ouvrez)."
   }
 }

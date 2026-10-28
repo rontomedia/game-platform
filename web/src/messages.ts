@@ -1,6 +1,6 @@
 import type { TFunction } from 'i18next'
 
-import type { Notice, Refusal, TurnError } from './wasm/engine.js'
+import type { Notice, OkeyError, Refusal, TurnError } from './wasm/engine.js'
 
 /**
  * Something that went wrong, kept as what happened and worded when shown
@@ -9,6 +9,7 @@ import type { Notice, Refusal, TurnError } from './wasm/engine.js'
  */
 export type Problem =
   | { kind: 'turn'; error: TurnError }
+  | { kind: 'okey'; error: OkeyError }
   | { kind: 'refused'; refusal: Refusal }
   | { kind: 'text'; message: string }
 
@@ -21,6 +22,22 @@ export function turnError(t: TFunction, error: TurnError): string {
       return t('turnError.initialMeldTooLow', { count: error.points, needed: error.needed })
     default:
       return t(`turnError.${error.kind}`)
+  }
+}
+
+/** Why an Okey 101 move isn't allowed, for the player. */
+export function okeyError(t: TFunction, error: OkeyError): string {
+  switch (error.kind) {
+    case 'invalidSet':
+    case 'setChanged':
+    case 'okeyNotFree':
+      return t(`okeyError.${error.kind}`, { n: error.index + 1 })
+    case 'openingTooLow':
+      return t('okeyError.openingTooLow', { points: error.points, needed: error.needed })
+    case 'tooFewPairs':
+      return t('okeyError.tooFewPairs', { pairs: error.pairs, needed: error.needed })
+    default:
+      return t(`okeyError.${error.kind}`)
   }
 }
 
@@ -44,6 +61,8 @@ export function problemText(t: TFunction, problem: Problem): string {
   switch (problem.kind) {
     case 'turn':
       return turnError(t, problem.error)
+    case 'okey':
+      return okeyError(t, problem.error)
     case 'refused':
       return refusal(t, problem.refusal)
     case 'text':

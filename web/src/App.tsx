@@ -6,14 +6,15 @@ import { useTranslation } from 'react-i18next'
 import { emptyArrangement, type Arrangement, type RackSort } from './arrange.ts'
 import { Board } from './Board.tsx'
 import { LanguagePicker } from './LanguagePicker.tsx'
+import { OkeyBoard } from './OkeyBoard.tsx'
 
-import { asWatcher, demoDrafts, demoGame, demoRoom, demoWatcherRoom, withOpenRacks } from './demo.ts'
+import { asWatcher, demoDrafts, demoGame, demoOkey, demoOkeyRoom, demoRoom, demoWatcherRoom, withOpenRacks } from './demo.ts'
 import { useSettings } from './settings.ts'
 import { remember, remembered } from './storage.ts'
 import { problemText, type Problem } from './messages.ts'
 import { Button, inputClass, Note, Panel, Switch } from './ui.tsx'
 import { SERVER_URL, useGame, type Draft, type Status } from './useGame.ts'
-import { protocolVersion, type ClientMessage, type RoomInfo, type RoomOptions } from './wasm/engine.js'
+import { protocolVersion, type ClientMessage, type Okey101Rules, type RoomInfo, type RoomOptions } from './wasm/engine.js'
 
 const statusDot: Record<Status, string> = {
   connecting: 'bg-amber-400 animate-pulse',
@@ -25,7 +26,32 @@ const statusDot: Record<Status, string> = {
 const DEMO = new URLSearchParams(location.search).has('demo')
 
 export default function App() {
-  return DEMO ? <Demo /> : <Online />
+  if (!DEMO) return <Online />
+  return new URLSearchParams(location.search).get('demo')?.startsWith('okey') ? <OkeyDemo /> : <Demo />
+}
+
+/**
+ * `?demo=okey`: an Okey 101 hand, the player about to draw.
+ * `?demo=okey-scores`: the scores after a hand.
+ */
+function OkeyDemo() {
+  const scores = new URLSearchParams(location.search).get('demo') === 'okey-scores'
+  const [okey] = useState(() => demoOkey(scores))
+  const [settings, changeSettings] = useSettings()
+  return (
+    <OkeyBoard
+      okey={okey}
+      room={demoOkeyRoom}
+      status="open"
+      problem={null}
+      notice={null}
+      settings={settings}
+      onSettings={changeSettings}
+      draft={null}
+      send={(message) => console.info('demo, not sent:', message)}
+      leave={() => location.reload()}
+    />
+  )
 }
 
 /**
@@ -103,10 +129,28 @@ function useArrangement(code: string | undefined): [Arrangement, (arrangement: A
 }
 
 function Online() {
-  const { status, room, game, draft, problem, notice, mismatch, send, reconnect, leave } = useGame()
+  const { status, room, game, okey, draft, problem, notice, mismatch, send, reconnect, leave } = useGame()
   const [settings, changeSettings] = useSettings()
   const [arrangement, setArrangement] = useArrangement(room?.code)
   const { t } = useTranslation()
+
+  if (room?.started && okey && room.options.rules?.kind === 'okey101') {
+    return (
+      <OkeyBoard
+        key={okey.version}
+        okey={okey}
+        room={room}
+        status={status}
+        problem={problem}
+        notice={notice}
+        settings={settings}
+        onSettings={changeSettings}
+        draft={settings.watchLive ? draft : null}
+        send={send}
+        leave={leave}
+      />
+    )
+  }
 
   if (room?.started && game) {
     return (
@@ -179,6 +223,10 @@ function Home({ send, problem, ready }: { send: (m: ClientMessage) => void; prob
     setOptions(next)
   }
 
+  // Settings left out take the defaults, as on the server.
+  const okeyRules = options.rules.kind === 'okey101' ? { ...OKEY_DEFAULTS, ...options.rules } : null
+  const changeOkey = (rules: Partial<Okey101Rules>) => okeyRules && change({ rules: { ...okeyRules, ...rules } })
+
   const create = () => {
     remember(NAME_KEY, name.trim())
     send({ type: 'createRoom', name, options })
@@ -202,6 +250,26 @@ function Home({ send, problem, ready }: { send: (m: ClientMessage) => void; prob
           />
         </label>
         <div className="mt-5">
+          <span className="block text-sm font-medium text-slate-300">{t('home.game')}</span>
+          <Choice
+            label={t('home.game')}
+            choices={[['classic', t('home.classic')], ['okey101', t('home.okey101')]] as const}
+            value={options.rules.kind}
+            onChange={(kind) => change({ rules: kind === 'okey101' ? { kind, ...OKEY_DEFAULTS } : { kind } })}
+          />
+          {okeyRules && (
+            <>
+              <span className="mt-3 block text-sm font-medium text-slate-300">{t('home.hands')}</span>
+              <Choice
+                label={t('home.hands')}
+                choices={OKEY_HANDS.map((hands) => [hands, String(hands)] as const)}
+                value={okeyRules.hands}
+                onChange={(hands) => changeOkey({ hands })}
+              />
+            </>
+          )}
+        </div>
+        <div className="mt-5">
           <span className="block text-sm font-medium text-slate-300">{t('home.turnTime')}</span>
           <Choice
             label={t('home.turnTime')}
@@ -217,12 +285,29 @@ function Home({ send, problem, ready }: { send: (m: ClientMessage) => void; prob
             checked={options.timeBank}
             onChange={(timeBank) => change({ timeBank })}
           />
-          <Option
-            title={t('home.tileBonus')}
-            detail={t('home.tileBonusDetail')}
-            checked={options.tileBonus}
-            onChange={(tileBonus) => change({ tileBonus })}
-          />
+          {okeyRules ? (
+            <>
+              <Option
+                title={t('home.progressive')}
+                detail={t('home.progressiveDetail')}
+                checked={okeyRules.progressive}
+                onChange={(progressive) => changeOkey({ progressive })}
+              />
+              <Option
+                title={t('home.penalties')}
+                detail={t('home.penaltiesDetail')}
+                checked={okeyRules.penalties}
+                onChange={(penalties) => changeOkey({ penalties })}
+              />
+            </>
+          ) : (
+            <Option
+              title={t('home.tileBonus')}
+              detail={t('home.tileBonusDetail')}
+              checked={options.tileBonus}
+              onChange={(tileBonus) => change({ tileBonus })}
+            />
+          )}
           <Option
             title={t('home.liveTurns')}
             detail={t('home.liveTurnsDetail')}
@@ -298,13 +383,21 @@ const defaultOptions: Required<RoomOptions> = {
   standIn: 'medium',
   rules: { kind: 'classic' },
 }
+/** An Okey 101 room's settings to start from (the engine's defaults). */
+const OKEY_DEFAULTS: Required<Okey101Rules> = { hands: 7, progressive: false, penalties: true }
+/** The match lengths an Okey 101 room may have (the server's `OKEY_HANDS`). */
+const OKEY_HANDS = [1, 3, 5, 7, 9, 11]
 /** The bots that may take over a seat: not Extra Hard (the server's `checked`). */
 const STAND_INS = ['easy', 'medium', 'hard'] as const
 
 /** How many of the options under "Advanced" differ from the defaults. */
 function changedOptions(options: Required<RoomOptions>): number {
-  const advanced = ['timeBank', 'tileBonus', 'liveTurns', 'standIn'] as const
-  return advanced.filter((key) => options[key] !== defaultOptions[key]).length
+  const shared = (['timeBank', 'liveTurns', 'standIn'] as const).filter((key) => options[key] !== defaultOptions[key]).length
+  if (options.rules.kind === 'okey101') {
+    const okey = { ...OKEY_DEFAULTS, ...options.rules }
+    return shared + Number(okey.progressive !== OKEY_DEFAULTS.progressive) + Number(okey.penalties !== OKEY_DEFAULTS.penalties)
+  }
+  return shared + Number(options.tileBonus !== defaultOptions.tileBonus)
 }
 /** Remembered across visits: the options the player last created a room with. */
 const OPTIONS_KEY = 'rummy.roomOptions'
@@ -318,9 +411,13 @@ function turnLength(t: TFunction, seconds: number): string {
 
 /** The room's rules in a sentence, for the lobby. */
 function describe(t: TFunction, options: RoomOptions): string {
-  const parts = [t('room.turn', { time: turnLength(t, options.turnSeconds ?? 60) })]
+  const rules = options.rules ?? { kind: 'classic' }
+  const parts = [rules.kind === 'okey101' ? t('room.okey101', { hands: rules.hands ?? OKEY_DEFAULTS.hands }) : t('room.classic')]
+  parts.push(t('room.turn', { time: turnLength(t, options.turnSeconds ?? 60) }))
+  if (rules.kind === 'okey101' && rules.progressive) parts.push(t('room.progressive'))
+  if (rules.kind === 'okey101' && rules.penalties === false) parts.push(t('room.noPenalties'))
   if (options.timeBank) parts.push(t('room.timeBank'))
-  if (options.tileBonus) parts.push(t('room.tileBonus'))
+  if (options.tileBonus && rules.kind === 'classic') parts.push(t('room.tileBonus'))
   parts.push(options.liveTurns ? t('room.liveTurns') : t('room.finishedTurns'))
   parts.push(t(`room.standIn.${options.standIn ?? 'medium'}`))
   return t('room.summary', { parts: parts.join(t('room.separator')) })

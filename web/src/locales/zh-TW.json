@@ -47,7 +47,15 @@
     "code": "房間代碼",
     "codePlaceholder": "代碼",
     "join": "加入",
-    "watch": "觀戰"
+    "watch": "觀戰",
+    "game": "遊戲",
+    "classic": "經典",
+    "okey101": "Okey 101",
+    "hands": "每局手數",
+    "progressive": "遞增開牌",
+    "progressiveDetail": "每次開牌都要高於本手上一次開牌：120 分之後要 121 分。",
+    "penalties": "罰分",
+    "penaltiesDetail": "打出 okey 或能接到桌上的牌罰 101 分，自己組合裡的 okey 被拿走罰 101 分；下家用你打出的牌開牌時，罰該牌數字 ×10。"
   },
   "room": {
     "summary": "{{parts}}。",
@@ -62,7 +70,11 @@
       "medium": "離開的玩家由中等機器人接替",
       "hard": "離開的玩家由困難機器人接替",
       "extraHard": "離開的玩家由極難機器人接替"
-    }
+    },
+    "classic": "經典規則",
+    "okey101": "Okey 101，手數：{{hands}}",
+    "progressive": "遞增開牌",
+    "noPenalties": "無罰分"
   },
   "lobby": {
     "code": "房間代碼：分享給其他玩家",
@@ -218,5 +230,51 @@
     "tilesBack_other": "{{count}} 張牌回到了你的牌架",
     "unearnedWarning": "加過時的牌若再收回，加的時間會算在你頭上：目前 {{soFar}}。達到 {{limit}} 後，本局不再給出牌加時。",
     "noMoreBonus": "你收回了曾獲得 {{time}} 加時的牌。本局不再有出牌加時。"
+  },
+  "okey": {
+    "indicator": "指示牌",
+    "okey": "Okey",
+    "discardsOf": "{{name}} 打出的牌",
+    "emptyTable": "桌面是空的。第一次開牌需要 101 分或五對。",
+    "newSet": "把牌放到這裡開始一組",
+    "discardHere": "把牌放到這裡打出並結束回合",
+    "hand": "第 {{n}} / {{total}} 手",
+    "yourTurnDraw": "輪到你：摸一張牌。",
+    "yourTurnDrawOrTake": "輪到你：摸一張牌，或者如果馬上能用，就拿 {{name}} 打出的牌。",
+    "yourTurnFirst": "放下價值 {{points}} 分的組合（或五對）來開牌，然後打出一張牌。",
+    "yourTurn": "放下組合或接到桌上，然後打出一張牌。",
+    "ready": "就緒：打出一張牌結束回合。",
+    "openingPoints": "開牌：{{points}} / {{needed}} 分。",
+    "openingPairs": "開牌：{{pairs}} / {{needed}} 對。",
+    "takenMustBeUsed": "{{name}} 打出的牌必須在本回合放到桌上，或者放回去。",
+    "takenTile": "你拿的牌：必須放到桌上",
+    "handOver": "本手結束。",
+    "void": "所有人都用對子開牌：重新發牌。",
+    "poolRanOut": "牌堆摸完了。",
+    "youWentOut": "你胡了！",
+    "wentOut": "{{name}} 胡了。",
+    "nextHand": "{{n}} 秒後下一手",
+    "thisHand": "本手",
+    "total": "總計",
+    "lowestWins": "罰分：總分最低者獲勝。"
+  },
+  "okeyError": {
+    "notYourTurn": "還沒輪到你。",
+    "handOver": "本手結束。",
+    "noSuchTile": "遊戲中沒有這張牌。",
+    "drawFirst": "先摸牌或拿打出的牌。",
+    "alreadyDrawn": "本回合你已經摸過牌了。",
+    "noDiscard": "沒有可拿的打出牌。",
+    "okeyDiscard": "打出的 okey 不能拿。",
+    "invalidSet": "第 {{n}} 組不是順子、刻子或對子。",
+    "setChanged": "第 {{n}} 組只能在兩端接牌（順子每端最多兩張）。",
+    "okeyNotFree": "第 {{n}} 組的 okey 不能拿：先開牌，刻子需要四種顏色齊全。",
+    "tileTakenFromTable": "桌上的牌必須留在桌上。",
+    "tileNotOnRack": "你沒有這張牌：留一張用來打出。",
+    "notOpened": "先開牌，再往桌上的組合接牌。",
+    "setsAndPairs": "順子和刻子不能和對子混在一起。",
+    "openingTooLow": "你的開牌是 {{points}} 分，需要 {{needed}} 分。",
+    "tooFewPairs": "{{pairs}} 對；開牌需要 {{needed}} 對。",
+    "discardNotUsed": "你拿的牌必須放到桌上（如果正在開牌，要放進開牌裡）。"
   }
 }

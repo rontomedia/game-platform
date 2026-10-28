@@ -48,7 +48,15 @@
     "code": "Szobakód",
     "codePlaceholder": "KÓD",
     "join": "Csatlakozás",
-    "watch": "Nézés"
+    "watch": "Nézés",
+    "game": "Játék",
+    "classic": "Klasszikus",
+    "okey101": "Okey 101",
+    "hands": "Leosztások egy meccsen",
+    "progressive": "Emelkedő nyitás",
+    "progressiveDetail": "Minden nyitásnak felül kell múlnia a leosztás előzőjét: 120 pont után 121.",
+    "penalties": "Büntetések",
+    "penaltiesDetail": "101 pont az okey vagy az asztalhoz illő kő eldobásáért, és ha a kombinációdból elveszik az okeyt; az eldobott kő száma ×10, ha a következő játékos azzal nyit."
   },
   "room": {
     "summary": "{{parts}}.",
@@ -63,7 +71,11 @@
       "medium": "közepes bot a kilépők helyett",
       "hard": "nehéz bot a kilépők helyett",
       "extraHard": "nagyon nehéz bot a kilépők helyett"
-    }
+    },
+    "classic": "Klasszikus szabályok",
+    "okey101": "Okey 101, leosztások: {{hands}}",
+    "progressive": "emelkedő nyitás",
+    "noPenalties": "büntetések nélkül"
   },
   "lobby": {
     "code": "Szobakód: küldd el a többi játékosnak",
@@ -237,5 +249,51 @@
     "tilesBack_other": "{{count}} lapka visszakerült a tartódra",
     "unearnedWarning": "A plusz idő azokért a lapkákért, amelyeket aztán visszaveszel, ellened számít: eddig {{soFar}}. {{limit}} után ebben a játékban nem kapsz többet.",
     "noMoreBonus": "Visszavettél lapkákat, amelyekért {{time}} plusz időt kaptál. Ebben a játékban már nincs plusz idő a lapkákért."
+  },
+  "okey": {
+    "indicator": "Jelző",
+    "okey": "Okey",
+    "discardsOf": "{{name}} eldobott kövei",
+    "emptyTable": "Az asztal üres. Az első nyitáshoz 101 pont vagy öt pár kell.",
+    "newSet": "Ide engedj egy követ új kombinációhoz",
+    "discardHere": "Ide engedj egy követ, hogy eldobd és befejezd a köröd",
+    "hand": "{{n}}. leosztás / {{total}}",
+    "yourTurnDraw": "Te jössz: húzz egy követ.",
+    "yourTurnDrawOrTake": "Te jössz: húzz egy követ, vagy vedd el {{name}} eldobott kövét, ha most fel tudod használni.",
+    "yourTurnFirst": "Rakj le {{points}} pontot érő kombinációkat (vagy öt párt) a nyitáshoz, aztán dobj el egy követ.",
+    "yourTurn": "Rakj le kombinációkat vagy tegyél az asztalhoz, aztán dobj el egy követ.",
+    "ready": "Kész: dobj el egy követ a köröd befejezéséhez.",
+    "openingPoints": "Nyitás: {{points}} / {{needed}} pont.",
+    "openingPairs": "Nyitás: {{pairs}} / {{needed}} pár.",
+    "takenMustBeUsed": "{{name}} eldobott kövének ebben a körben az asztalra kell kerülnie, vagy vissza.",
+    "takenTile": "Az elvett eldobott kő: az asztalra kell kerülnie",
+    "handOver": "A leosztásnak vége.",
+    "void": "Mindenki párokkal nyitott: újraosztás.",
+    "poolRanOut": "Elfogyott a pakli.",
+    "youWentOut": "Kimentél!",
+    "wentOut": "{{name}} kiment.",
+    "nextHand": "következő leosztás {{n}} mp múlva",
+    "thisHand": "Ez a leosztás",
+    "total": "Összesen",
+    "lowestWins": "Büntetőpontok: a legkisebb összeg nyer."
+  },
+  "okeyError": {
+    "notYourTurn": "Nem te jössz.",
+    "handOver": "A leosztásnak vége.",
+    "noSuchTile": "Olyan kő, amely nincs a játékban.",
+    "drawFirst": "Előbb húzz egy követ, vagy vedd el az eldobottat.",
+    "alreadyDrawn": "Ebben a körben már húztál.",
+    "noDiscard": "Nincs elvehető eldobott kő.",
+    "okeyDiscard": "Eldobott okeyt nem lehet elvenni.",
+    "invalidSet": "A(z) {{n}}. kombináció se nem sor, se nem csoport, se nem pár.",
+    "setChanged": "A(z) {{n}}. kombinációhoz csak a végein lehet tenni (egy sor mindkét végére legfeljebb két követ).",
+    "okeyNotFree": "A(z) {{n}}. kombináció okeyját nem lehet elvenni: előbb nyiss, és egy csoportban mind a négy szín kell.",
+    "tileTakenFromTable": "Az asztalon lévő köveknek ott kell maradniuk.",
+    "tileNotOnRack": "Olyan kő, ami nincs nálad: tarts meg egyet eldobásra.",
+    "notOpened": "Nyiss, mielőtt az asztal kombinációihoz teszel.",
+    "setsAndPairs": "Sorokat és csoportokat nem lehet párokkal keverni.",
+    "openingTooLow": "A nyitásod {{points}} pontot ér; {{needed}} kell.",
+    "tooFewPairs": "{{pairs}} pár; a nyitáshoz {{needed}} kell.",
+    "discardNotUsed": "Az elvett követ az asztalra kell tenni (a nyitásodba, ha most nyitsz)."
   }
 }
