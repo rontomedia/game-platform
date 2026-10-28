@@ -27,6 +27,10 @@ use crate::rng::Rng;
 use crate::set::{classify, points, SetKind};
 use crate::tile::{full_set, Counts, Tile, MAX_VALUE};
 
+mod bot;
+
+pub use bot::{bot_move, OkeyMove};
+
 /// The settings of an Okey 101 match; any left out take their defaults.
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[cfg_attr(feature = "wasm", derive(Tsify))]
@@ -774,29 +778,6 @@ pub fn safe_discard(okey: Tile, table: &[Vec<Tile>], rack: &[Tile]) -> Tile {
         .unwrap_or(rack[0])
 }
 
-/// A computer player's move in Okey 101.
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub enum OkeyMove {
-    /// Draw from the pool; the turn goes on.
-    Draw,
-    /// End the turn.
-    Turn(Turn),
-}
-
-/// A computer player's move, from what its player sees, on its turn.
-/// For now it only draws and discards safely: a placeholder until the
-/// bots that meld.
-pub fn bot_move(view: &HandView) -> OkeyMove {
-    match view.phase {
-        Phase::Draw => OkeyMove::Draw,
-        Phase::Play => OkeyMove::Turn(Turn {
-            take_discard: false,
-            table: view.table.clone(),
-            discard: safe_discard(view.okey, &view.table, &view.rack),
-        }),
-    }
-}
-
 /// `rack` without the tiles in `played` and one `discard`.
 fn remove(rack: &[Tile], played: &Counts, discard: Tile) -> Vec<Tile> {
     let mut rack = rack.to_vec();
@@ -1405,7 +1386,7 @@ mod tests {
     }
 
     #[test]
-    fn the_placeholder_bot_draws_then_discards() {
+    fn a_bot_with_nothing_to_lay_draws_then_discards() {
         let mut h = hand(vec![vec![n(Black, 2), n(Black, 3)], vec![OKEY, n(Blue, 3)]], vec![n(Red, 9)]);
         let OkeyMove::Turn(turn) = bot_move(&h.view(0)) else { panic!("the starter discards") };
         h.play(0, turn).unwrap();

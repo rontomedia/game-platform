@@ -926,29 +926,39 @@ async fn an_okey_match_against_bots() {
         ann.room().await;
     }
     ann.send(ClientMessage::Start).await;
-    let (mut hands_seen, mut between) = (0, 0);
+    // The starter of the hand dealt last, and whether a hand just ended void.
+    let (mut starter, mut void, mut between, mut won) = (None::<usize>, false, 0, 0);
     let last = loop {
         let (view, turn_ms, next_hand_ms) = okey_state(&mut ann).await;
         if view.winners.is_some() {
             break view;
         }
         if let Some(end) = &view.hand.end {
-            assert!(turn_ms.is_none() && next_hand_ms.is_some(), "the scores are shown, then the next deal");
-            assert_eq!(end.scores.len(), 3);
-            between += 1;
+            if next_hand_ms.is_some() {
+                assert!(turn_ms.is_none(), "the scores are shown, then the next deal");
+                assert_eq!(end.scores.len(), 3);
+                between += 1;
+                void = end.void;
+                won += end.winner.is_some() as usize;
+            }
             continue;
         }
-        if view.hand.rack_sizes.iter().sum::<usize>() == 22 + 21 * 2 && view.hand.discards.iter().all(Vec::is_empty) {
-            hands_seen += 1;
-            assert_eq!(view.hand.current, (hands_seen - 1) % 3, "the start moves on each hand");
+        let fresh = view.hand.rack_sizes.iter().sum::<usize>() == 22 + 21 * 2 && view.hand.discards.iter().all(Vec::is_empty);
+        if fresh {
+            let now = view.hand.current;
+            if let Some(before) = starter {
+                let expected = if void { before } else { (before + 1) % 3 };
+                assert_eq!(now, expected, "the start moves on each hand (but a void one)");
+            }
+            starter = Some(now);
         }
         if view.hand.current == 0 {
             okey_draw_and_discard(&mut ann, &view).await;
         }
     };
     assert_eq!(last.played, 3);
-    assert_eq!((hands_seen, between), (3, 2));
-    assert!(last.totals.iter().all(|&t| t >= 0), "nobody went out, so nobody earned -101");
+    assert!(between >= 2);
+    println!("{won} of {between} hands before the last won");
 }
 
 #[tokio::test]
