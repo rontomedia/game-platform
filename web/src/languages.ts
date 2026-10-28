@@ -17,6 +17,7 @@ export const LANGUAGES = {
   cs: 'Čeština',
   hu: 'Magyar',
   he: 'עברית',
+  ar: 'العربية',
 } as const
 
 export type Language = keyof typeof LANGUAGES
