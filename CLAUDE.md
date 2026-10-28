@@ -76,6 +76,14 @@ only builds it on start.
   run in `--release`; `EXTRA_GAMES` for fewer games) measure it against
   Hard on all cores. `salvage` makes a valid turn of what a player left
   when their time ran out (their valid sets kept where it plays as many).
+  `okey101` is the Okey 101 rule set (four rule sources compared in its
+  header): an indicator picks the wild okey, jokers stand for the okey's
+  tile; a `Turn` is sent whole (draw or take the previous player's
+  discard, melds, one discard), the table's sets only added to at their
+  ends (an okey can be taken back by swapping in its tile), opening with
+  101 points or five pairs (`progressive` raises the bar); `Hand` is one
+  hand, `Match` several, scored in penalty points, lowest wins. Not yet
+  in the protocol, server, bots or web.
   Its `wasm` feature derives
   `tsify::Tsify` on the types that cross into JS; serde attributes define the
   TS shape (e.g. `Tile` is `{ kind: "number", color, value } | { kind:

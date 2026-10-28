@@ -5,6 +5,7 @@
 
 mod bot;
 mod game;
+pub mod okey101;
 mod rng;
 mod salvage;
 mod set;
