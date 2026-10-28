@@ -17,6 +17,9 @@ From the repo root:
 ```sh
 cargo run -p server                 # match server, ws://0.0.0.0:3000/ws
 cargo run -p server -- --open-racks # the same, every rack shown to everyone (judging bots)
+# also: --lookahead OPTIONS,GAMES,ROUNDS (Extra Hard, default 1,24,2),
+# --bot-time MS (longest a bot thinks, default 1000), --bot-threads N
+# (bots thinking at once, default cores - 1); see `config` in main.rs
 cargo test --workspace              # one test: cargo test -p engine runs
 cargo clippy --workspace --all-targets
 ```
@@ -63,6 +66,9 @@ only builds it on start.
   sampled from the unseen tiles); then it plays its best few options on
   in imagined games (hidden tiles dealt at random, everyone as a quick
   Hard for two rounds, `LOOKAHEAD`) and takes the one that does best.
+  It stops when its time is up: `bot_move_with` takes a `spent` function
+  (the share of its time used; the engine has no clock, the server
+  measures), and it decides on what it has.
   `extra_strength`, `extra_weights` and `extra_lookahead` (ignored tests,
   run in `--release`; `EXTRA_GAMES` for fewer games) measure it against
   Hard on all cores. `salvage` makes a valid turn of what a player left
@@ -107,7 +113,9 @@ only builds it on start.
     room closes after 120 s with nobody connected. Bots (`AddBot`, host
     only, before the start) are players without a connection: on their
     turn the room waits, works the move out on a blocking thread
-    (`Command::BotMove`, dropped if the turn has passed), shows it as a
+    (`Command::BotMove`, dropped if the turn has passed; at most
+    `Config::bot_threads` at once across rooms, a shared semaphore, each
+    for `Timing::bot_time`), shows it as a
     draft in rooms with live turns, then plays it. With `--open-racks`
     every `State` carries all racks (`racks`).
   - `connection.rs`: one task per WebSocket, `select!`ing over the socket

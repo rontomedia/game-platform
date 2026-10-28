@@ -22,6 +22,7 @@ const SLOW: Timing = Timing {
     // Bots don't keep tests waiting.
     bot_think: Duration::from_millis(5),
     bot_show: Duration::from_millis(5),
+    bot_time: Duration::from_millis(200),
     bank: Duration::from_secs(60),
     bank_cap: Duration::from_secs(90),
     bonus: Bonus { per_tile: Duration::from_secs(15), per_set: Duration::from_secs(20) },
@@ -30,7 +31,7 @@ const SLOW: Timing = Timing {
 };
 
 async fn start_server(timing: Timing) -> SocketAddr {
-    start_server_with(Config { timing, open_racks: false }).await
+    start_server_with(Config { timing, open_racks: false, lookahead: engine::Lookahead::default(), bot_threads: 2 }).await
 }
 
 async fn start_server_with(config: Config) -> SocketAddr {
@@ -501,7 +502,7 @@ async fn against_bots(config: Config, levels: &[BotLevel]) -> (usize, PlayerView
 
 #[tokio::test]
 async fn a_game_against_bots() {
-    let (drafts, last, states) = against_bots(Config { timing: SLOW, open_racks: false }, &[BotLevel::Easy, BotLevel::Medium, BotLevel::Hard]).await;
+    let (drafts, last, states) = against_bots(Config { timing: SLOW, open_racks: false, lookahead: engine::Lookahead::default(), bot_threads: 2 }, &[BotLevel::Easy, BotLevel::Medium, BotLevel::Hard]).await;
     assert!(drafts > 0, "the bots' plays are shown live first");
     // Someone who never plays can't go out; the bots usually do.
     assert!(!last.outcome.unwrap().winners.is_empty());
@@ -511,7 +512,7 @@ async fn a_game_against_bots() {
 
 #[tokio::test]
 async fn open_racks_show_every_rack() {
-    let (_, _, states) = against_bots(Config { timing: SLOW, open_racks: true }, &[BotLevel::Easy]).await;
+    let (_, _, states) = against_bots(Config { timing: SLOW, open_racks: true, lookahead: engine::Lookahead::default(), bot_threads: 2 }, &[BotLevel::Easy]).await;
     for message in states {
         if let ServerMessage::State { view, racks, .. } = message {
             let racks = racks.expect("every rack");
@@ -798,4 +799,45 @@ async fn watchers_of_a_game_with_people_see_no_racks_and_cannot_pause_it() {
     assert_eq!(game.ann.error().await, "only a game the bots play alone can be paused");
     cy.send(ClientMessage::Draw).await;
     assert_eq!(cy.error().await, "you're watching this game, not playing");
+}
+
+#[test]
+fn the_command_line_sets_up_the_bots() {
+    let args = |s: &str| s.split_whitespace().map(String::from).collect::<Vec<_>>();
+    let set = config(args("--open-racks --lookahead 2,10,3 --bot-time 500 --bot-threads 3"));
+    assert!(set.open_racks);
+    assert_eq!(set.lookahead, engine::Lookahead { options: 2, games: 10, rounds: 3 });
+    assert_eq!((set.timing.bot_time, set.bot_threads), (Duration::from_millis(500), 3));
+    let set = config(Vec::new());
+    assert!(!set.open_racks);
+    assert_eq!((set.lookahead, set.timing.bot_time), (engine::Lookahead::default(), Duration::from_secs(1)));
+    assert!(set.bot_threads >= 1);
+}
+
+#[tokio::test]
+async fn an_extra_hard_bot_moves_within_its_time() {
+    let server = start_server(SLOW).await;
+    let mut ann = Client::connect(server).await;
+    ann.create("Ann").await;
+    ann.send(ClientMessage::AddBot { level: BotLevel::ExtraHard }).await;
+    ann.room().await;
+    ann.send(ClientMessage::Start).await;
+    // Ann draws; each bot turn ends well within its time (200 ms here) and
+    // a margin for a debug build.
+    let mut turns = 0;
+    let mut since = std::time::Instant::now();
+    while turns < 12 {
+        let (view, _) = ann.state().await;
+        if view.outcome.is_some() {
+            break;
+        }
+        if view.current == 0 {
+            if turns > 0 {
+                assert!(since.elapsed() < Duration::from_secs(3), "a bot turn took {:?}", since.elapsed());
+            }
+            turns += 1;
+            ann.send(ClientMessage::Draw).await;
+            since = std::time::Instant::now();
+        }
+    }
 }

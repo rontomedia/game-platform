@@ -12,7 +12,7 @@ mod solve;
 mod tile;
 mod turn;
 
-pub use bot::{bot_move, BotLevel, Move};
+pub use bot::{bot_move, bot_move_with, BotLevel, Lookahead, Move};
 pub use game::{Game, Outcome, PlayerView, Rules};
 pub use salvage::salvage;
 pub use set::{classify, points, SetKind};

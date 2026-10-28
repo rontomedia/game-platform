@@ -31,6 +31,8 @@ use crate::turn::check_turn;
 
 mod extra;
 
+pub use extra::Lookahead;
+
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[cfg_attr(feature = "wasm", derive(Tsify))]
 #[serde(rename_all = "lowercase")]
@@ -61,6 +63,14 @@ const EASY_SPOTS: (u64, u64) = (1, 2);
 
 /// The bot's move for the player whose view this is, on their turn.
 pub fn bot_move(view: &PlayerView, level: BotLevel) -> Move {
+    bot_move_with(view, level, Lookahead::default(), &|| 0.0)
+}
+
+/// The same, Extra Hard looking ahead as far as `lookahead` says and for as
+/// long as `spent` allows: how much of its time to think is used, from 0 at
+/// the start to 1 when it's up. The engine has no clock; the caller
+/// measures. The other levels take no time worth limiting.
+pub fn bot_move_with(view: &PlayerView, level: BotLevel, lookahead: Lookahead, spent: &dyn Fn() -> f64) -> Move {
     let melded = view.you.is_some_and(|you| view.melded[you]);
     let table = if !melded {
         initial_meld(view)
@@ -70,7 +80,7 @@ pub fn bot_move(view: &PlayerView, level: BotLevel) -> Move {
             BotLevel::Easy => add_to_table(view),
             BotLevel::Medium => rearrange_a_little(view, MEDIUM_REACH),
             BotLevel::Hard => rearrange(view).or_else(|| add_to_table(view)),
-            BotLevel::ExtraHard => extra::extra_hard(view),
+            BotLevel::ExtraHard => extra::extra_hard(view, lookahead, spent),
         }
     };
     let valid = |table: &Vec<Vec<Tile>>| {

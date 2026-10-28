@@ -5,7 +5,7 @@ use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::{Arc, Mutex};
 
 use protocol::RoomOptions;
-use tokio::sync::mpsc;
+use tokio::sync::{mpsc, Semaphore};
 
 use crate::room::{self, Command, Config};
 
@@ -17,11 +17,18 @@ pub struct Rooms {
     rooms: Mutex<HashMap<String, mpsc::Sender<Command>>>,
     config: Config,
     connections: AtomicU64,
+    /// A permit for each bot thinking, shared by every room.
+    thinking: Arc<Semaphore>,
 }
 
 impl Rooms {
     pub fn new(config: Config) -> Rooms {
-        Rooms { rooms: Mutex::default(), config, connections: AtomicU64::new(0) }
+        let thinking = Arc::new(Semaphore::new(config.bot_threads.max(1)));
+        Rooms { rooms: Mutex::default(), config, connections: AtomicU64::new(0), thinking }
+    }
+
+    pub fn thinking(&self) -> Arc<Semaphore> {
+        self.thinking.clone()
     }
 
     /// Opens a room with a new code.

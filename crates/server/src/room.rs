@@ -5,7 +5,8 @@
 //! Computer players sit in rooms like people, without a connection. On a
 //! bot's turn the room waits a moment, works out its move on a blocking
 //! thread (it can take a while on a full table), shows it as a live turn,
-//! and plays it.
+//! and plays it. Bots across the server think a few at a time
+//! (`Config::bot_threads`), each for at most `Timing::bot_time`.
 //!
 //! Others may watch without a seat: they see the table and live turns, and
 //! in a game only bots play, every rack too. The host of such a game, who
@@ -14,9 +15,9 @@
 use std::sync::Arc;
 use std::time::Duration;
 
-use engine::{bot_move, salvage, within_reach, BotLevel, Game, Move, Rules, Tile};
+use engine::{bot_move_with, salvage, within_reach, BotLevel, Game, Lookahead, Move, Rules, Tile};
 use protocol::{RoomInfo, RoomOptions, Seat, ServerMessage};
-use tokio::sync::{mpsc, oneshot};
+use tokio::sync::{mpsc, oneshot, Semaphore};
 use tokio::time::{sleep_until, Instant};
 
 use crate::clock::Bonus;
@@ -44,6 +45,9 @@ pub struct Timing {
     /// ...and, in rooms with live turns, how long its play is shown before
     /// the turn ends.
     pub bot_show: Duration,
+    /// The longest a bot thinks about a move: Extra Hard plays as well as
+    /// it can in that time (the others need far less).
+    pub bot_time: Duration,
     /// Each player's reserve for the game, in rooms with a time bank...
     pub bank: Duration,
     /// ...and the most it holds: time left over from turns is added to it.
@@ -64,6 +68,7 @@ impl Default for Timing {
             abandoned: Duration::from_secs(120),
             bot_think: Duration::from_millis(1500),
             bot_show: Duration::from_millis(1500),
+            bot_time: Duration::from_secs(1),
             bank: Duration::from_secs(120),
             bank_cap: Duration::from_secs(180),
             bonus: Bonus { per_tile: Duration::from_secs(15), per_set: Duration::from_secs(20) },
@@ -140,13 +145,18 @@ enum BotTurn {
     Ready(Move),
 }
 
-/// How a room was set up.
+/// How the server's rooms are set up.
 #[derive(Clone, Copy, Debug)]
 pub struct Config {
     pub timing: Timing,
     /// Every state tells every player all the racks: for watching how the
     /// bots play, never for real games.
     pub open_racks: bool,
+    /// How far Extra Hard bots look ahead.
+    pub lookahead: Lookahead,
+    /// How many bots may think at once, across all rooms; the others wait
+    /// their turn.
+    pub bot_threads: usize,
 }
 
 pub struct Room {
@@ -156,6 +166,8 @@ pub struct Room {
     /// For bots' moves, worked out elsewhere, to come back as commands. Weak,
     /// so the room still ends when every connection has gone.
     commands: mpsc::WeakSender<Command>,
+    /// Shared by every room: a permit for each bot thinking.
+    thinking: Arc<Semaphore>,
     /// In seat order.
     players: Vec<Player>,
     /// Those watching, in the order they came.
@@ -196,6 +208,7 @@ pub fn spawn(code: String, config: Config, options: RoomOptions, rooms: Arc<Room
         config,
         options,
         commands: sender.downgrade(),
+        thinking: rooms.thinking(),
         players: Vec::new(),
         watchers: Vec::new(),
         next_id: 0,
@@ -673,8 +686,14 @@ impl Room {
                 let (view, turn) = (game.view(seat), self.turn);
                 let Some(commands) = self.commands.upgrade() else { return };
                 self.bot_turn = Some((BotTurn::Choosing, Instant::now()));
+                let (lookahead, limit, thinking) = (self.config.lookahead, self.config.timing.bot_time, self.thinking.clone());
                 tokio::spawn(async move {
-                    if let Ok(choice) = tokio::task::spawn_blocking(move || bot_move(&view, level)).await {
+                    let Ok(_permit) = thinking.acquire_owned().await else { return };
+                    let choose = move || {
+                        let start = std::time::Instant::now();
+                        bot_move_with(&view, level, lookahead, &|| start.elapsed().as_secs_f64() / limit.as_secs_f64())
+                    };
+                    if let Ok(choice) = tokio::task::spawn_blocking(choose).await {
                         let _ = commands.send(Command::BotMove { turn, choice }).await;
                     }
                 });

@@ -17,6 +17,7 @@ use axum::extract::{ConnectInfo, State};
 use axum::response::Response;
 use axum::routing::get;
 use axum::Router;
+use engine::Lookahead;
 use room::{Config, Timing};
 use rooms::Rooms;
 use tokio::net::TcpListener;
@@ -28,12 +29,46 @@ const ADDRESS: &str = "0.0.0.0:3000";
 async fn main() {
     let listener = TcpListener::bind(ADDRESS).await.unwrap_or_else(|e| panic!("can't listen on {ADDRESS}: {e}"));
     println!("Listening on ws://{ADDRESS}/ws");
-    // A debugging aid: every player sees every rack, to judge the bots.
-    let open_racks = std::env::args().any(|arg| arg == "--open-racks");
-    if open_racks {
+    let config = config(std::env::args().skip(1).collect());
+    if config.open_racks {
         println!("--open-racks: every player sees every rack");
     }
-    serve(listener, Config { timing: Timing::default(), open_racks }).await;
+    println!(
+        "Extra Hard looks ahead {:?} for up to {:?} a move; {} bots think at once",
+        config.lookahead, config.timing.bot_time, config.bot_threads
+    );
+    serve(listener, config).await;
+}
+
+/// The setup from the command line:
+/// - `--open-racks`: every player sees every rack, to judge the bots
+///   (never for real games).
+/// - `--lookahead OPTIONS,GAMES,ROUNDS`: how far Extra Hard looks ahead
+///   (see `engine::Lookahead`; default 1,24,2).
+/// - `--bot-time MS`: the longest a bot thinks about a move (default 1000).
+/// - `--bot-threads N`: how many bots think at once (default: one fewer
+///   than the processor's threads, at least one).
+fn config(args: Vec<String>) -> Config {
+    let value = |flag: &str| args.iter().position(|a| a == flag).and_then(|i| args.get(i + 1)).map(String::as_str);
+    let bad = |flag: &str| -> ! { panic!("{flag}: see `config` in crates/server/src/main.rs for what it takes") };
+    let mut timing = Timing::default();
+    if let Some(ms) = value("--bot-time") {
+        timing.bot_time = std::time::Duration::from_millis(ms.parse().unwrap_or_else(|_| bad("--bot-time")));
+    }
+    let lookahead = match value("--lookahead") {
+        Some(spec) => {
+            let n: Vec<usize> = spec.split(',').map(|n| n.trim().parse().unwrap_or_else(|_| bad("--lookahead"))).collect();
+            let [options, games, rounds] = n[..] else { bad("--lookahead") };
+            Lookahead { options, games, rounds }
+        }
+        None => Lookahead::default(),
+    };
+    let cores = std::thread::available_parallelism().map_or(2, |n| n.get());
+    let bot_threads = match value("--bot-threads") {
+        Some(n) => n.parse().unwrap_or_else(|_| bad("--bot-threads")),
+        None => cores.saturating_sub(1).max(1),
+    };
+    Config { timing, open_racks: args.iter().any(|a| a == "--open-racks"), lookahead, bot_threads }
 }
 
 async fn serve(listener: TcpListener, config: Config) {
