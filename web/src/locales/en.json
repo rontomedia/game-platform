@@ -189,5 +189,17 @@
     "classic": "Two-row rack",
     "watchLive": "Watch turns live",
     "watchLiveHint": "See the other players’ moves as they make them, in rooms that share them."
+  },
+  "turnError": {
+    "noSuchTile": "A tile that isn’t in the game.",
+    "invalidSet": "Set {{n}} is not a run or a group.",
+    "tileTakenFromTable": "Tiles on the table must stay on the table.",
+    "tileNotOnRack": "A tile that isn’t on your rack.",
+    "nothingPlayed": "Play at least one tile from your rack, or draw.",
+    "initialMeldChangedTable": "Your first meld must use only tiles from your rack.",
+    "initialMeldTooLow_one": "Your first meld is worth {{count}} point; it needs {{needed}}.",
+    "initialMeldTooLow_other": "Your first meld is worth {{count}} points; it needs {{needed}}.",
+    "notYourTurn": "It isn’t your turn.",
+    "gameOver": "The game is over."
   }
 }

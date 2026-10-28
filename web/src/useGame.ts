@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 
 import { newOrChanged, without } from './arrange.ts'
+import type { Problem } from './messages.ts'
 
 import {
   protocolVersion,
@@ -180,7 +181,7 @@ export function useGame() {
   const [game, setGame] = useState<GameState | null>(null)
   const [draft, setDraft] = useState<Draft | null>(null)
   /** The last refusal or error from the server, until the next change. */
-  const [problem, setProblem] = useState<string | null>(null)
+  const [problem, setProblem] = useState<Problem | null>(null)
   /** The last notice from the server, for a while (`NOTICE_MS`). */
   const [notice, setNotice] = useState<string | null>(null)
   useEffect(() => {
@@ -280,7 +281,7 @@ export function useGame() {
           setDraft({ by: message.by, table: message.table, version: version.current })
           break
         case 'rejected':
-          setProblem(message.message)
+          setProblem({ kind: 'turn', error: message.error })
           break
         case 'error':
           if (rejoining.current) {
@@ -288,7 +289,7 @@ export function useGame() {
             rejoining.current = false
             saveSeat(null)
           }
-          setProblem(message.message)
+          setProblem({ kind: 'text', message: message.message })
           break
       }
     }

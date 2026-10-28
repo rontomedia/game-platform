@@ -48,6 +48,7 @@ import { footprint, gridWithout, resolve, type Cell } from './grid.ts'
 import type { Settings } from './settings.ts'
 import { centre, flyAway, flyIn, glide, pace, reducedMotion } from './flights.ts'
 import { LeaveMenu } from './LeaveMenu.tsx'
+import { problemText, turnError, type Problem } from './messages.ts'
 import { SettingsMenu } from './SettingsMenu.tsx'
 import { remember, remembered } from './storage.ts'
 import { TileFace, type TileSize } from './TileView.tsx'
@@ -268,7 +269,7 @@ export function Board({
   game: GameState
   room: RoomInfo
   status: Status
-  problem: string | null
+  problem: Problem | null
   /** A warning from the server, for a while. */
   notice: string | null
   settings: Settings
@@ -750,7 +751,7 @@ export function Board({
 
   const name = (seat: number) => room.seats[seat]?.name ?? t('board.player', { n: seat + 1 })
   const note = ((): { tone: 'neutral' | 'good' | 'bad'; text: string } => {
-    if (problem) return { tone: 'bad', text: problem }
+    if (problem) return { tone: 'bad', text: problemText(t, problem) }
     if (notice) return { tone: 'bad', text: notice }
     if (view.outcome) return { tone: 'neutral', text: t('board.over') }
     if (room.paused) return { tone: 'neutral', text: t('board.paused', { name: name(view.current) }) }
@@ -762,7 +763,7 @@ export function Board({
           : t('board.playing', { name: name(view.current) })
       return { tone: 'neutral', text: watching ? `${t('board.youreWatching')} ${playing}` : playing }
     }
-    if (verdict?.verdict === 'rejected') return { tone: 'bad', text: verdict.message }
+    if (verdict?.verdict === 'rejected') return { tone: 'bad', text: turnError(t, verdict.error) }
     if (verdict?.verdict === 'allowed') return { tone: 'good', text: t('board.ready', { count: verdict.played.length }) }
     const turn = melded ? t('board.yourTurn') : t('board.yourTurnFirst', { points: view.rules.initialMeld })
     // What the last player did, if it's news.

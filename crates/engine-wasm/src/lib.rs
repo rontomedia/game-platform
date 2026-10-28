@@ -43,12 +43,12 @@ pub struct TurnInput {
 }
 
 /// `engine::check_turn`'s answer: the tiles played, or why the turn isn't
-/// allowed (with a sentence for the player).
+/// allowed (worded for the player by the client, in their language).
 #[derive(Serialize, Deserialize, Tsify)]
 #[serde(tag = "verdict", rename_all = "lowercase")]
 pub enum TurnVerdict {
     Allowed { played: Vec<Tile> },
-    Rejected { error: TurnError, message: String },
+    Rejected { error: TurnError },
 }
 
 /// Checks a turn in the browser, for instant feedback; the server checks
@@ -58,7 +58,7 @@ pub fn check_turn(input: Ts<TurnInput>) -> Result<Ts<TurnVerdict>, JsError> {
     let input = input.to_rust()?;
     let verdict = match engine::check_turn(&input.before, &input.after, &input.rack, input.melded, &input.rules) {
         Ok(played) => TurnVerdict::Allowed { played },
-        Err(error) => TurnVerdict::Rejected { message: error.to_string(), error },
+        Err(error) => TurnVerdict::Rejected { error },
     };
     Ok(Ts::from_rust(&verdict)?)
 }

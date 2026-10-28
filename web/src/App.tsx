@@ -8,6 +8,7 @@ import { Board } from './Board.tsx'
 import { asWatcher, demoDrafts, demoGame, demoRoom, demoWatcherRoom, withOpenRacks } from './demo.ts'
 import { useSettings } from './settings.ts'
 import { remember, remembered } from './storage.ts'
+import { problemText, type Problem } from './messages.ts'
 import { Button, inputClass, Note, Panel, Switch } from './ui.tsx'
 import { SERVER_URL, useGame, type Draft, type Status } from './useGame.ts'
 import { protocolVersion, type ClientMessage, type RoomInfo, type RoomOptions } from './wasm/engine.js'
@@ -156,7 +157,7 @@ function Online() {
 /** The player's name, remembered on this device. */
 const NAME_KEY = 'rummy.name'
 
-function Home({ send, problem, ready }: { send: (m: ClientMessage) => void; problem: string | null; ready: boolean }) {
+function Home({ send, problem, ready }: { send: (m: ClientMessage) => void; problem: Problem | null; ready: boolean }) {
   const { t } = useTranslation()
   const [name, setName] = useState(() => remembered<string>(NAME_KEY) ?? '')
   const [code, setCode] = useState('')
@@ -264,7 +265,7 @@ function Home({ send, problem, ready }: { send: (m: ClientMessage) => void; prob
         </form>
         {problem && (
           <div className="mt-4">
-            <Note tone="bad">{problem}</Note>
+            <Note tone="bad">{problemText(t, problem)}</Note>
           </div>
         )}
       </Panel>
@@ -414,7 +415,7 @@ function Lobby({
   leave,
 }: {
   room: RoomInfo
-  problem: string | null
+  problem: Problem | null
   send: (m: ClientMessage) => void
   leave: () => void
 }) {
@@ -501,7 +502,7 @@ function Lobby({
         </div>
         {problem && (
           <div className="mt-4">
-            <Note tone="bad">{problem}</Note>
+            <Note tone="bad">{problemText(t, problem)}</Note>
           </div>
         )}
       </Panel>
