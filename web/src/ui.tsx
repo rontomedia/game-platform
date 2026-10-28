@@ -1,8 +1,18 @@
 import type { ButtonHTMLAttributes, ReactNode } from 'react'
 
-export function Panel({ title, aside, children }: { title?: string; aside?: ReactNode; children: ReactNode }) {
+export function Panel({
+  title,
+  aside,
+  className = '',
+  children,
+}: {
+  title?: string
+  aside?: ReactNode
+  className?: string
+  children: ReactNode
+}) {
   return (
-    <section className="rounded-2xl border border-white/10 bg-white/5 p-5 shadow-2xl backdrop-blur-xl sm:p-6">
+    <section className={`rounded-2xl border border-white/10 bg-white/5 p-5 shadow-2xl backdrop-blur-xl sm:p-6 ${className}`}>
       {(title || aside) && (
         <div className="mb-4 flex items-center justify-between gap-4">
           {title && <h2 className="text-lg font-semibold">{title}</h2>}

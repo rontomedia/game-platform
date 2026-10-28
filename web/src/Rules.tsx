@@ -13,16 +13,23 @@ const RULES: Partial<Record<RuleSet['kind'], { name: `home.${RuleSet['kind']}`; 
   classic: { name: 'home.classic', Content: ClassicRules },
 }
 
-/** "How to play", opening the rules of `kind` in a panel. */
+const unfold = { closed: { height: 0, opacity: 0 }, open: { height: 'auto', opacity: 1 } }
+
+/** "How to play", unfolding the rules of `kind` below it. */
 export function HowToPlay({ kind }: { kind: RuleSet['kind'] }) {
   const { t } = useTranslation()
   const [open, setOpen] = useState(false)
+  const reduced = useReducedMotion()
+  const section = useRef<HTMLElement>(null)
+  const heading = useId()
+
   const rules = RULES[kind]
   if (!rules) return null
   return (
     <>
       <button
-        onClick={() => setOpen(true)}
+        onClick={() => setOpen((open) => !open)}
+        aria-expanded={open}
         className="mx-auto mt-4 flex cursor-pointer items-center gap-2 rounded-xl px-3 py-2 text-sm font-medium text-teal-300 transition hover:bg-white/5 hover:text-teal-200"
       >
         <svg viewBox="0 0 24 24" className="size-5" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden>
@@ -31,68 +38,62 @@ export function HowToPlay({ kind }: { kind: RuleSet['kind'] }) {
           <circle cx="12" cy="17" r="0.6" fill="currentColor" />
         </svg>
         {t('rules.open')}
+        <svg
+          viewBox="0 0 16 16"
+          className={`size-3.5 transition-transform ${open ? 'rotate-180' : ''}`}
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+          aria-hidden
+        >
+          <path d="m3 6 5 5 5-5" />
+        </svg>
       </button>
-      <AnimatePresence>
+      <AnimatePresence initial={false}>
         {open && (
-          <Dialog title={t('rules.title', { game: t(rules.name) })} onClose={() => setOpen(false)}>
-            <rules.Content />
-          </Dialog>
+          <motion.section
+            ref={section}
+            aria-labelledby={heading}
+            variants={unfold}
+            initial="closed"
+            animate="open"
+            exit="closed"
+            transition={{ duration: 0.25 }}
+            // Once open (the page is only tall enough then), bring the rules into view.
+            onAnimationComplete={(done) =>
+              done === 'open' &&
+              section.current?.scrollIntoView({ behavior: reduced ? 'auto' : 'smooth', block: 'start' })
+            }
+            className="scroll-mt-16 overflow-hidden"
+          >
+            <div className="mt-2 rounded-2xl border border-white/10 bg-white/5 px-5 pb-5 pt-4 shadow-2xl backdrop-blur-xl sm:px-8 sm:pb-6 sm:pt-6">
+              <h2 id={heading} className="text-lg font-semibold">
+                {t('rules.title', { game: t(rules.name) })}
+              </h2>
+              {/* Wide screens show two sections to a row, numbered so the order is plain. */}
+              <div className="grid [counter-reset:rule] lg:grid-cols-2 lg:gap-x-12">
+                <rules.Content />
+              </div>
+              <button
+                onClick={() => setOpen(false)}
+                className="mx-auto mt-6 block cursor-pointer rounded-xl px-3 py-2 text-sm font-medium text-teal-300 transition hover:bg-white/5 hover:text-teal-200"
+              >
+                {t('rules.close')}
+              </button>
+            </div>
+          </motion.section>
         )}
       </AnimatePresence>
     </>
   )
 }
 
-function Dialog({ title, onClose, children }: { title: string; onClose: () => void; children: ReactNode }) {
-  const { t } = useTranslation()
-  const heading = useId()
-  useEffect(() => {
-    const close = (e: KeyboardEvent) => e.key === 'Escape' && onClose()
-    document.addEventListener('keydown', close)
-    return () => document.removeEventListener('keydown', close)
-  }, [onClose])
-  return (
-    <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-      transition={{ duration: 0.15 }}
-      className="fixed inset-0 z-50 grid place-items-center bg-black/60 p-4 backdrop-blur-sm"
-      onPointerDown={(e) => e.target === e.currentTarget && onClose()}
-    >
-      <motion.div
-        role="dialog"
-        aria-modal
-        aria-labelledby={heading}
-        initial={{ y: 12, scale: 0.98 }}
-        animate={{ y: 0, scale: 1 }}
-        exit={{ y: 12, scale: 0.98 }}
-        transition={{ duration: 0.15 }}
-        className="flex max-h-[min(90dvh,48rem)] w-full max-w-xl flex-col overflow-hidden rounded-2xl bg-slate-900/95 shadow-2xl ring-1 ring-white/10"
-      >
-        <div className="flex items-center gap-4 border-b border-white/10 px-5 py-3 sm:px-6">
-          <h2 id={heading} className="flex-1 text-lg font-semibold">
-            {title}
-          </h2>
-          <button
-            autoFocus
-            onClick={onClose}
-            aria-label={t('rules.close')}
-            className="-me-2 grid size-9 cursor-pointer place-items-center rounded-xl text-xl text-slate-300 transition hover:bg-white/10 hover:text-white"
-          >
-            ×
-          </button>
-        </div>
-        <div className="overflow-y-auto px-5 pb-6 sm:px-6">{children}</div>
-      </motion.div>
-    </motion.div>
-  )
-}
-
 function Section({ title, children }: { title: string; children: ReactNode }) {
   return (
-    <section className="mt-5">
-      <h3 className="font-semibold text-teal-200">{title}</h3>
+    <section className="pt-5">
+      <h3 className="flex items-center gap-2 font-semibold text-teal-200 [counter-increment:rule] before:grid before:size-6 before:shrink-0 before:place-items-center before:rounded-full before:bg-teal-400/15 before:text-xs before:font-bold before:tabular-nums before:text-teal-200 before:content-[counter(rule)]">
+        {title}
+      </h3>
       {children}
     </section>
   )

@@ -289,8 +289,8 @@ function Home({ send, problem, ready }: { send: (m: ClientMessage) => void; prob
   }
 
   return (
-    <div className="mx-auto w-full max-w-lg">
-      <Panel>
+    <div className="w-full">
+      <Panel className="mx-auto max-w-lg">
         <label className="flex flex-col gap-2">
           <span className="text-sm font-medium text-slate-300">{t('home.yourName')}</span>
           <input
@@ -616,8 +616,8 @@ function Lobby({
   const isHost = (watching ? room.watchers[room.watching!] : room.seats[room.you ?? -1])?.host ?? false
   const full = room.seats.length >= MAX_PLAYERS
   return (
-    <div className="mx-auto w-full max-w-lg">
-      <Panel>
+    <div className="w-full">
+      <Panel className="mx-auto max-w-lg">
         <p className="text-sm text-slate-400">{t('lobby.code')}</p>
         <p className="mt-1 font-mono text-5xl font-bold tracking-[0.2em] text-teal-300">{room.code}</p>
         <p className="mt-3 text-sm text-slate-400">{describe(t, room.options)}</p>
