@@ -12,9 +12,14 @@
 //! it imagines racks they could hold (unseen tiles that couldn't all go on
 //! the table as they left it, or they'd have gone out) and counts how many
 //! could all go on the table it would leave.
+//!
+//! Then it looks ahead (`LOOKAHEAD`): its best few options are each played
+//! on in many imagined games, the hidden tiles dealt at random among the
+//! others' racks and the pool, everyone then playing as Hard for a couple
+//! of rounds. The option that does best across them is the move.
 
-use super::{add_to_table, position_hash, rearrange_with, without};
-use crate::game::PlayerView;
+use super::{add_to_table, initial_meld, most_tiles, position_hash, rearrange_with, without};
+use crate::game::{Game, PlayerView};
 use crate::rng::Rng;
 use crate::solve::{solve, Objective};
 use crate::tile::{full_set, Color, Counts, Tile, MAX_VALUE};
@@ -42,12 +47,25 @@ const DANGER: usize = 2;
 /// Racks imagined for each player in danger.
 const SAMPLES: usize = 40;
 
-/// Extra Hard, once melded: the best of its options; `None` to draw.
-pub(super) fn extra_hard(view: &PlayerView) -> Option<Vec<Vec<Tile>>> {
-    extra_hard_with(view, WEIGHTS)
+/// How far it looks ahead.
+#[derive(Clone, Copy, Debug)]
+pub(crate) struct Lookahead {
+    /// Options compared (the best by `worth`; drawing is always one more).
+    pub options: usize,
+    /// Imagined games for each.
+    pub games: usize,
+    /// Rounds each is played on.
+    pub rounds: usize,
 }
 
-pub(crate) fn extra_hard_with(view: &PlayerView, weights: Weights) -> Option<Vec<Vec<Tile>>> {
+pub(crate) const LOOKAHEAD: Lookahead = Lookahead { options: 3, games: 24, rounds: 2 };
+
+/// Extra Hard, once melded: the best of its options; `None` to draw.
+pub(super) fn extra_hard(view: &PlayerView) -> Option<Vec<Vec<Tile>>> {
+    extra_hard_with(view, WEIGHTS, Some(LOOKAHEAD))
+}
+
+pub(crate) fn extra_hard_with(view: &PlayerView, weights: Weights, lookahead: Option<Lookahead>) -> Option<Vec<Vec<Tile>>> {
     // Beyond the solver (rare): as Easy.
     let Some(hard) = rearrange_with(&view.table, &view.rack) else { return add_to_table(view) };
     let rest = left(view, &hard);
@@ -60,15 +78,97 @@ pub(crate) fn extra_hard_with(view: &PlayerView, weights: Weights) -> Option<Vec
     kinds.dedup(); // in a fixed order, so equal tiles are together
     let held = kinds.iter().filter_map(|&tile| rearrange_with(&view.table, &without(&view.rack, &[tile])));
     let options = std::iter::once(Some(hard)).chain(held.map(Some)).chain(std::iter::once(None));
-    let mut best: Option<(f64, Option<Vec<Vec<Tile>>>)> = None;
-    for option in options {
-        let table = option.as_deref().unwrap_or(&view.table);
-        let value = worth(view, table, &unseen, &threats, weights);
-        if best.as_ref().is_none_or(|(most, _)| value > *most) {
-            best = Some((value, option));
+    let mut ranked: Vec<(f64, Option<Vec<Vec<Tile>>>)> = options
+        .map(|option| (worth(view, option.as_deref().unwrap_or(&view.table), &unseen, &threats, weights), option))
+        .collect();
+    // Best first; on a tie, the earlier (Hard's play first).
+    ranked.sort_by(|a, b| b.0.total_cmp(&a.0));
+    let Some(lookahead) = lookahead else { return ranked.swap_remove(0).1 };
+    let draw = ranked.iter().position(|(_, option)| option.is_none());
+    let mut candidates: Vec<Option<Vec<Vec<Tile>>>> = Vec::new();
+    for (i, (_, option)) in ranked.into_iter().enumerate() {
+        if i < lookahead.options || Some(i) == draw {
+            candidates.push(option);
         }
     }
-    best.and_then(|(_, option)| option)
+    look_ahead(view, &unseen, candidates, lookahead)
+}
+
+/// The candidate (a table to leave, or `None` to draw) that does best when
+/// the game is imagined on from each, the same imagined deals for all.
+fn look_ahead(view: &PlayerView, unseen: &Counts, candidates: Vec<Option<Vec<Vec<Tile>>>>, lookahead: Lookahead) -> Option<Vec<Vec<Tile>>> {
+    let me = view.you.expect("a bot has a seat");
+    let mut rng = Rng::new(position_hash(view) ^ 0x5bd1_e995);
+    let deals: Vec<(Vec<Vec<Tile>>, Vec<Tile>)> = (0..lookahead.games).map(|_| deal(view, unseen, &mut rng)).collect();
+    let mut best: Option<(f64, Option<Vec<Vec<Tile>>>)> = None;
+    for candidate in candidates {
+        let total: f64 = deals
+            .iter()
+            .map(|(racks, pool)| {
+                let mut racks = racks.clone();
+                racks[me] = view.rack.clone();
+                let mut game = Game::from_position(view.rules.clone(), pool.clone(), racks, view.table.clone(), view.melded.clone(), me);
+                match &candidate {
+                    Some(table) => game.play(me, table.clone()).expect("a valid option"),
+                    None => {
+                        game.draw(me).expect("its turn");
+                    }
+                }
+                play_on(&mut game, lookahead.rounds * view.rack_sizes.len() - 1);
+                outlook(&game, me)
+            })
+            .sum();
+        if best.as_ref().is_none_or(|(most, _)| total > *most) {
+            best = Some((total, candidate));
+        }
+    }
+    best.and_then(|(_, candidate)| candidate)
+}
+
+/// The others' racks (this player's left empty) and a pool, dealt at
+/// random from the tiles this player hasn't seen.
+fn deal(view: &PlayerView, unseen: &Counts, rng: &mut Rng) -> (Vec<Vec<Tile>>, Vec<Tile>) {
+    let mut pool = unseen.tiles();
+    rng.shuffle(&mut pool);
+    let racks = (0..view.rack_sizes.len())
+        .map(|p| if Some(p) == view.you { Vec::new() } else { pool.split_off(pool.len() - view.rack_sizes[p]) })
+        .collect();
+    (racks, pool)
+}
+
+/// Plays `turns` more turns, everyone as a quick Hard (no care for which
+/// sets stay as they were).
+fn play_on(game: &mut Game, turns: usize) {
+    for _ in 0..turns {
+        if game.outcome().is_some() {
+            return;
+        }
+        let who = game.current();
+        let view = game.view(who);
+        let table = if !view.melded[who] {
+            initial_meld(&view)
+        } else {
+            let all: Vec<Tile> = view.table.iter().flatten().copied().collect();
+            most_tiles(&all, &view.rack).filter(|(_, s)| !s.played.is_empty()).map(|(_, s)| s.sets).or_else(|| add_to_table(&view))
+        };
+        let played = table.is_some_and(|table| game.play(who, table).is_ok());
+        if !played {
+            game.draw(who).expect("its turn");
+        }
+    }
+}
+
+/// How well `me` stands in `game`: winning or losing outright, else by how
+/// many tiles it holds against the others.
+fn outlook(game: &Game, me: usize) -> f64 {
+    if let Some(outcome) = game.outcome() {
+        return if outcome.winners.contains(&me) { 1.0 } else { -1.0 };
+    }
+    let mine = game.rack(me).len() as f64;
+    let others = (0..game.players()).filter(|&p| p != me).map(|p| game.rack(p).len() as f64);
+    let fewest = others.fold(f64::INFINITY, f64::min);
+    // A tile is worth a little: going out is the whole game.
+    ((fewest - mine) * 0.05).clamp(-0.9, 0.9)
 }
 
 /// What leaving `table` is worth (`view.table`: drawing).
@@ -219,12 +319,14 @@ mod tests {
 
     #[test]
     fn it_plays_whole_games() {
+        // Without looking ahead: that's slow in a debug build (see below).
         for seed in 0..2 {
             let mut game = Game::new(3, Rules::default(), seed);
-            let levels = [BotLevel::ExtraHard, BotLevel::Hard, BotLevel::ExtraHard];
             while game.outcome().is_none() {
                 let who = game.current();
-                match bot_move(&game.view(who), levels[who]) {
+                let view = game.view(who);
+                let choice = if who == 1 { bot_move(&view, BotLevel::Hard) } else { extra_move(&view, WEIGHTS) };
+                match choice {
                     Move::Play(table) => game.play(who, table).expect("only valid plays"),
                     Move::Draw => {
                         game.draw(who).unwrap();
@@ -234,12 +336,35 @@ mod tests {
         }
     }
 
+    #[test]
+    fn looking_ahead_picks_one_of_its_options() {
+        // Hard plays a game on until both have melded and a few turns more.
+        let mut game = Game::new(2, Rules::default(), 7);
+        let mut turns = 0;
+        while game.outcome().is_none() && (turns < 4 || !(game.melded(0) && game.melded(1))) {
+            let who = game.current();
+            match bot_move(&game.view(who), BotLevel::Hard) {
+                Move::Play(table) => game.play(who, table).unwrap(),
+                Move::Draw => {
+                    game.draw(who).unwrap();
+                }
+            }
+            turns += 1;
+        }
+        let who = game.current();
+        let view = game.view(who);
+        let lookahead = Lookahead { options: 2, games: 3, rounds: 1 };
+        if let Some(table) = extra_hard_with(&view, WEIGHTS, Some(lookahead)) {
+            game.play(who, table).expect("a valid play");
+        }
+    }
+
     /// Extra Hard with `weights`, as `bot_move` plays it.
     fn extra_move(view: &PlayerView, weights: Weights) -> Move {
         let table = if !view.you.is_some_and(|you| view.melded[you]) {
             initial_meld(view)
         } else {
-            extra_hard_with(view, weights)
+            extra_hard_with(view, weights, None)
         };
         table.map_or(Move::Draw, Move::Play)
     }
@@ -315,7 +440,9 @@ mod tests {
     }
 
     fn report(name: &str, policy: impl Fn(&PlayerView) -> Move + Sync + Copy) {
-        for (players, games) in [(2, 2000), (4, 2000)] {
+        // `EXTRA_GAMES` for a quicker look.
+        let games = std::env::var("EXTRA_GAMES").map_or(2000, |n| n.parse().unwrap());
+        for players in [2, 4] {
             let (share, score, time) = arena(games, players, policy);
             let fair = 1.0 / players as f64;
             println!(
@@ -334,6 +461,26 @@ mod tests {
     fn extra_strength() {
         report("Hard", |view| bot_move(view, BotLevel::Hard));
         report("Extra Hard", |view| bot_move(view, BotLevel::ExtraHard));
+    }
+
+    /// Tries look-aheads: `EXTRA_LOOKAHEAD="options,games,rounds;..." cargo
+    /// test -p engine --release -- --ignored --nocapture extra_lookahead`.
+    #[test]
+    #[ignore]
+    fn extra_lookahead() {
+        let spec = std::env::var("EXTRA_LOOKAHEAD").unwrap_or_else(|_| "3,24,2".into());
+        for set in spec.split(';') {
+            let l: Vec<usize> = set.split(',').map(|x| x.trim().parse().unwrap()).collect();
+            let lookahead = Lookahead { options: l[0], games: l[1], rounds: l[2] };
+            report(&format!("{lookahead:?}"), move |view| {
+                let table = if !view.you.is_some_and(|you| view.melded[you]) {
+                    initial_meld(view)
+                } else {
+                    extra_hard_with(view, WEIGHTS, Some(lookahead))
+                };
+                table.map_or(Move::Draw, Move::Play)
+            });
+        }
     }
 
     /// Tries weights: `EXTRA_WEIGHTS="tile,wait,point,risk,danger_point;..." cargo test -p

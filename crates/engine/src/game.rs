@@ -107,6 +107,19 @@ impl Game {
         }
     }
 
+    /// A game from a position part-way through: for a bot imagining how a
+    /// game could go on from what it sees.
+    pub(crate) fn from_position(
+        rules: Rules,
+        pool: Vec<Tile>,
+        racks: Vec<Vec<Tile>>,
+        table: Vec<Vec<Tile>>,
+        melded: Vec<bool>,
+        current: usize,
+    ) -> Game {
+        Game { rules, pool, racks, table, melded, current, passes: 0, outcome: None }
+    }
+
     pub fn rules(&self) -> &Rules {
         &self.rules
     }

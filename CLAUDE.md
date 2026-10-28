@@ -60,9 +60,12 @@ only builds it on start.
   plays like Hard but weighs its options (Hard's play, holding a tile back,
   drawing): the rack each leaves, and when another player is down to 1-2
   tiles, how likely each is to let them go out (racks they could hold,
-  sampled from the unseen tiles). `extra_strength` and `extra_weights`
-  (ignored tests, run in `--release`) measure it against Hard on all
-  cores. `salvage` makes a valid turn of what a player left
+  sampled from the unseen tiles); then it plays its best few options on
+  in imagined games (hidden tiles dealt at random, everyone as a quick
+  Hard for two rounds, `LOOKAHEAD`) and takes the one that does best.
+  `extra_strength`, `extra_weights` and `extra_lookahead` (ignored tests,
+  run in `--release`; `EXTRA_GAMES` for fewer games) measure it against
+  Hard on all cores. `salvage` makes a valid turn of what a player left
   when their time ran out (their valid sets kept where it plays as many).
   Its `wasm` feature derives
   `tsify::Tsify` on the types that cross into JS; serde attributes define the
