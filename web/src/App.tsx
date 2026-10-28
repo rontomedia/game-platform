@@ -306,7 +306,7 @@ function Option({
 /** Seats in a room (the server's limit too). */
 const MAX_PLAYERS = 4
 
-const botLabel: Record<BotLevel, string> = { easy: 'Easy bot', medium: 'Medium bot', hard: 'Hard bot' }
+const botLabel: Record<BotLevel, string> = { easy: 'Easy bot', medium: 'Medium bot', hard: 'Hard bot', extraHard: 'Extra hard bot' }
 
 function Lobby({
   room,
@@ -377,13 +377,15 @@ function Lobby({
           {watching ? 'Take a seat instead' : 'Watch instead of playing'}
         </button>
         {isHost && !full && (
-          <div className="mt-3 flex items-center gap-2 text-sm text-slate-400">
-            <span className="flex-1">Add a computer player:</span>
-            {(['easy', 'medium', 'hard'] as const).map((level) => (
-              <Button key={level} look="quiet" className="px-3 py-1.5 text-sm" onClick={() => send({ type: 'addBot', level })}>
-                + {botLabel[level]}
-              </Button>
-            ))}
+          <div className="mt-3 text-sm text-slate-400">
+            <span>Add a computer player:</span>
+            <div className="mt-1.5 grid grid-cols-2 gap-1 sm:grid-cols-4">
+              {(['easy', 'medium', 'hard', 'extraHard'] as const).map((level) => (
+                <Button key={level} look="quiet" className="px-2 py-1.5 text-sm" onClick={() => send({ type: 'addBot', level })}>
+                  + {botLabel[level].replace(' bot', '')}
+                </Button>
+              ))}
+            </div>
           </div>
         )}
         <div className="mt-6 flex gap-2">

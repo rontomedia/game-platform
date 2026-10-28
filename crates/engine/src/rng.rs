@@ -17,7 +17,7 @@ impl Rng {
     }
 
     /// A number in `0..n`. The modulo bias is below 1e-17 for n this small.
-    fn below(&mut self, n: usize) -> usize {
+    pub fn below(&mut self, n: usize) -> usize {
         (self.next() % n as u64) as usize
     }
 

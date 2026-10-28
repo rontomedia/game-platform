@@ -11,6 +11,9 @@
 //!   a run, moving a tile from one set to another, freeing a joker).
 //! - `Hard` rearranges the whole table (see `solve`), leaving alone each
 //!   set it doesn't need to change.
+//! - `ExtraHard` plays like Hard but thinks past the turn (see `extra`):
+//!   of the plays open to it, it picks the one leaving the best rack, and
+//!   when someone is about to go out, the one least likely to let them.
 //!
 //! None holds tiles back on purpose. A joker is played only when it lets
 //! more tiles go down, or to go out.
@@ -26,6 +29,8 @@ use crate::solve::{solve, Objective, Solution};
 use crate::tile::{Counts, Tile};
 use crate::turn::check_turn;
 
+mod extra;
+
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[cfg_attr(feature = "wasm", derive(Tsify))]
 #[serde(rename_all = "lowercase")]
@@ -33,6 +38,8 @@ pub enum BotLevel {
     Easy,
     Medium,
     Hard,
+    #[serde(rename = "extraHard")]
+    ExtraHard,
 }
 
 /// A turn: the new table, or drawing a tile.
@@ -63,6 +70,7 @@ pub fn bot_move(view: &PlayerView, level: BotLevel) -> Move {
             BotLevel::Easy => add_to_table(view),
             BotLevel::Medium => rearrange_a_little(view, MEDIUM_REACH),
             BotLevel::Hard => rearrange(view).or_else(|| add_to_table(view)),
+            BotLevel::ExtraHard => extra::extra_hard(view),
         }
     };
     let valid = |table: &Vec<Vec<Tile>>| {
@@ -100,6 +108,12 @@ fn add_to_table(view: &PlayerView) -> Option<Vec<Vec<Tile>>> {
 /// chosen by a hash of what it sees, so the same position gets the same
 /// move (the engine has no randomness of its own).
 fn spots(view: &PlayerView) -> bool {
+    position_hash(view) % EASY_SPOTS.1 < EASY_SPOTS.0
+}
+
+/// A hash of what the player sees, for choices that should look random but
+/// be the same for the same position.
+fn position_hash(view: &PlayerView) -> u64 {
     // FNV-1a, the same on every platform and Rust version.
     let mut hash: u64 = 0xcbf2_9ce4_8422_2325;
     let byte = |tile: &Tile| match *tile {
@@ -112,7 +126,7 @@ fn spots(view: &PlayerView) -> bool {
     for b in rack.iter().map(byte).chain([254]).chain(table).chain([view.pool as u8]) {
         hash = (hash ^ b as u64).wrapping_mul(0x0100_0000_01b3);
     }
-    hash % EASY_SPOTS.1 < EASY_SPOTS.0
+    hash
 }
 
 /// Medium, once melded (and Easy now and then): the best play that changes
@@ -176,23 +190,28 @@ fn played(view: &PlayerView, table: &[Vec<Tile>]) -> usize {
 /// Hard, once melded: the whole table rearranged to play the most tiles.
 /// `None` if nothing fits, or the table is beyond the solver.
 fn rearrange(view: &PlayerView) -> Option<Vec<Vec<Tile>>> {
-    let all: Vec<Tile> = view.table.iter().flatten().copied().collect();
-    let (objective, mut best) = most_tiles(&all, &view.rack)?;
+    rearrange_with(&view.table, &view.rack)
+}
+
+/// `table` rearranged to play the most of `rack`.
+fn rearrange_with(table: &[Vec<Tile>], rack: &[Tile]) -> Option<Vec<Vec<Tile>>> {
+    let all: Vec<Tile> = table.iter().flatten().copied().collect();
+    let (objective, mut best) = most_tiles(&all, rack)?;
     if best.played.is_empty() {
         return None;
     }
     // Keep each of the table's sets as it is if the same is possible
     // without touching it, so the others see only what changed.
-    let mut kept = vec![false; view.table.len()];
-    for i in 0..view.table.len() {
+    let mut kept = vec![false; table.len()];
+    for i in 0..table.len() {
         let loose: Vec<Tile> =
-            (0..view.table.len()).filter(|&j| j != i && !kept[j]).flat_map(|j| view.table[j].iter().copied()).collect();
-        if let Some(solution) = solve(&loose, &view.rack, objective).filter(|s| s.score == best.score) {
+            (0..table.len()).filter(|&j| j != i && !kept[j]).flat_map(|j| table[j].iter().copied()).collect();
+        if let Some(solution) = solve(&loose, rack, objective).filter(|s| s.score == best.score) {
             kept[i] = true;
             best = solution;
         }
     }
-    let unchanged = view.table.iter().zip(&kept).filter(|(_, &k)| k).map(|(set, _)| set.clone());
+    let unchanged = table.iter().zip(&kept).filter(|(_, &k)| k).map(|(set, _)| set.clone());
     Some(unchanged.chain(best.sets).collect())
 }
 

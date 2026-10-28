@@ -56,7 +56,13 @@ only builds it on start.
   1-13); Easy adds to the table and on about half its turns
   (`EASY_SPOTS`, chosen by a hash of the position) may change one of its
   sets, Medium may change up to two (`MEDIUM_REACH`), Hard rearranges it
-  all but keeps the sets it needn't change. `salvage` makes a valid turn of what a player left
+  all but keeps the sets it needn't change. Extra Hard (`bot/extra.rs`)
+  plays like Hard but weighs its options (Hard's play, holding a tile back,
+  drawing): the rack each leaves, and when another player is down to 1-2
+  tiles, how likely each is to let them go out (racks they could hold,
+  sampled from the unseen tiles). `extra_strength` and `extra_weights`
+  (ignored tests, run in `--release`) measure it against Hard on all
+  cores. `salvage` makes a valid turn of what a player left
   when their time ran out (their valid sets kept where it plays as many).
   Its `wasm` feature derives
   `tsify::Tsify` on the types that cross into JS; serde attributes define the

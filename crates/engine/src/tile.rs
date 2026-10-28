@@ -92,6 +92,11 @@ impl Counts {
         self.0.iter().all(|&n| n == 0)
     }
 
+    /// How many of `tile` there are.
+    pub fn count(&self, tile: Tile) -> u32 {
+        self.0[index(tile)]
+    }
+
     /// The tiles, in a fixed order.
     pub fn tiles(&self) -> Vec<Tile> {
         let mut tiles = Vec::new();
