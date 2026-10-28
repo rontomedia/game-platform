@@ -1,0 +1,240 @@
+{
+  "app": {
+    "title": "Rummy",
+    "status": {
+      "connecting": "Kapcsolódás",
+      "open": "Kapcsolódva",
+      "closed": "Nincs kapcsolat"
+    },
+    "reconnect": "Újracsatlakozás",
+    "mismatch": "A szerver a(z) {{server}}. protokollt használja, ez az oldal a(z) {{page}}. protokollt. Töltsd újra az oldalt a friss verzióért."
+  },
+  "units": {
+    "seconds": "{{n}} mp",
+    "minutes": "{{n}} perc"
+  },
+  "bots": {
+    "level": {
+      "easy": "Könnyű",
+      "medium": "Közepes",
+      "hard": "Nehéz",
+      "extraHard": "Nagyon nehéz"
+    },
+    "bot": {
+      "easy": "Könnyű bot",
+      "medium": "Közepes bot",
+      "hard": "Nehéz bot",
+      "extraHard": "Nagyon nehéz bot"
+    }
+  },
+  "home": {
+    "yourName": "A neved",
+    "name": "Név",
+    "turnTime": "Idő egy körre",
+    "advanced": "Haladó beállítások",
+    "changed_one": "{{count}} módosítva",
+    "changed_other": "{{count}} módosítva",
+    "timeBank": "Időtartalék",
+    "timeBankDetail": "Minden játékosnak van még 2 perce az egész játékra, ez akkor fogy, ha a kör ideje lejárt. Egy körből megmaradt idő hozzáadódik, legfeljebb 3 percig.",
+    "tileBonus": "Plusz idő a lapkákért",
+    "tileBonusDetail": "15 mp minden letett lapkáért és 20 mp minden kombinációért, amelyet létrehoz vagy megváltoztat, amint az asztal érvényes kör.",
+    "liveTurns": "Körök élőben",
+    "liveTurnsDetail": "Mindenki látja a soron lévő játékos lépéseit, miközben megteszi őket, mint egy igazi asztalnál.",
+    "standIn": "Ha egy játékos kilép",
+    "standInDetail": "A játék hátralévő részében egy bot veszi át a helyét.",
+    "standInLabel": "Bot a kilépő játékos helyett",
+    "create": "Szoba létrehozása",
+    "orJoin": "vagy csatlakozz egyhez",
+    "code": "Szobakód",
+    "codePlaceholder": "KÓD",
+    "join": "Csatlakozás",
+    "watch": "Nézés"
+  },
+  "room": {
+    "summary": "{{parts}}.",
+    "separator": ", ",
+    "turn": "{{time}} körönként",
+    "timeBank": "2 perces időtartalék",
+    "tileBonus": "plusz idő a lapkákért",
+    "liveTurns": "körök élőben",
+    "finishedTurns": "csak a befejezett körök látszanak",
+    "standIn": {
+      "easy": "könnyű bot a kilépők helyett",
+      "medium": "közepes bot a kilépők helyett",
+      "hard": "nehéz bot a kilépők helyett",
+      "extraHard": "nagyon nehéz bot a kilépők helyett"
+    }
+  },
+  "lobby": {
+    "code": "Szobakód: küldd el a többi játékosnak",
+    "you": "(te)",
+    "host": "házigazda",
+    "remove": "Eltávolítás",
+    "removeBot": "{{name}} eltávolítása",
+    "watching": "Nézők",
+    "takeSeat": "Mégis játszom",
+    "watchInstead": "Nézés játék helyett",
+    "addBot": "Bot hozzáadása:",
+    "leave": "Kilépés",
+    "waitingForPlayers": "Várakozás a játékosokra…",
+    "start_one": "Indítás {{count}} játékossal",
+    "start_other": "Indítás {{count}} játékossal",
+    "waitingForHost": "Várakozás, hogy a házigazda elindítsa…"
+  },
+  "tile": {
+    "number": "{{color}} {{value}}",
+    "joker": "Joker",
+    "color": {
+      "black": "fekete",
+      "blue": "kék",
+      "orange": "narancs",
+      "red": "piros"
+    },
+    "drawn": "Ezt a lapkát húztad"
+  },
+  "board": {
+    "tabYourTurn": "Te jössz · Rummy",
+    "player": "{{n}}. játékos",
+    "over": "A játéknak vége.",
+    "paused": "Szüneteltetve, {{name}} köre közben.",
+    "youreWatching": "Nézőként vagy itt.",
+    "playing": "{{name}} játszik.",
+    "playingSoFar_one": "{{name}} játszik: eddig {{count}} lapka a tartójáról.",
+    "playingSoFar_other": "{{name}} játszik: eddig {{count}} lapka a tartójáról.",
+    "ready_one": "Kész: {{count}} lapka a tartódról.",
+    "ready_other": "Kész: {{count}} lapka a tartódról.",
+    "lastPlayed_one": "{{name}} letett {{count}} lapkát.",
+    "lastPlayed_other": "{{name}} letett {{count}} lapkát.",
+    "yourTurn": "Te jössz: húzz lapkákat az asztalra (vagy kattints rájuk duplán), vagy húzz egyet.",
+    "yourTurnFirst": "Te jössz. Az első kombinációidnak {{points}} pontot kell érniük, csak a saját tartódról.",
+    "dropToStart": "Tegyél lapkákat bárhová az asztalra, hogy új kombinációt kezdj.",
+    "emptyTable": "Az asztal üres. Az első lerakás nyitja meg.",
+    "reset": "Visszaállítás",
+    "draw": "Húzás",
+    "endTurn": "Kör vége",
+    "timeLeft_one": "Még {{count}} mp",
+    "timeLeft_other": "Még {{count}} mp",
+    "turnBanner": "Te jössz",
+    "tileRole": "lapka",
+    "setRole": "kombináció",
+    "moveSet": "A kombináció áthelyezése",
+    "changingSet": "{{name}} éppen ezt módosítja",
+    "lastTurnSet": "{{name}} utolsó köre",
+    "plansHint": "Itt tervezhetsz kombinációkat: húzz ide lapkákat, vagy kattints rájuk duplán, amikor nem te jössz.",
+    "planValid": "Érvényes kombináció",
+    "planInvalid": "Még nem kombináció",
+    "playPlan": "Az asztalra",
+    "sort": "Tartó rendezése",
+    "sortNumber": "1 2 3",
+    "sortColor": "Szín",
+    "pool_one": "Még {{count}} lapka húzható",
+    "pool_other": "Még {{count}} lapka húzható",
+    "chip_one": "{{name}}: {{count}} lapka",
+    "chip_other": "{{name}}: {{count}} lapka",
+    "chipBank": "{{time}} a tartalékban",
+    "away": "távol",
+    "you": "te",
+    "bot": "bot",
+    "bank": "tartalék {{time}}",
+    "seconds": "{{n}} mp",
+    "bonus": "+{{n}} mp",
+    "tiles_one": "{{count}} lapka",
+    "tiles_other": "{{count}} lapka"
+  },
+  "openRacks": {
+    "title": "Nyitott tartók",
+    "watchingHint": "A botokat nézed: minden tartó látszik. Rendezd őket vagy mozgasd a lapkákat, hogy átgondold a lépéseiket.",
+    "debugHint": "Hibakeresés: minden tartó látszik. Rendezd őket vagy mozgasd a lapkákat, hogy átgondold a lépéseiket.",
+    "show": "Mutasd",
+    "hide": "Elrejtés",
+    "noTurns": "A körök itt jelennek meg, ahogy lejátsszák őket.",
+    "drawnLastTurn": "Az előző körben húzva",
+    "drew": "húzott",
+    "passed": "passzolt (nincs több húzható lapka)",
+    "played_one": "letett {{count}} lapkát",
+    "played_other": "letett {{count}} lapkát",
+    "sets_one": "{{count}} új vagy módosított kombináció",
+    "sets_other": "{{count}} új vagy módosított kombináció"
+  },
+  "watch": {
+    "badge": "Néző",
+    "step": "Lépés",
+    "stepHint": "A következő kör lejátszása, aztán újra szünet",
+    "pause": "Szünet",
+    "resume": "Folytatás"
+  },
+  "results": {
+    "youWon": "Nyertél!",
+    "won_one": "{{names}} nyert",
+    "won_other": "{{names}} nyertek",
+    "leave": "Kilépés a szobából"
+  },
+  "leave": {
+    "open": "Kilépés a szobából",
+    "title": "Kilépsz a játékból?",
+    "detail": {
+      "easy": "A játék végéig egy könnyű bot játszik helyetted. A helyedre nem térhetsz vissza.",
+      "medium": "A játék végéig egy közepes bot játszik helyetted. A helyedre nem térhetsz vissza.",
+      "hard": "A játék végéig egy nehéz bot játszik helyetted. A helyedre nem térhetsz vissza.",
+      "extraHard": "A játék végéig egy nagyon nehéz bot játszik helyetted. A helyedre nem térhetsz vissza."
+    },
+    "stay": "Maradok",
+    "leave": "Kilépés"
+  },
+  "settings": {
+    "open": "Beállítások",
+    "title": "Beállítások",
+    "rack": "Tartó",
+    "flat": "Lapos tálca",
+    "classic": "Kétsoros tartó",
+    "watchLive": "Körök követése élőben",
+    "watchLiveHint": "Lásd a többiek lépéseit, miközben megteszik őket, azokban a szobákban, amelyek mutatják.",
+    "language": "Nyelv",
+    "languageAuto": "Automatikus ({{language}})"
+  },
+  "turnError": {
+    "noSuchTile": "Egy lapka, amely nincs a játékban.",
+    "invalidSet": "A(z) {{n}}. kombináció se nem sor, se nem csoport.",
+    "tileTakenFromTable": "Az asztalon lévő lapkáknak az asztalon kell maradniuk.",
+    "tileNotOnRack": "Egy lapka, amely nincs a tartódon.",
+    "nothingPlayed": "Tegyél le legalább egy lapkát a tartódról, vagy húzz.",
+    "initialMeldChangedTable": "Az első lerakásod csak a tartód lapkáit használhatja.",
+    "initialMeldTooLow_one": "Az első lerakásod {{count}} pontot ér; {{needed}} kell.",
+    "initialMeldTooLow_other": "Az első lerakásod {{count}} pontot ér; {{needed}} kell.",
+    "notYourTurn": "Nem te jössz.",
+    "gameOver": "A játéknak vége."
+  },
+  "refusal": {
+    "noSuchRoom": "Nincs {{code}} kódú szoba.",
+    "roomClosed": "Az a szoba bezárt.",
+    "roomFull_one": "A szoba megtelt ({{count}} játékos).",
+    "roomFull_other": "A szoba megtelt ({{count}} játékos).",
+    "watchersFull_one": "Már elegen nézik ({{count}}).",
+    "watchersFull_other": "Már elegen nézik ({{count}}).",
+    "gameStarted": "A játék ebben a szobában már elkezdődött.",
+    "noSuchSeat": "A helyed abban a szobában már nem létezik.",
+    "onlyHost": "Ezt csak a házigazda teheti meg.",
+    "notABot": "Az a hely nem egy boté.",
+    "tooFewPlayers_one": "Egy játékhoz legalább {{count}} játékos kell.",
+    "tooFewPlayers_other": "Egy játékhoz legalább {{count}} játékos kell.",
+    "noGame": "Nincs folyamatban játék.",
+    "notBotsOnly": "Csak olyan játék szüneteltethető, amelyben kizárólag botok játszanak.",
+    "watching": "Ezt a játékot nézed, nem játszol benne.",
+    "notStarted": "A játék még nem kezdődött el.",
+    "notYourTiles": "Azon az asztalon olyan lapkák vannak, amelyek nincsenek nálad.",
+    "alreadyInRoom": "Már egy szobában vagy.",
+    "notInRoom": "Nem vagy szobában."
+  },
+  "notice": {
+    "timeRanOutDrew": "Lejárt az idő, és az asztal nem volt érvényes kör, ezért húztál egy lapkát.",
+    "timeRanOutAll_one": "Lejárt az idő: a lapkád le lett téve.",
+    "timeRanOutAll_other": "Lejárt az idő: mind a(z) {{count}} lapkád le lett téve.",
+    "timeRanOutSome": "Lejárt az idő: {{played}}, a köröd érvényes része; {{back}}.",
+    "tilesPlayed_one": "{{count}} lapka letéve",
+    "tilesPlayed_other": "{{count}} lapka letéve",
+    "tilesBack_one": "{{count}} lapka visszakerült a tartódra",
+    "tilesBack_other": "{{count}} lapka visszakerült a tartódra",
+    "unearnedWarning": "A plusz idő azokért a lapkákért, amelyeket aztán visszaveszel, ellened számít: eddig {{soFar}}. {{limit}} után ebben a játékban nem kapsz többet.",
+    "noMoreBonus": "Visszavettél lapkákat, amelyekért {{time}} plusz időt kaptál. Ebben a játékban már nincs plusz idő a lapkákért."
+  }
+}

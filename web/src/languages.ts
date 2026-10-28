@@ -9,6 +9,13 @@ export const LANGUAGES = {
   tr: 'Türkçe',
   el: 'Ελληνικά',
   sv: 'Svenska',
+  it: 'Italiano',
+  nl: 'Nederlands',
+  ro: 'Română',
+  ru: 'Русский',
+  uk: 'Українська',
+  cs: 'Čeština',
+  hu: 'Magyar',
 } as const
 
 export type Language = keyof typeof LANGUAGES

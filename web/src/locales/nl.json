@@ -1,0 +1,240 @@
+{
+  "app": {
+    "title": "Rummy",
+    "status": {
+      "connecting": "Verbinden",
+      "open": "Verbonden",
+      "closed": "Verbinding verbroken"
+    },
+    "reconnect": "Opnieuw verbinden",
+    "mismatch": "De server spreekt protocol {{server}}, deze pagina {{page}}. Laad de pagina opnieuw voor de huidige versie."
+  },
+  "units": {
+    "seconds": "{{n}} s",
+    "minutes": "{{n}} min"
+  },
+  "bots": {
+    "level": {
+      "easy": "Makkelijk",
+      "medium": "Gemiddeld",
+      "hard": "Moeilijk",
+      "extraHard": "Heel moeilijk"
+    },
+    "bot": {
+      "easy": "Makkelijke bot",
+      "medium": "Gemiddelde bot",
+      "hard": "Moeilijke bot",
+      "extraHard": "Heel moeilijke bot"
+    }
+  },
+  "home": {
+    "yourName": "Je naam",
+    "name": "Naam",
+    "turnTime": "Tijd per beurt",
+    "advanced": "Geavanceerde instellingen",
+    "changed_one": "{{count}} gewijzigd",
+    "changed_other": "{{count}} gewijzigd",
+    "timeBank": "Tijdbank",
+    "timeBankDetail": "Elke speler heeft ook 2 minuten voor het hele spel, gebruikt zodra de tijd van een beurt op is. Tijd die van een beurt overblijft komt erbij, tot 3 minuten.",
+    "tileBonus": "Extra tijd voor stenen",
+    "tileBonusDetail": "15 s voor elke gelegde steen en 20 s voor elke combinatie die hij maakt of verandert, zodra de tafel een geldige beurt is.",
+    "liveTurns": "Beurten live tonen",
+    "liveTurnsDetail": "Iedereen ziet de zetten van wie aan de beurt is terwijl die ze doet, zoals aan een echte tafel.",
+    "standIn": "Als een speler weggaat",
+    "standInDetail": "Een bot neemt de plaats over voor de rest van het spel.",
+    "standInLabel": "Bot voor wie weggaat",
+    "create": "Kamer maken",
+    "orJoin": "of doe mee in een kamer",
+    "code": "Kamercode",
+    "codePlaceholder": "CODE",
+    "join": "Meedoen",
+    "watch": "Kijken"
+  },
+  "room": {
+    "summary": "{{parts}}.",
+    "separator": ", ",
+    "turn": "{{time}} per beurt",
+    "timeBank": "een tijdbank van 2 minuten",
+    "tileBonus": "extra tijd voor stenen",
+    "liveTurns": "beurten live getoond",
+    "finishedTurns": "alleen afgeronde beurten getoond",
+    "standIn": {
+      "easy": "een makkelijke bot voor wie weggaat",
+      "medium": "een gemiddelde bot voor wie weggaat",
+      "hard": "een moeilijke bot voor wie weggaat",
+      "extraHard": "een heel moeilijke bot voor wie weggaat"
+    }
+  },
+  "lobby": {
+    "code": "Kamercode: deel hem met de andere spelers",
+    "you": "(jij)",
+    "host": "host",
+    "remove": "Verwijderen",
+    "removeBot": "{{name}} verwijderen",
+    "watching": "Kijkers",
+    "takeSeat": "Toch meespelen",
+    "watchInstead": "Kijken in plaats van spelen",
+    "addBot": "Een bot toevoegen:",
+    "leave": "Weggaan",
+    "waitingForPlayers": "Wachten op spelers…",
+    "start_one": "Beginnen met {{count}} speler",
+    "start_other": "Beginnen met {{count}} spelers",
+    "waitingForHost": "Wachten tot de host begint…"
+  },
+  "tile": {
+    "number": "{{color}} {{value}}",
+    "joker": "Joker",
+    "color": {
+      "black": "zwarte",
+      "blue": "blauwe",
+      "orange": "oranje",
+      "red": "rode"
+    },
+    "drawn": "Deze steen heb je gepakt"
+  },
+  "board": {
+    "tabYourTurn": "Jij bent aan de beurt · Rummy",
+    "player": "Speler {{n}}",
+    "over": "Het spel is afgelopen.",
+    "paused": "Gepauzeerd in de beurt van {{name}}.",
+    "youreWatching": "Je kijkt mee.",
+    "playing": "{{name}} is aan de beurt.",
+    "playingSoFar_one": "{{name}} is aan de beurt: tot nu toe {{count}} steen van het rekje.",
+    "playingSoFar_other": "{{name}} is aan de beurt: tot nu toe {{count}} stenen van het rekje.",
+    "ready_one": "Klaar: {{count}} steen van je rekje.",
+    "ready_other": "Klaar: {{count}} stenen van je rekje.",
+    "lastPlayed_one": "{{name}} legde {{count}} steen.",
+    "lastPlayed_other": "{{name}} legde {{count}} stenen.",
+    "yourTurn": "Jij bent aan de beurt: sleep stenen naar de tafel (of dubbelklik erop), of pak een steen.",
+    "yourTurnFirst": "Jij bent aan de beurt. Je eerste combinaties moeten {{points}} waard zijn, alleen van je eigen rekje.",
+    "dropToStart": "Leg stenen ergens op de tafel neer om een combinatie te beginnen.",
+    "emptyTable": "De tafel is leeg. De eerste uitleg opent hem.",
+    "reset": "Herstellen",
+    "draw": "Steen pakken",
+    "endTurn": "Beurt beëindigen",
+    "timeLeft_one": "Nog {{count}} s",
+    "timeLeft_other": "Nog {{count}} s",
+    "turnBanner": "Jij bent aan de beurt",
+    "tileRole": "steen",
+    "setRole": "combinatie",
+    "moveSet": "Deze combinatie verplaatsen",
+    "changingSet": "{{name}} verandert dit",
+    "lastTurnSet": "Laatste beurt van {{name}}",
+    "plansHint": "Plan hier combinaties: sleep stenen hierheen, of dubbelklik erop als je niet aan de beurt bent.",
+    "planValid": "Een geldige combinatie",
+    "planInvalid": "Nog geen combinatie",
+    "playPlan": "Op tafel leggen",
+    "sort": "Rekje sorteren",
+    "sortNumber": "1 2 3",
+    "sortColor": "Kleur",
+    "pool_one": "Nog {{count}} steen om te pakken",
+    "pool_other": "Nog {{count}} stenen om te pakken",
+    "chip_one": "{{name}}: {{count}} steen",
+    "chip_other": "{{name}}: {{count}} stenen",
+    "chipBank": "{{time}} in de tijdbank",
+    "away": "weg",
+    "you": "jij",
+    "bot": "bot",
+    "bank": "bank {{time}}",
+    "seconds": "{{n}} s",
+    "bonus": "+{{n}} s",
+    "tiles_one": "{{count}} steen",
+    "tiles_other": "{{count}} stenen"
+  },
+  "openRacks": {
+    "title": "Open rekjes",
+    "watchingHint": "Je kijkt naar de bots: elk rekje is te zien. Sorteer ze of versleep hun stenen om hun zetten te doordenken.",
+    "debugHint": "Debuggen: elk rekje is te zien. Sorteer ze of versleep hun stenen om hun zetten te doordenken.",
+    "show": "Tonen",
+    "hide": "Verbergen",
+    "noTurns": "De beurten verschijnen hier zodra ze gespeeld zijn.",
+    "drawnLastTurn": "Vorige beurt gepakt",
+    "drew": "pakte",
+    "passed": "paste (geen stenen meer om te pakken)",
+    "played_one": "legde {{count}}",
+    "played_other": "legde {{count}}",
+    "sets_one": "{{count}} combinatie nieuw of veranderd",
+    "sets_other": "{{count}} combinaties nieuw of veranderd"
+  },
+  "watch": {
+    "badge": "Kijker",
+    "step": "Stap",
+    "stepHint": "De volgende beurt spelen, dan weer pauzeren",
+    "pause": "Pauze",
+    "resume": "Verder"
+  },
+  "results": {
+    "youWon": "Je hebt gewonnen!",
+    "won_one": "{{names}} heeft gewonnen",
+    "won_other": "{{names}} hebben gewonnen",
+    "leave": "Kamer verlaten"
+  },
+  "leave": {
+    "open": "Kamer verlaten",
+    "title": "Het spel verlaten?",
+    "detail": {
+      "easy": "Een makkelijke bot speelt de rest van het spel op jouw plaats. Je kunt er niet naar terug.",
+      "medium": "Een gemiddelde bot speelt de rest van het spel op jouw plaats. Je kunt er niet naar terug.",
+      "hard": "Een moeilijke bot speelt de rest van het spel op jouw plaats. Je kunt er niet naar terug.",
+      "extraHard": "Een heel moeilijke bot speelt de rest van het spel op jouw plaats. Je kunt er niet naar terug."
+    },
+    "stay": "Blijven",
+    "leave": "Weggaan"
+  },
+  "settings": {
+    "open": "Instellingen",
+    "title": "Instellingen",
+    "rack": "Rekje",
+    "flat": "Plat blad",
+    "classic": "Rekje met twee rijen",
+    "watchLive": "Beurten live volgen",
+    "watchLiveHint": "Zie de zetten van de anderen terwijl ze die doen, in kamers die ze tonen.",
+    "language": "Taal",
+    "languageAuto": "Automatisch ({{language}})"
+  },
+  "turnError": {
+    "noSuchTile": "Een steen die niet in het spel bestaat.",
+    "invalidSet": "Combinatie {{n}} is geen rij en geen groep.",
+    "tileTakenFromTable": "Stenen op tafel moeten op tafel blijven.",
+    "tileNotOnRack": "Een steen die niet op je rekje ligt.",
+    "nothingPlayed": "Leg minstens één steen van je rekje, of pak een steen.",
+    "initialMeldChangedTable": "Je eerste uitleg mag alleen stenen van je rekje gebruiken.",
+    "initialMeldTooLow_one": "Je eerste uitleg is {{count}} punt waard; er zijn er {{needed}} nodig.",
+    "initialMeldTooLow_other": "Je eerste uitleg is {{count}} punten waard; er zijn er {{needed}} nodig.",
+    "notYourTurn": "Je bent niet aan de beurt.",
+    "gameOver": "Het spel is afgelopen."
+  },
+  "refusal": {
+    "noSuchRoom": "Er is geen kamer met de code {{code}}.",
+    "roomClosed": "Die kamer is gesloten.",
+    "roomFull_one": "De kamer is vol ({{count}} speler).",
+    "roomFull_other": "De kamer is vol ({{count}} spelers).",
+    "watchersFull_one": "Er kijken al genoeg mensen mee ({{count}}).",
+    "watchersFull_other": "Er kijken al genoeg mensen mee ({{count}}).",
+    "gameStarted": "Het spel in deze kamer is begonnen.",
+    "noSuchSeat": "Je plaats in die kamer bestaat niet meer.",
+    "onlyHost": "Alleen de host kan dat doen.",
+    "notABot": "Die plaats is niet van een bot.",
+    "tooFewPlayers_one": "Een spel heeft minstens {{count}} speler nodig.",
+    "tooFewPlayers_other": "Een spel heeft minstens {{count}} spelers nodig.",
+    "noGame": "Er is geen spel bezig.",
+    "notBotsOnly": "Alleen een spel dat alleen bots spelen kan gepauzeerd worden.",
+    "watching": "Je kijkt naar dit spel, je speelt niet mee.",
+    "notStarted": "Het spel is nog niet begonnen.",
+    "notYourTiles": "Op die tafel liggen stenen die je niet hebt.",
+    "alreadyInRoom": "Je zit al in een kamer.",
+    "notInRoom": "Je zit in geen enkele kamer."
+  },
+  "notice": {
+    "timeRanOutDrew": "De tijd is om en de tafel was geen geldige beurt, dus je hebt een steen gepakt.",
+    "timeRanOutAll_one": "De tijd is om: je steen is gelegd.",
+    "timeRanOutAll_other": "De tijd is om: je {{count}} stenen zijn gelegd.",
+    "timeRanOutSome": "De tijd is om: {{played}}, het geldige deel van je beurt; {{back}}.",
+    "tilesPlayed_one": "{{count}} steen gelegd",
+    "tilesPlayed_other": "{{count}} stenen gelegd",
+    "tilesBack_one": "{{count}} steen ging terug naar je rekje",
+    "tilesBack_other": "{{count}} stenen gingen terug naar je rekje",
+    "unearnedWarning": "Extra tijd voor stenen die je daarna terugneemt telt tegen je: tot nu toe {{soFar}}. Bij {{limit}} krijg je in dit spel geen extra tijd meer.",
+    "noMoreBonus": "Je hebt stenen teruggenomen waarvoor je {{time}} extra tijd had gekregen. Geen extra tijd voor stenen meer in dit spel."
+  }
+}

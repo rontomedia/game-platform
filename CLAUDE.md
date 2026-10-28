@@ -228,8 +228,8 @@ only builds it on start.
   - Languages: react-i18next, every visible text through `t('key')` (no
     text in components). `src/locales/en.json` is the source and types the
     keys and their `{{values}}` (`i18next.d.ts`), so a wrong key fails the
-    type check; the others (`languages.ts`: pl, es, fr, de, pt-BR, tr, el,
-    sv) load as chunks of their own, before the first render (`i18n.ts`).
+    type check; the others (listed in `languages.ts`) load as chunks of
+    their own, before the first render (`i18n.ts`).
     The language is the setting, else the first of `navigator.languages`
     the game has (by language alone when the region differs), else
     English; `<html lang>` follows it. `LanguagePicker` (home header and
@@ -237,8 +237,11 @@ only builds it on start.
     (`_one`, `_few`, ...: each language's own forms from
     `Intl.PluralRules`, Polish has four), lists `Intl.ListFormat`.
     `i18n.test.ts` checks every catalogue against English: keys, plural
-    forms, values. Adding text: the key in `en.json` and every other
-    catalogue (the test says what's missing).
+    forms, values; it reads them from disk, as Vitest's module cache
+    keeps an `import.meta.glob`'s old file list. Adding text: the key in
+    `en.json` and every other catalogue (the test says what's missing).
+    Adding a language: its code and own name in `LANGUAGES`, and its
+    catalogue.
   - Planned: shadcn/ui for menus, `@heroiclabs/nakama-js` for
     accounts/matchmaking.
 

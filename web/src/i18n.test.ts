@@ -1,3 +1,9 @@
+/// <reference types="node" />
+
+import { readdirSync, readFileSync } from 'node:fs'
+import { join } from 'node:path'
+import { fileURLToPath } from 'node:url'
+
 import { describe, expect, it } from 'vitest'
 
 import { LANGUAGES, pickLanguage, pseudoText, resolveLanguage } from './languages.ts'
@@ -39,10 +45,13 @@ describe('pseudoText', () => {
 
 type Catalogue = { [key: string]: string | Catalogue }
 
-const catalogues = Object.fromEntries(
-  Object.entries(import.meta.glob<Catalogue>('./locales/*.json', { eager: true, import: 'default' })).map(
-    ([path, catalogue]) => [path.replace(/^.*\/(.*)\.json$/, '$1'), catalogue],
-  ),
+// Read from disk, not import.meta.glob: Vitest's module cache keeps a
+// glob's old file list, so a new catalogue would go unchecked.
+const folder = fileURLToPath(new URL('./locales/', import.meta.url))
+const catalogues: Record<string, Catalogue> = Object.fromEntries(
+  readdirSync(folder)
+    .filter((file) => file.endsWith('.json'))
+    .map((file) => [file.slice(0, -'.json'.length), JSON.parse(readFileSync(join(folder, file), 'utf8')) as Catalogue]),
 )
 
 /** Every text in a catalogue, by its dotted key. */
