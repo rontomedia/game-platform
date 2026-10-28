@@ -2,6 +2,7 @@ import { AnimatePresence, motion } from 'motion/react'
 import { useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
+import { LanguagePicker } from './LanguagePicker.tsx'
 import type { Settings } from './settings.ts'
 import { Switch } from './ui.tsx'
 
@@ -79,6 +80,10 @@ export function SettingsMenu({ settings, onChange }: { settings: Settings; onCha
               </span>
               <Switch checked={settings.watchLive} onChange={(watchLive) => onChange({ watchLive })} />
             </label>
+            <div className="mt-4">
+              <span className="block text-xs font-medium uppercase tracking-wider text-slate-400">{t('settings.language')}</span>
+              <LanguagePicker value={settings.language} onChange={(language) => onChange({ language })} className="mt-2" />
+            </div>
           </motion.div>
         )}
       </AnimatePresence>

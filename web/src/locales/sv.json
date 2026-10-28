@@ -1,0 +1,240 @@
+{
+  "app": {
+    "title": "Rummy",
+    "status": {
+      "connecting": "Ansluter",
+      "open": "Ansluten",
+      "closed": "Frånkopplad"
+    },
+    "reconnect": "Anslut igen",
+    "mismatch": "Servern använder protokoll {{server}}, den här sidan {{page}}. Ladda om sidan för att få den aktuella versionen."
+  },
+  "units": {
+    "seconds": "{{n}} s",
+    "minutes": "{{n}} min"
+  },
+  "bots": {
+    "level": {
+      "easy": "Lätt",
+      "medium": "Medel",
+      "hard": "Svår",
+      "extraHard": "Mycket svår"
+    },
+    "bot": {
+      "easy": "Lätt bott",
+      "medium": "Medelsvår bott",
+      "hard": "Svår bott",
+      "extraHard": "Mycket svår bott"
+    }
+  },
+  "home": {
+    "yourName": "Ditt namn",
+    "name": "Namn",
+    "turnTime": "Tid per drag",
+    "advanced": "Avancerade inställningar",
+    "changed_one": "{{count}} ändrad",
+    "changed_other": "{{count}} ändrade",
+    "timeBank": "Tidsbank",
+    "timeBankDetail": "Varje spelare har också 2 minuter för hela spelet, som används när dragets tid tar slut. Tid som blir över från ett drag läggs till, upp till 3 minuter.",
+    "tileBonus": "Extra tid för brickor",
+    "tileBonusDetail": "15 s för varje lagd bricka och 20 s för varje kombination den bildar eller ändrar, så snart bordet är ett giltigt drag.",
+    "liveTurns": "Visa dragen live",
+    "liveTurnsDetail": "Alla ser den aktuella spelarens drag medan hen gör dem, som vid ett riktigt bord.",
+    "standIn": "När en spelare lämnar",
+    "standInDetail": "En bott tar över platsen resten av spelet.",
+    "standInLabel": "Bott för den som lämnar",
+    "create": "Skapa ett rum",
+    "orJoin": "eller gå med i ett",
+    "code": "Rumskod",
+    "codePlaceholder": "KOD",
+    "join": "Gå med",
+    "watch": "Titta"
+  },
+  "room": {
+    "summary": "{{parts}}.",
+    "separator": ", ",
+    "turn": "{{time}} per drag",
+    "timeBank": "en tidsbank på 2 minuter",
+    "tileBonus": "extra tid för brickor",
+    "liveTurns": "dragen visas live",
+    "finishedTurns": "bara färdiga drag visas",
+    "standIn": {
+      "easy": "en lätt bott för den som lämnar",
+      "medium": "en medelsvår bott för den som lämnar",
+      "hard": "en svår bott för den som lämnar",
+      "extraHard": "en mycket svår bott för den som lämnar"
+    }
+  },
+  "lobby": {
+    "code": "Rumskod: dela den med de andra spelarna",
+    "you": "(du)",
+    "host": "värd",
+    "remove": "Ta bort",
+    "removeBot": "Ta bort {{name}}",
+    "watching": "Tittar",
+    "takeSeat": "Spela i stället",
+    "watchInstead": "Titta i stället för att spela",
+    "addBot": "Lägg till en bott:",
+    "leave": "Lämna",
+    "waitingForPlayers": "Väntar på spelare…",
+    "start_one": "Börja med {{count}} spelare",
+    "start_other": "Börja med {{count}} spelare",
+    "waitingForHost": "Väntar på att värden ska börja…"
+  },
+  "tile": {
+    "number": "{{color}} {{value}}",
+    "joker": "Joker",
+    "color": {
+      "black": "svart",
+      "blue": "blå",
+      "orange": "orange",
+      "red": "röd"
+    },
+    "drawn": "Du drog den här brickan"
+  },
+  "board": {
+    "tabYourTurn": "Din tur · Rummy",
+    "player": "Spelare {{n}}",
+    "over": "Spelet är slut.",
+    "paused": "Pausat under {{name}}s tur.",
+    "youreWatching": "Du tittar.",
+    "playing": "{{name}} spelar.",
+    "playingSoFar_one": "{{name}} spelar: {{count}} bricka från sitt ställ hittills.",
+    "playingSoFar_other": "{{name}} spelar: {{count}} brickor från sitt ställ hittills.",
+    "ready_one": "Klart: {{count}} bricka från ditt ställ.",
+    "ready_other": "Klart: {{count}} brickor från ditt ställ.",
+    "lastPlayed_one": "{{name}} lade {{count}} bricka.",
+    "lastPlayed_other": "{{name}} lade {{count}} brickor.",
+    "yourTurn": "Din tur: dra brickor till bordet (eller dubbelklicka på dem), eller dra en bricka.",
+    "yourTurnFirst": "Din tur. Dina första kombinationer måste vara värda {{points}}, bara från ditt ställ.",
+    "dropToStart": "Släpp brickor var som helst på bordet för att börja en kombination.",
+    "emptyTable": "Bordet är tomt. Första utläggningen öppnar det.",
+    "reset": "Ångra",
+    "draw": "Dra bricka",
+    "endTurn": "Avsluta draget",
+    "timeLeft_one": "{{count}} s kvar",
+    "timeLeft_other": "{{count}} s kvar",
+    "turnBanner": "Din tur",
+    "tileRole": "bricka",
+    "setRole": "kombination",
+    "moveSet": "Flytta kombinationen",
+    "changingSet": "{{name}} ändrar den här",
+    "lastTurnSet": "{{name}}s senaste drag",
+    "plansHint": "Planera kombinationer här: dra in brickor, eller dubbelklicka på dem när det inte är din tur.",
+    "planValid": "En giltig kombination",
+    "planInvalid": "Inte en kombination än",
+    "playPlan": "Lägg på bordet",
+    "sort": "Sortera stället",
+    "sortNumber": "1 2 3",
+    "sortColor": "Färg",
+    "pool_one": "{{count}} bricka kvar att dra",
+    "pool_other": "{{count}} brickor kvar att dra",
+    "chip_one": "{{name}}: {{count}} bricka",
+    "chip_other": "{{name}}: {{count}} brickor",
+    "chipBank": "{{time}} i banken",
+    "away": "borta",
+    "you": "du",
+    "bot": "bott",
+    "bank": "bank {{time}}",
+    "seconds": "{{n}} s",
+    "bonus": "+{{n}} s",
+    "tiles_one": "{{count}} bricka",
+    "tiles_other": "{{count}} brickor"
+  },
+  "openRacks": {
+    "title": "Öppna ställ",
+    "watchingHint": "Du tittar på bottarna: varje ställ visas. Sortera dem eller flytta brickorna för att tänka igenom deras drag.",
+    "debugHint": "Felsökning: varje ställ visas. Sortera dem eller flytta brickorna för att tänka igenom deras drag.",
+    "show": "Visa",
+    "hide": "Dölj",
+    "noTurns": "Dragen visas här allteftersom de spelas.",
+    "drawnLastTurn": "Dragen förra draget",
+    "drew": "drog",
+    "passed": "passade (inga brickor kvar att dra)",
+    "played_one": "lade {{count}}",
+    "played_other": "lade {{count}}",
+    "sets_one": "{{count}} kombination ny eller ändrad",
+    "sets_other": "{{count}} kombinationer nya eller ändrade"
+  },
+  "watch": {
+    "badge": "Tittar",
+    "step": "Steg",
+    "stepHint": "Spela nästa drag och pausa sedan igen",
+    "pause": "Pausa",
+    "resume": "Fortsätt"
+  },
+  "results": {
+    "youWon": "Du vann!",
+    "won_one": "{{names}} vann",
+    "won_other": "{{names}} vann",
+    "leave": "Lämna rummet"
+  },
+  "leave": {
+    "open": "Lämna rummet",
+    "title": "Lämna spelet?",
+    "detail": {
+      "easy": "En lätt bott spelar på din plats resten av spelet. Du kan inte komma tillbaka till den.",
+      "medium": "En medelsvår bott spelar på din plats resten av spelet. Du kan inte komma tillbaka till den.",
+      "hard": "En svår bott spelar på din plats resten av spelet. Du kan inte komma tillbaka till den.",
+      "extraHard": "En mycket svår bott spelar på din plats resten av spelet. Du kan inte komma tillbaka till den."
+    },
+    "stay": "Stanna",
+    "leave": "Lämna"
+  },
+  "settings": {
+    "open": "Inställningar",
+    "title": "Inställningar",
+    "rack": "Ställ",
+    "flat": "Platt bricka",
+    "classic": "Ställ med två rader",
+    "watchLive": "Följ dragen live",
+    "watchLiveHint": "Se de andra spelarnas drag medan de gör dem, i rum som visar dem.",
+    "language": "Språk",
+    "languageAuto": "Automatiskt ({{language}})"
+  },
+  "turnError": {
+    "noSuchTile": "En bricka som inte finns i spelet.",
+    "invalidSet": "Kombination {{n}} är varken en serie eller en grupp.",
+    "tileTakenFromTable": "Brickor på bordet måste stanna på bordet.",
+    "tileNotOnRack": "En bricka som inte finns på ditt ställ.",
+    "nothingPlayed": "Lägg minst en bricka från ditt ställ, eller dra en bricka.",
+    "initialMeldChangedTable": "Din första utläggning får bara använda brickor från ditt ställ.",
+    "initialMeldTooLow_one": "Din första utläggning är värd {{count}} poäng; den behöver {{needed}}.",
+    "initialMeldTooLow_other": "Din första utläggning är värd {{count}} poäng; den behöver {{needed}}.",
+    "notYourTurn": "Det är inte din tur.",
+    "gameOver": "Spelet är slut."
+  },
+  "refusal": {
+    "noSuchRoom": "Det finns inget rum med koden {{code}}.",
+    "roomClosed": "Det rummet har stängts.",
+    "roomFull_one": "Rummet är fullt ({{count}} spelare).",
+    "roomFull_other": "Rummet är fullt ({{count}} spelare).",
+    "watchersFull_one": "Tillräckligt många tittar redan ({{count}}).",
+    "watchersFull_other": "Tillräckligt många tittar redan ({{count}}).",
+    "gameStarted": "Spelet i det här rummet har börjat.",
+    "noSuchSeat": "Din plats i det rummet finns inte längre.",
+    "onlyHost": "Bara värden kan göra det.",
+    "notABot": "Den platsen tillhör ingen bott.",
+    "tooFewPlayers_one": "Ett spel behöver minst {{count}} spelare.",
+    "tooFewPlayers_other": "Ett spel behöver minst {{count}} spelare.",
+    "noGame": "Inget spel pågår.",
+    "notBotsOnly": "Bara ett spel som bara bottar spelar kan pausas.",
+    "watching": "Du tittar på det här spelet, du spelar inte.",
+    "notStarted": "Spelet har inte börjat.",
+    "notYourTiles": "Det bordet har brickor som du inte har.",
+    "alreadyInRoom": "Du är redan i ett rum.",
+    "notInRoom": "Du är inte i något rum."
+  },
+  "notice": {
+    "timeRanOutDrew": "Tiden tog slut och bordet var inte ett giltigt drag, så du drog en bricka.",
+    "timeRanOutAll_one": "Tiden tog slut: din bricka lades.",
+    "timeRanOutAll_other": "Tiden tog slut: dina {{count}} brickor lades.",
+    "timeRanOutSome": "Tiden tog slut: {{played}}, den giltiga delen av ditt drag; {{back}}.",
+    "tilesPlayed_one": "{{count}} bricka lades",
+    "tilesPlayed_other": "{{count}} brickor lades",
+    "tilesBack_one": "{{count}} bricka gick tillbaka till ditt ställ",
+    "tilesBack_other": "{{count}} brickor gick tillbaka till ditt ställ",
+    "unearnedWarning": "Extra tid för brickor som du sedan tar tillbaka räknas mot dig: {{soFar}} hittills. Vid {{limit}} får du ingen mer i det här spelet.",
+    "noMoreBonus": "Du tog tillbaka brickor som du hade fått {{time}} extra tid för. Ingen mer extra tid för brickor i det här spelet."
+  }
+}

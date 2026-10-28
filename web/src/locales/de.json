@@ -1,0 +1,240 @@
+{
+  "app": {
+    "title": "Rummy",
+    "status": {
+      "connecting": "Verbinde",
+      "open": "Verbunden",
+      "closed": "Getrennt"
+    },
+    "reconnect": "Neu verbinden",
+    "mismatch": "Der Server spricht Protokoll {{server}}, diese Seite {{page}}. Lade die Seite neu, um die aktuelle Version zu bekommen."
+  },
+  "units": {
+    "seconds": "{{n}} s",
+    "minutes": "{{n}} min"
+  },
+  "bots": {
+    "level": {
+      "easy": "Leicht",
+      "medium": "Mittel",
+      "hard": "Schwer",
+      "extraHard": "Sehr schwer"
+    },
+    "bot": {
+      "easy": "Leichter Bot",
+      "medium": "Mittlerer Bot",
+      "hard": "Schwerer Bot",
+      "extraHard": "Sehr schwerer Bot"
+    }
+  },
+  "home": {
+    "yourName": "Dein Name",
+    "name": "Name",
+    "turnTime": "Zeit pro Zug",
+    "advanced": "Erweiterte Einstellungen",
+    "changed_one": "{{count}} geändert",
+    "changed_other": "{{count}} geändert",
+    "timeBank": "Zeitkonto",
+    "timeBankDetail": "Jeder hat außerdem 2 Minuten für das ganze Spiel, die genutzt werden, sobald die Zeit eines Zuges abgelaufen ist. Übrige Zeit eines Zuges kommt hinzu, bis zu 3 Minuten.",
+    "tileBonus": "Extrazeit für Steine",
+    "tileBonusDetail": "15 s für jeden ausgelegten Stein und 20 s für jede Kombination, die er bildet oder ändert, sobald der Tisch ein gültiger Zug ist.",
+    "liveTurns": "Züge live zeigen",
+    "liveTurnsDetail": "Alle sehen die Züge des aktuellen Spielers, während er sie macht, wie an einem echten Tisch.",
+    "standIn": "Wenn jemand geht",
+    "standInDetail": "Ein Bot übernimmt den Platz für den Rest des Spiels.",
+    "standInLabel": "Bot für jemanden, der geht",
+    "create": "Raum erstellen",
+    "orJoin": "oder einem beitreten",
+    "code": "Raumcode",
+    "codePlaceholder": "CODE",
+    "join": "Beitreten",
+    "watch": "Zuschauen"
+  },
+  "room": {
+    "summary": "{{parts}}.",
+    "separator": ", ",
+    "turn": "{{time}} pro Zug",
+    "timeBank": "2 Minuten Zeitkonto",
+    "tileBonus": "Extrazeit für Steine",
+    "liveTurns": "Züge live",
+    "finishedTurns": "nur fertige Züge sichtbar",
+    "standIn": {
+      "easy": "ein leichter Bot für alle, die gehen",
+      "medium": "ein mittlerer Bot für alle, die gehen",
+      "hard": "ein schwerer Bot für alle, die gehen",
+      "extraHard": "ein sehr schwerer Bot für alle, die gehen"
+    }
+  },
+  "lobby": {
+    "code": "Raumcode: Teile ihn mit den anderen",
+    "you": "(du)",
+    "host": "Gastgeber",
+    "remove": "Entfernen",
+    "removeBot": "{{name}} entfernen",
+    "watching": "Schauen zu",
+    "takeSeat": "Doch mitspielen",
+    "watchInstead": "Zuschauen statt spielen",
+    "addBot": "Bot hinzufügen:",
+    "leave": "Verlassen",
+    "waitingForPlayers": "Warte auf Mitspieler…",
+    "start_one": "Mit {{count}} Spieler starten",
+    "start_other": "Mit {{count}} Spielern starten",
+    "waitingForHost": "Warte, bis der Gastgeber startet…"
+  },
+  "tile": {
+    "number": "{{color}} {{value}}",
+    "joker": "Joker",
+    "color": {
+      "black": "schwarze",
+      "blue": "blaue",
+      "orange": "orange",
+      "red": "rote"
+    },
+    "drawn": "Diesen Stein hast du gezogen"
+  },
+  "board": {
+    "tabYourTurn": "Du bist dran · Rummy",
+    "player": "Spieler {{n}}",
+    "over": "Das Spiel ist vorbei.",
+    "paused": "Pausiert im Zug von {{name}}.",
+    "youreWatching": "Du schaust zu.",
+    "playing": "{{name}} ist dran.",
+    "playingSoFar_one": "{{name}} ist dran: bisher {{count}} Stein von der Ablage.",
+    "playingSoFar_other": "{{name}} ist dran: bisher {{count}} Steine von der Ablage.",
+    "ready_one": "Bereit: {{count}} Stein von deiner Ablage.",
+    "ready_other": "Bereit: {{count}} Steine von deiner Ablage.",
+    "lastPlayed_one": "{{name}} hat {{count}} Stein gelegt.",
+    "lastPlayed_other": "{{name}} hat {{count}} Steine gelegt.",
+    "yourTurn": "Du bist dran: Zieh Steine auf den Tisch (oder doppelklicke sie) oder nimm einen Stein.",
+    "yourTurnFirst": "Du bist dran. Deine ersten Kombinationen müssen {{points}} wert sein, nur aus deiner Ablage.",
+    "dropToStart": "Leg Steine irgendwo auf den Tisch, um eine Kombination zu beginnen.",
+    "emptyTable": "Der Tisch ist leer. Das erste Auslegen eröffnet ihn.",
+    "reset": "Zurücksetzen",
+    "draw": "Stein ziehen",
+    "endTurn": "Zug beenden",
+    "timeLeft_one": "Noch {{count}} s",
+    "timeLeft_other": "Noch {{count}} s",
+    "turnBanner": "Du bist dran",
+    "tileRole": "Stein",
+    "setRole": "Kombination",
+    "moveSet": "Diese Kombination verschieben",
+    "changingSet": "{{name}} ändert das gerade",
+    "lastTurnSet": "Letzter Zug von {{name}}",
+    "plansHint": "Plane hier Kombinationen: Zieh Steine hinein oder doppelklicke sie, wenn du nicht dran bist.",
+    "planValid": "Eine gültige Kombination",
+    "planInvalid": "Noch keine Kombination",
+    "playPlan": "Auf den Tisch legen",
+    "sort": "Ablage sortieren",
+    "sortNumber": "1 2 3",
+    "sortColor": "Farbe",
+    "pool_one": "Noch {{count}} Stein zum Ziehen",
+    "pool_other": "Noch {{count}} Steine zum Ziehen",
+    "chip_one": "{{name}}: {{count}} Stein",
+    "chip_other": "{{name}}: {{count}} Steine",
+    "chipBank": "{{time}} auf dem Zeitkonto",
+    "away": "abwesend",
+    "you": "du",
+    "bot": "Bot",
+    "bank": "Konto {{time}}",
+    "seconds": "{{n}} s",
+    "bonus": "+{{n}} s",
+    "tiles_one": "{{count}} Stein",
+    "tiles_other": "{{count}} Steine"
+  },
+  "openRacks": {
+    "title": "Offene Ablagen",
+    "watchingHint": "Du schaust den Bots zu: Jede Ablage ist zu sehen. Sortiere sie oder verschiebe ihre Steine, um ihre Züge zu durchdenken.",
+    "debugHint": "Debugging: Jede Ablage ist zu sehen. Sortiere sie oder verschiebe ihre Steine, um ihre Züge zu durchdenken.",
+    "show": "Zeigen",
+    "hide": "Ausblenden",
+    "noTurns": "Hier erscheinen die Züge, sobald sie gespielt werden.",
+    "drawnLastTurn": "Im letzten Zug gezogen",
+    "drew": "zog",
+    "passed": "passte (keine Steine mehr zum Ziehen)",
+    "played_one": "legte {{count}}",
+    "played_other": "legte {{count}}",
+    "sets_one": "{{count}} Kombination neu oder geändert",
+    "sets_other": "{{count}} Kombinationen neu oder geändert"
+  },
+  "watch": {
+    "badge": "Zuschauer",
+    "step": "Schritt",
+    "stepHint": "Den nächsten Zug spielen, dann wieder pausieren",
+    "pause": "Pause",
+    "resume": "Weiter"
+  },
+  "results": {
+    "youWon": "Du hast gewonnen!",
+    "won_one": "{{names}} hat gewonnen",
+    "won_other": "{{names}} haben gewonnen",
+    "leave": "Raum verlassen"
+  },
+  "leave": {
+    "open": "Raum verlassen",
+    "title": "Das Spiel verlassen?",
+    "detail": {
+      "easy": "Ein leichter Bot spielt für dich bis zum Ende des Spiels. Du kannst nicht auf deinen Platz zurück.",
+      "medium": "Ein mittlerer Bot spielt für dich bis zum Ende des Spiels. Du kannst nicht auf deinen Platz zurück.",
+      "hard": "Ein schwerer Bot spielt für dich bis zum Ende des Spiels. Du kannst nicht auf deinen Platz zurück.",
+      "extraHard": "Ein sehr schwerer Bot spielt für dich bis zum Ende des Spiels. Du kannst nicht auf deinen Platz zurück."
+    },
+    "stay": "Bleiben",
+    "leave": "Verlassen"
+  },
+  "settings": {
+    "open": "Einstellungen",
+    "title": "Einstellungen",
+    "rack": "Ablage",
+    "flat": "Flache Schale",
+    "classic": "Zweireihige Ablage",
+    "watchLive": "Züge live verfolgen",
+    "watchLiveHint": "Sieh die Züge der anderen, während sie sie machen, in Räumen, die sie zeigen.",
+    "language": "Sprache",
+    "languageAuto": "Automatisch ({{language}})"
+  },
+  "turnError": {
+    "noSuchTile": "Ein Stein, den es im Spiel nicht gibt.",
+    "invalidSet": "Kombination {{n}} ist weder eine Reihe noch eine Gruppe.",
+    "tileTakenFromTable": "Steine auf dem Tisch müssen auf dem Tisch bleiben.",
+    "tileNotOnRack": "Ein Stein, der nicht auf deiner Ablage liegt.",
+    "nothingPlayed": "Leg mindestens einen Stein von deiner Ablage aus oder zieh einen Stein.",
+    "initialMeldChangedTable": "Dein erstes Auslegen darf nur Steine von deiner Ablage verwenden.",
+    "initialMeldTooLow_one": "Dein erstes Auslegen ist {{count}} Punkt wert; nötig sind {{needed}}.",
+    "initialMeldTooLow_other": "Dein erstes Auslegen ist {{count}} Punkte wert; nötig sind {{needed}}.",
+    "notYourTurn": "Du bist nicht dran.",
+    "gameOver": "Das Spiel ist vorbei."
+  },
+  "refusal": {
+    "noSuchRoom": "Es gibt keinen Raum mit dem Code {{code}}.",
+    "roomClosed": "Dieser Raum ist geschlossen.",
+    "roomFull_one": "Der Raum ist voll ({{count}} Spieler).",
+    "roomFull_other": "Der Raum ist voll ({{count}} Spieler).",
+    "watchersFull_one": "Es schauen schon genug zu ({{count}}).",
+    "watchersFull_other": "Es schauen schon genug zu ({{count}}).",
+    "gameStarted": "Das Spiel in diesem Raum hat begonnen.",
+    "noSuchSeat": "Deinen Platz in diesem Raum gibt es nicht mehr.",
+    "onlyHost": "Das kann nur der Gastgeber.",
+    "notABot": "Dieser Platz gehört keinem Bot.",
+    "tooFewPlayers_one": "Ein Spiel braucht mindestens {{count}} Spieler.",
+    "tooFewPlayers_other": "Ein Spiel braucht mindestens {{count}} Spieler.",
+    "noGame": "Es läuft kein Spiel.",
+    "notBotsOnly": "Nur ein Spiel, in dem nur Bots spielen, kann pausiert werden.",
+    "watching": "Du schaust diesem Spiel zu, du spielst nicht mit.",
+    "notStarted": "Das Spiel hat noch nicht begonnen.",
+    "notYourTiles": "Auf diesem Tisch liegen Steine, die du nicht hast.",
+    "alreadyInRoom": "Du bist schon in einem Raum.",
+    "notInRoom": "Du bist in keinem Raum."
+  },
+  "notice": {
+    "timeRanOutDrew": "Die Zeit ist abgelaufen und der Tisch war kein gültiger Zug, also hast du einen Stein gezogen.",
+    "timeRanOutAll_one": "Die Zeit ist abgelaufen: Dein Stein wurde gelegt.",
+    "timeRanOutAll_other": "Die Zeit ist abgelaufen: Deine {{count}} Steine wurden gelegt.",
+    "timeRanOutSome": "Die Zeit ist abgelaufen: {{played}}, der gültige Teil deines Zuges; {{back}}.",
+    "tilesPlayed_one": "{{count}} Stein gelegt",
+    "tilesPlayed_other": "{{count}} Steine gelegt",
+    "tilesBack_one": "{{count}} Stein ging zurück auf deine Ablage",
+    "tilesBack_other": "{{count}} Steine gingen zurück auf deine Ablage",
+    "unearnedWarning": "Extrazeit für Steine, die du danach zurücknimmst, zählt gegen dich: bisher {{soFar}}. Ab {{limit}} bekommst du in diesem Spiel keine mehr.",
+    "noMoreBonus": "Du hast Steine zurückgenommen, für die du {{time}} Extrazeit bekommen hattest. In diesem Spiel gibt es keine Extrazeit für Steine mehr."
+  }
+}

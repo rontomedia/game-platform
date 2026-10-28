@@ -68,8 +68,8 @@ const variables = (texts: Iterable<string>) =>
 describe('catalogues', () => {
   const english = messages(catalogues.en)
 
-  it('are only for languages the game lists', () => {
-    for (const language of Object.keys(catalogues)) expect(Object.keys(LANGUAGES)).toContain(language)
+  it('exist for every language and nothing else', () => {
+    expect(Object.keys(catalogues).sort()).toEqual(Object.keys(LANGUAGES).sort())
   })
 
   for (const [language, catalogue] of Object.entries(catalogues)) {

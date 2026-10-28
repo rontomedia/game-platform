@@ -5,6 +5,8 @@ import { useTranslation } from 'react-i18next'
 
 import { emptyArrangement, type Arrangement, type RackSort } from './arrange.ts'
 import { Board } from './Board.tsx'
+import { LanguagePicker } from './LanguagePicker.tsx'
+
 import { asWatcher, demoDrafts, demoGame, demoRoom, demoWatcherRoom, withOpenRacks } from './demo.ts'
 import { useSettings } from './settings.ts'
 import { remember, remembered } from './storage.ts'
@@ -128,17 +130,22 @@ function Online() {
 
   return (
     <div className="mx-auto flex max-w-5xl flex-col gap-6 px-4 py-6 sm:px-6 lg:py-10">
-      <header className="flex items-center justify-between gap-4">
-        <h1 className="text-3xl font-bold tracking-tight">{t('app.title')}</h1>
+      <header className="flex items-center gap-3 sm:gap-4">
+        <h1 className="mr-auto text-3xl font-bold tracking-tight">{t('app.title')}</h1>
         <span className="flex items-center gap-2 text-sm text-slate-300" title={SERVER_URL}>
-          <span className={`size-2.5 rounded-full ${statusDot[status]}`} />
-          {t(`app.status.${status}`)}
+          <span className={`size-2.5 shrink-0 rounded-full ${statusDot[status]}`} />
+          <span className="max-sm:sr-only">{t(`app.status.${status}`)}</span>
           {status === 'closed' && (
             <Button look="quiet" className="px-2 py-1 text-sm" onClick={reconnect}>
               {t('app.reconnect')}
             </Button>
           )}
         </span>
+        <LanguagePicker
+          value={settings.language}
+          onChange={(language) => changeSettings({ language })}
+          className="max-w-52 sm:max-w-60"
+        />
       </header>
       {mismatch !== null && (
         <p className="rounded-xl bg-rose-500/15 px-3 py-2 text-sm text-rose-200">
@@ -246,7 +253,8 @@ function Home({ send, problem, ready }: { send: (m: ClientMessage) => void; prob
             e.preventDefault()
             join(false)
           }}
-          className="flex gap-2"
+          // Long labels in some languages: the buttons go below the code rather than squeeze it.
+          className="flex flex-wrap gap-2"
         >
           <input
             value={code}
@@ -256,10 +264,18 @@ function Home({ send, problem, ready }: { send: (m: ClientMessage) => void; prob
             aria-label={t('home.code')}
             autoCapitalize="characters"
             autoComplete="off"
-            className={`${inputClass} flex-1 text-center font-mono text-lg tracking-[0.3em]`}
+            className={`${inputClass} min-w-32 flex-[1_1_8rem] text-center font-mono text-lg tracking-[0.3em]`}
           />
-          <Button disabled={!ready || code.trim().length !== 4}>{t('home.join')}</Button>
-          <Button type="button" look="quiet" disabled={!ready || code.trim().length !== 4} onClick={() => join(true)}>
+          <Button className="grow" disabled={!ready || code.trim().length !== 4}>
+            {t('home.join')}
+          </Button>
+          <Button
+            type="button"
+            look="quiet"
+            className="grow"
+            disabled={!ready || code.trim().length !== 4}
+            onClick={() => join(true)}
+          >
             {t('home.watch')}
           </Button>
         </form>

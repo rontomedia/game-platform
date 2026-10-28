@@ -188,7 +188,9 @@
     "flat": "Flat tray",
     "classic": "Two-row rack",
     "watchLive": "Watch turns live",
-    "watchLiveHint": "See the other players’ moves as they make them, in rooms that share them."
+    "watchLiveHint": "See the other players’ moves as they make them, in rooms that share them.",
+    "language": "Language",
+    "languageAuto": "Auto ({{language}})"
   },
   "turnError": {
     "noSuchTile": "A tile that isn’t in the game.",

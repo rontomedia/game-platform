@@ -1,0 +1,240 @@
+{
+  "app": {
+    "title": "Rummy",
+    "status": {
+      "connecting": "Bağlanıyor",
+      "open": "Bağlandı",
+      "closed": "Bağlantı kesildi"
+    },
+    "reconnect": "Yeniden bağlan",
+    "mismatch": "Sunucu {{server}} protokolünü, bu sayfa {{page}} protokolünü kullanıyor. Güncel sürüm için sayfayı yenileyin."
+  },
+  "units": {
+    "seconds": "{{n}} sn",
+    "minutes": "{{n}} dk"
+  },
+  "bots": {
+    "level": {
+      "easy": "Kolay",
+      "medium": "Orta",
+      "hard": "Zor",
+      "extraHard": "Çok zor"
+    },
+    "bot": {
+      "easy": "Kolay bot",
+      "medium": "Orta bot",
+      "hard": "Zor bot",
+      "extraHard": "Çok zor bot"
+    }
+  },
+  "home": {
+    "yourName": "Adınız",
+    "name": "Ad",
+    "turnTime": "Hamle süresi",
+    "advanced": "Gelişmiş ayarlar",
+    "changed_one": "{{count}} değişti",
+    "changed_other": "{{count}} değişti",
+    "timeBank": "Süre bankası",
+    "timeBankDetail": "Her oyuncunun ayrıca tüm oyun için 2 dakikası vardır; hamle süresi bitince kullanılır. Bir hamleden artan süre, 3 dakikaya kadar eklenir.",
+    "tileBonus": "Taşlar için ek süre",
+    "tileBonusDetail": "Masa geçerli bir hamle olduğunda, konan her taş için 15 sn ve kurduğu ya da değiştirdiği her per için 20 sn.",
+    "liveTurns": "Hamleleri canlı göster",
+    "liveTurnsDetail": "Herkes sıradaki oyuncunun hamlelerini, gerçek bir masadaki gibi, yapılırken görür.",
+    "standIn": "Bir oyuncu ayrılınca",
+    "standInDetail": "Oyunun geri kalanında yerine bir bot geçer.",
+    "standInLabel": "Ayrılan oyuncu için bot",
+    "create": "Oda oluştur",
+    "orJoin": "ya da bir odaya katıl",
+    "code": "Oda kodu",
+    "codePlaceholder": "KOD",
+    "join": "Katıl",
+    "watch": "İzle"
+  },
+  "room": {
+    "summary": "{{parts}}.",
+    "separator": ", ",
+    "turn": "hamle başına {{time}}",
+    "timeBank": "2 dakikalık süre bankası",
+    "tileBonus": "taşlar için ek süre",
+    "liveTurns": "hamleler canlı gösterilir",
+    "finishedTurns": "yalnızca biten hamleler gösterilir",
+    "standIn": {
+      "easy": "ayrılan herkesin yerine kolay bir bot",
+      "medium": "ayrılan herkesin yerine orta bir bot",
+      "hard": "ayrılan herkesin yerine zor bir bot",
+      "extraHard": "ayrılan herkesin yerine çok zor bir bot"
+    }
+  },
+  "lobby": {
+    "code": "Oda kodu: diğer oyuncularla paylaşın",
+    "you": "(siz)",
+    "host": "oda sahibi",
+    "remove": "Çıkar",
+    "removeBot": "{{name}} adlı botu çıkar",
+    "watching": "İzleyenler",
+    "takeSeat": "Oyuna katıl",
+    "watchInstead": "Oynamak yerine izle",
+    "addBot": "Bot ekle:",
+    "leave": "Ayrıl",
+    "waitingForPlayers": "Oyuncular bekleniyor…",
+    "start_one": "{{count}} oyuncuyla başla",
+    "start_other": "{{count}} oyuncuyla başla",
+    "waitingForHost": "Oda sahibinin başlatması bekleniyor…"
+  },
+  "tile": {
+    "number": "{{color}} {{value}}",
+    "joker": "Joker",
+    "color": {
+      "black": "siyah",
+      "blue": "mavi",
+      "orange": "turuncu",
+      "red": "kırmızı"
+    },
+    "drawn": "Bu taşı çektiniz"
+  },
+  "board": {
+    "tabYourTurn": "Sıra sizde · Rummy",
+    "player": "Oyuncu {{n}}",
+    "over": "Oyun bitti.",
+    "paused": "{{name}} oynarken duraklatıldı.",
+    "youreWatching": "İzliyorsunuz.",
+    "playing": "Sıra {{name}} adlı oyuncuda.",
+    "playingSoFar_one": "Sıra {{name}} adlı oyuncuda: şimdiye kadar ıstakasından {{count}} taş.",
+    "playingSoFar_other": "Sıra {{name}} adlı oyuncuda: şimdiye kadar ıstakasından {{count}} taş.",
+    "ready_one": "Hazır: ıstakanızdan {{count}} taş.",
+    "ready_other": "Hazır: ıstakanızdan {{count}} taş.",
+    "lastPlayed_one": "{{name}} {{count}} taş oynadı.",
+    "lastPlayed_other": "{{name}} {{count}} taş oynadı.",
+    "yourTurn": "Sıra sizde: taşları masaya sürükleyin (ya da çift tıklayın) veya taş çekin.",
+    "yourTurnFirst": "Sıra sizde. İlk perleriniz yalnızca ıstakanızdan olmalı ve en az {{points}} değerinde olmalı.",
+    "dropToStart": "Yeni bir per başlatmak için taşları masada herhangi bir yere bırakın.",
+    "emptyTable": "Masa boş. İlk açılış masayı açar.",
+    "reset": "Sıfırla",
+    "draw": "Taş çek",
+    "endTurn": "Hamleyi bitir",
+    "timeLeft_one": "{{count}} sn kaldı",
+    "timeLeft_other": "{{count}} sn kaldı",
+    "turnBanner": "Sıra sizde",
+    "tileRole": "taş",
+    "setRole": "per",
+    "moveSet": "Bu peri taşı",
+    "changingSet": "{{name}} bunu değiştiriyor",
+    "lastTurnSet": "{{name}} adlı oyuncunun son hamlesi",
+    "plansHint": "Perleri burada planlayın: taşları sürükleyin ya da sıra sizde değilken çift tıklayın.",
+    "planValid": "Geçerli bir per",
+    "planInvalid": "Henüz bir per değil",
+    "playPlan": "Masaya koy",
+    "sort": "Istakayı sırala",
+    "sortNumber": "1 2 3",
+    "sortColor": "Renk",
+    "pool_one": "Çekilecek {{count}} taş kaldı",
+    "pool_other": "Çekilecek {{count}} taş kaldı",
+    "chip_one": "{{name}}: {{count}} taş",
+    "chip_other": "{{name}}: {{count}} taş",
+    "chipBank": "bankada {{time}}",
+    "away": "uzakta",
+    "you": "siz",
+    "bot": "bot",
+    "bank": "banka {{time}}",
+    "seconds": "{{n}} sn",
+    "bonus": "+{{n}} sn",
+    "tiles_one": "{{count}} taş",
+    "tiles_other": "{{count}} taş"
+  },
+  "openRacks": {
+    "title": "Açık ıstakalar",
+    "watchingHint": "Botları izliyorsunuz: tüm ıstakalar görünür. Hamlelerini düşünmek için onları sıralayın ya da taşları sürükleyin.",
+    "debugHint": "Hata ayıklama: tüm ıstakalar görünür. Hamlelerini düşünmek için onları sıralayın ya da taşları sürükleyin.",
+    "show": "Göster",
+    "hide": "Gizle",
+    "noTurns": "Hamleler oynandıkça burada görünür.",
+    "drawnLastTurn": "Son hamlede çekildi",
+    "drew": "çekti",
+    "passed": "pas geçti (çekilecek taş kalmadı)",
+    "played_one": "{{count}} oynadı",
+    "played_other": "{{count}} oynadı",
+    "sets_one": "{{count}} per yeni ya da değişti",
+    "sets_other": "{{count}} per yeni ya da değişti"
+  },
+  "watch": {
+    "badge": "İzleniyor",
+    "step": "Adım",
+    "stepHint": "Sonraki hamleyi oyna, sonra yine duraklat",
+    "pause": "Duraklat",
+    "resume": "Devam et"
+  },
+  "results": {
+    "youWon": "Kazandınız!",
+    "won_one": "Kazanan: {{names}}",
+    "won_other": "Kazananlar: {{names}}",
+    "leave": "Odadan ayrıl"
+  },
+  "leave": {
+    "open": "Odadan ayrıl",
+    "title": "Oyundan ayrılıyor musunuz?",
+    "detail": {
+      "easy": "Oyunun geri kalanında yerinize kolay bir bot oynar. Bu yere geri dönemezsiniz.",
+      "medium": "Oyunun geri kalanında yerinize orta bir bot oynar. Bu yere geri dönemezsiniz.",
+      "hard": "Oyunun geri kalanında yerinize zor bir bot oynar. Bu yere geri dönemezsiniz.",
+      "extraHard": "Oyunun geri kalanında yerinize çok zor bir bot oynar. Bu yere geri dönemezsiniz."
+    },
+    "stay": "Kal",
+    "leave": "Ayrıl"
+  },
+  "settings": {
+    "open": "Ayarlar",
+    "title": "Ayarlar",
+    "rack": "Istaka",
+    "flat": "Düz tepsi",
+    "classic": "İki sıralı ıstaka",
+    "watchLive": "Hamleleri canlı izle",
+    "watchLiveHint": "Hamleleri paylaşan odalarda, diğer oyuncuların hamlelerini yapılırken görün.",
+    "language": "Dil",
+    "languageAuto": "Otomatik ({{language}})"
+  },
+  "turnError": {
+    "noSuchTile": "Oyunda olmayan bir taş.",
+    "invalidSet": "{{n}}. per ne seri ne de grup.",
+    "tileTakenFromTable": "Masadaki taşlar masada kalmalı.",
+    "tileNotOnRack": "Istakanızda olmayan bir taş.",
+    "nothingPlayed": "Istakanızdan en az bir taş oynayın ya da taş çekin.",
+    "initialMeldChangedTable": "İlk açılışınız yalnızca ıstakanızdaki taşları kullanabilir.",
+    "initialMeldTooLow_one": "İlk açılışınız {{count}} puan değerinde; {{needed}} gerekiyor.",
+    "initialMeldTooLow_other": "İlk açılışınız {{count}} puan değerinde; {{needed}} gerekiyor.",
+    "notYourTurn": "Sıra sizde değil.",
+    "gameOver": "Oyun bitti."
+  },
+  "refusal": {
+    "noSuchRoom": "{{code}} kodlu bir oda yok.",
+    "roomClosed": "O oda kapandı.",
+    "roomFull_one": "Oda dolu ({{count}} oyuncu).",
+    "roomFull_other": "Oda dolu ({{count}} oyuncu).",
+    "watchersFull_one": "Yeterince kişi izliyor ({{count}}).",
+    "watchersFull_other": "Yeterince kişi izliyor ({{count}}).",
+    "gameStarted": "Bu odadaki oyun başladı.",
+    "noSuchSeat": "O odadaki yeriniz artık yok.",
+    "onlyHost": "Bunu yalnızca oda sahibi yapabilir.",
+    "notABot": "O yer bir bota ait değil.",
+    "tooFewPlayers_one": "Bir oyun için en az {{count}} oyuncu gerekir.",
+    "tooFewPlayers_other": "Bir oyun için en az {{count}} oyuncu gerekir.",
+    "noGame": "Süren bir oyun yok.",
+    "notBotsOnly": "Yalnızca botların oynadığı bir oyun duraklatılabilir.",
+    "watching": "Bu oyunu izliyorsunuz, oynamıyorsunuz.",
+    "notStarted": "Oyun henüz başlamadı.",
+    "notYourTiles": "O masada sizde olmayan taşlar var.",
+    "alreadyInRoom": "Zaten bir odadasınız.",
+    "notInRoom": "Hiçbir odada değilsiniz."
+  },
+  "notice": {
+    "timeRanOutDrew": "Süre doldu ve masa geçerli bir hamle değildi, bu yüzden bir taş çektiniz.",
+    "timeRanOutAll_one": "Süre doldu: {{count}} taşınız oynandı.",
+    "timeRanOutAll_other": "Süre doldu: {{count}} taşınız oynandı.",
+    "timeRanOutSome": "Süre doldu: {{played}}, hamlenizin geçerli kısmı; {{back}}.",
+    "tilesPlayed_one": "{{count}} taş oynandı",
+    "tilesPlayed_other": "{{count}} taş oynandı",
+    "tilesBack_one": "{{count}} taş ıstakanıza geri döndü",
+    "tilesBack_other": "{{count}} taş ıstakanıza geri döndü",
+    "unearnedWarning": "Sonradan geri aldığınız taşlar için verilen ek süre aleyhinize sayılır: şimdiye kadar {{soFar}}. {{limit}} olunca bu oyunda artık ek süre almazsınız.",
+    "noMoreBonus": "{{time}} ek süre aldığınız taşları geri aldınız. Bu oyunda taşlar için artık ek süre yok."
+  }
+}
