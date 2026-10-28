@@ -1,0 +1,11 @@
+{
+  "settings": {
+    "open": "Settings",
+    "title": "Settings",
+    "rack": "Rack",
+    "flat": "Flat tray",
+    "classic": "Two-row rack",
+    "watchLive": "Watch turns live",
+    "watchLiveHint": "See the other players’ moves as they make them, in rooms that share them."
+  }
+}

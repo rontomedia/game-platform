@@ -1,5 +1,7 @@
-import { useCallback, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 
+import { applyLanguage } from './i18n.ts'
+import type { LanguageChoice } from './languages.ts'
 import { remember, remembered } from './storage.ts'
 
 /** The player's preferences, kept on this device. */
@@ -8,13 +10,20 @@ export interface Settings {
   rackStyle: 'flat' | 'classic'
   /** See the current player's table as they rearrange it (in rooms that share turns live). */
   watchLive: boolean
+  /** The game's language, or `auto` for the browser's. */
+  language: LanguageChoice
 }
 
-const defaults: Settings = { rackStyle: 'flat', watchLive: true }
+const defaults: Settings = { rackStyle: 'flat', watchLive: true, language: 'auto' }
 const KEY = 'rummy.settings'
 
+/** The settings as saved, before any screen is shown. */
+export function savedSettings(): Settings {
+  return { ...defaults, ...remembered<Partial<Settings>>(KEY) }
+}
+
 export function useSettings(): [Settings, (change: Partial<Settings>) => void] {
-  const [settings, setSettings] = useState<Settings>(() => ({ ...defaults, ...remembered<Partial<Settings>>(KEY) }))
+  const [settings, setSettings] = useState(savedSettings)
   const change = useCallback(
     (change: Partial<Settings>) =>
       setSettings((settings) => {
@@ -24,5 +33,6 @@ export function useSettings(): [Settings, (change: Partial<Settings>) => void] {
       }),
     [],
   )
+  useEffect(() => applyLanguage(settings.language), [settings.language])
   return [settings, change]
 }

@@ -1,11 +1,13 @@
 import { AnimatePresence, motion } from 'motion/react'
 import { useEffect, useRef, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 
 import type { Settings } from './settings.ts'
 import { Switch } from './ui.tsx'
 
 /** A gear that opens the settings. */
 export function SettingsMenu({ settings, onChange }: { settings: Settings; onChange: (change: Partial<Settings>) => void }) {
+  const { t } = useTranslation()
   const [open, setOpen] = useState(false)
   const menu = useRef<HTMLDivElement>(null)
 
@@ -26,7 +28,7 @@ export function SettingsMenu({ settings, onChange }: { settings: Settings; onCha
     <div ref={menu} className="relative shrink-0">
       <button
         onClick={() => setOpen((open) => !open)}
-        aria-label="Settings"
+        aria-label={t('settings.open')}
         aria-expanded={open}
         className="grid size-9 cursor-pointer place-items-center rounded-xl text-slate-300 transition hover:bg-white/10 hover:text-white"
       >
@@ -44,14 +46,14 @@ export function SettingsMenu({ settings, onChange }: { settings: Settings; onCha
             transition={{ duration: 0.15 }}
             className="absolute right-0 top-full z-50 mt-2 w-72 rounded-2xl bg-slate-900/95 p-4 shadow-2xl ring-1 ring-white/10 backdrop-blur-xl"
           >
-            <h2 className="text-sm font-semibold">Settings</h2>
+            <h2 className="text-sm font-semibold">{t('settings.title')}</h2>
             <fieldset className="mt-3">
-              <legend className="text-xs font-medium uppercase tracking-wider text-slate-400">Rack</legend>
+              <legend className="text-xs font-medium uppercase tracking-wider text-slate-400">{t('settings.rack')}</legend>
               <div className="mt-2 grid grid-cols-2 gap-2">
                 {(
                   [
-                    ['flat', 'Flat tray', <FlatIcon key="flat" />],
-                    ['classic', 'Two-row rack', <ClassicIcon key="classic" />],
+                    ['flat', t('settings.flat'), <FlatIcon key="flat" />],
+                    ['classic', t('settings.classic'), <ClassicIcon key="classic" />],
                   ] as const
                 ).map(([style, label, icon]) => (
                   <button
@@ -72,10 +74,8 @@ export function SettingsMenu({ settings, onChange }: { settings: Settings; onCha
             </fieldset>
             <label className="mt-4 flex cursor-pointer items-start gap-3">
               <span className="flex-1">
-                <span className="block text-sm font-medium">Watch turns live</span>
-                <span className="mt-0.5 block text-xs text-slate-400">
-                  See the other players’ moves as they make them, in rooms that share them.
-                </span>
+                <span className="block text-sm font-medium">{t('settings.watchLive')}</span>
+                <span className="mt-0.5 block text-xs text-slate-400">{t('settings.watchLiveHint')}</span>
               </span>
               <Switch checked={settings.watchLive} onChange={(watchLive) => onChange({ watchLive })} />
             </label>
