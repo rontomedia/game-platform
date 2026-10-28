@@ -45,7 +45,7 @@ export function SettingsMenu({ settings, onChange }: { settings: Settings; onCha
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: -6, scale: 0.97 }}
             transition={{ duration: 0.15 }}
-            className="absolute right-0 top-full z-50 mt-2 w-72 rounded-2xl bg-slate-900/95 p-4 shadow-2xl ring-1 ring-white/10 backdrop-blur-xl"
+            className="absolute end-0 top-full z-50 mt-2 w-72 rounded-2xl bg-slate-900/95 p-4 shadow-2xl ring-1 ring-white/10 backdrop-blur-xl"
           >
             <h2 className="text-sm font-semibold">{t('settings.title')}</h2>
             <fieldset className="mt-3">

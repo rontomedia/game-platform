@@ -131,7 +131,7 @@ function Online() {
   return (
     <div className="mx-auto flex max-w-5xl flex-col gap-6 px-4 py-6 sm:px-6 lg:py-10">
       <header className="flex items-center gap-3 sm:gap-4">
-        <h1 className="mr-auto shrink-0 text-3xl font-bold tracking-tight">{t('app.title')}</h1>
+        <h1 className="me-auto shrink-0 text-3xl font-bold tracking-tight">{t('app.title')}</h1>
         <span className="flex shrink-0 items-center gap-2 whitespace-nowrap text-sm text-slate-300" title={SERVER_URL}>
           <span className={`size-2.5 shrink-0 rounded-full ${statusDot[status]}`} />
           <span className="max-sm:sr-only">{t(`app.status.${status}`)}</span>
@@ -341,7 +341,7 @@ function Advanced({ changed, children }: { changed: number; children: ReactNode 
       >
         <svg
           viewBox="0 0 16 16"
-          className={`size-3.5 transition-transform ${open ? 'rotate-90' : ''}`}
+          className={`size-3.5 transition-transform rtl:-scale-x-100 ${open ? 'rotate-90' : ''}`}
           fill="none"
           stroke="currentColor"
           strokeWidth="2"
@@ -349,7 +349,7 @@ function Advanced({ changed, children }: { changed: number; children: ReactNode 
         >
           <path d="m6 3 5 5-5 5" />
         </svg>
-        <span className="flex-1 text-left">{t('home.advanced')}</span>
+        <span className="flex-1 text-start">{t('home.advanced')}</span>
         {changed > 0 && <span className="text-xs font-normal text-teal-300">{t('home.changed', { count: changed })}</span>}
       </button>
       <AnimatePresence initial={false}>
@@ -457,7 +457,7 @@ function Lobby({
               {seat.bot && <span className="text-xs uppercase tracking-wide text-violet-300">{t(`bots.bot.${seat.bot}`)}</span>}
               {seat.bot && isHost && (
                 <button
-                  className="-my-1 -mr-1 grid size-7 cursor-pointer place-items-center rounded-lg text-slate-400 hover:bg-white/10 hover:text-slate-100"
+                  className="-my-1 -me-1 grid size-7 cursor-pointer place-items-center rounded-lg text-slate-400 hover:bg-white/10 hover:text-slate-100"
                   aria-label={t('lobby.removeBot', { name: seat.name })}
                   title={t('lobby.remove')}
                   onClick={() => send({ type: 'removeBot', seat: i })}

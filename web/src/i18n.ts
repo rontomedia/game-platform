@@ -28,6 +28,8 @@ function load(language: string): Promise<object> {
 export async function initI18n(choice: LanguageChoice) {
   i18n.on('languageChanged', (language) => {
     document.documentElement.lang = language
+    // Right to left for Hebrew and Arabic; the board's playing surface keeps left to right.
+    document.documentElement.dir = i18n.dir(language)
   })
   await i18n
     .use(initReactI18next)

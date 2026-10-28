@@ -1,4 +1,6 @@
 import '@fontsource-variable/inter'
+// Scripts Inter lacks; each only downloads when a page shows its letters.
+import '@fontsource-variable/noto-sans-hebrew'
 import './index.css'
 
 import { StrictMode } from 'react'

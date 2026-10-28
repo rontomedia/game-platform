@@ -37,7 +37,7 @@ export function LeaveMenu({ standIn, ask, leave }: { standIn: BotLevel; ask: boo
         aria-expanded={ask ? open : undefined}
         className="grid size-9 cursor-pointer place-items-center rounded-xl text-slate-300 transition hover:bg-white/10 hover:text-white"
       >
-        <svg viewBox="0 0 24 24" className="size-5" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden>
+        <svg viewBox="0 0 24 24" className="size-5 rtl:-scale-x-100" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden>
           <path d="M14 4h4a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-4" />
           <path d="M10 16l-4-4 4-4M6 12h10" />
         </svg>
@@ -49,7 +49,7 @@ export function LeaveMenu({ standIn, ask, leave }: { standIn: BotLevel; ask: boo
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: -6, scale: 0.97 }}
             transition={{ duration: 0.15 }}
-            className="absolute right-0 top-full z-50 mt-2 w-72 rounded-2xl bg-slate-900/95 p-4 shadow-2xl ring-1 ring-white/10 backdrop-blur-xl"
+            className="absolute end-0 top-full z-50 mt-2 w-72 rounded-2xl bg-slate-900/95 p-4 shadow-2xl ring-1 ring-white/10 backdrop-blur-xl"
           >
             <h2 className="text-sm font-semibold">{t('leave.title')}</h2>
             <p className="mt-1.5 text-xs text-slate-400">{t(`leave.detail.${standIn}`)}</p>

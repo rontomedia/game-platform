@@ -4,7 +4,7 @@
 @custom-variant short (@media (max-height: 500px));
 
 @theme {
-  --font-sans: 'Inter Variable', ui-sans-serif, system-ui, sans-serif;
+  --font-sans: 'Inter Variable', 'Noto Sans Hebrew Variable', ui-sans-serif, system-ui, sans-serif;
 
   /* Numerals on the tiles. */
   --color-tile-black: #1c1917;

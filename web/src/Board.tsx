@@ -805,14 +805,16 @@ export function Board({
 
         <div className="relative flex min-h-0 flex-1 flex-col">
         <TableBanner turnCue={turnCue} lowTime={lowTime} />
+        {/* The playing surface stays left to right in every language: runs read 1 2 3. */}
         <main
+          dir="ltr"
           className={`felt relative min-h-0 flex-1 overflow-auto rounded-3xl p-3 [scrollbar-color:rgb(255_255_255/0.15)_transparent] [scrollbar-width:thin] sm:p-6 short:rounded-2xl short:p-3 ${
             lowTime !== undefined ? 'low-time' : ''
           }`}
         >
           <TableGrid gridRef={tableGrid} droppable={myTurn} height={metrics ? rows * metrics.cellH : undefined}>
             {layout.sets.length === 0 && (
-              <p className="pointer-events-none absolute inset-0 grid place-items-center text-center text-emerald-100/40">
+              <p dir="auto" className="pointer-events-none absolute inset-0 grid place-items-center text-center text-emerald-100/40">
                 {myTurn ? t('board.dropToStart') : t('board.emptyTable')}
               </p>
             )}
@@ -884,7 +886,7 @@ export function Board({
           {flat ? (
             <RackRow id="rack-0" tiles={layout.holders['rack-0']} wrap onPlay={quickMove} drawnId={drawnId} />
           ) : (
-            <div className="rack-classic space-y-1.5 rounded-2xl px-2 pb-1.5 pt-2 sm:px-3 short:space-y-1 short:pt-1.5">
+            <div dir="ltr" className="rack-classic space-y-1.5 rounded-2xl px-2 pb-1.5 pt-2 sm:px-3 short:space-y-1 short:pt-1.5">
               <RackRow id="rack-0" tiles={layout.holders['rack-0']} onPlay={quickMove} drawnId={drawnId} />
               <RackRow id="rack-1" tiles={layout.holders['rack-1']} onPlay={quickMove} drawnId={drawnId} />
             </div>
@@ -901,7 +903,7 @@ export function Board({
             lifted
           />
         ) : draggedSet ? (
-          <div className="flex items-center gap-1 pl-4">
+          <div dir="ltr" className="flex items-center gap-1 pl-4">
             {draggedSet.map((p) => (
               <TileFace key={p.id} tile={p.tile} size="table" lifted />
             ))}
@@ -1124,6 +1126,7 @@ function RackRow({
     <SortableContext items={tiles.map((p) => p.id)} strategy={wrap ? rectSortingStrategy : horizontalListSortingStrategy}>
       <div
         ref={setNodeRef}
+        dir="ltr"
         className={
           wrap
             ? 'flex min-h-16 flex-wrap gap-1.5 sm:min-h-[4.75rem] sm:gap-2 short:min-h-12 short:flex-nowrap short:overflow-x-auto short:pb-1'
@@ -1167,12 +1170,15 @@ function Plans({
   return (
     <div
       ref={setNodeRef}
+      dir="ltr"
       className={`mb-2 flex min-h-11 flex-wrap items-center gap-2 rounded-2xl border border-dashed px-2 py-1.5 transition short:mb-1.5 ${
         isOver ? 'border-amber-100/50 bg-amber-100/10' : 'border-amber-100/15'
       }`}
     >
       {plans.length === 0 && (
-        <p className="pointer-events-none px-1 text-xs text-amber-100/40">{t('board.plansHint')}</p>
+        <p dir="auto" className="pointer-events-none px-1 text-xs text-amber-100/40">
+          {t('board.plansHint')}
+        </p>
       )}
       {plans.map((plan) => (
         <Plan key={plan.holder} {...plan} myTurn={myTurn} onQuick={onQuick} onPlay={onPlay} />
@@ -1235,6 +1241,8 @@ function SortButtons({ sort, onSort }: { sort: RackSort; onSort: (by: 'number' |
           key={by}
           onClick={() => onSort(by)}
           aria-pressed={sort === by}
+          // "1 2 3" would read "3 2 1" in a right-to-left language.
+          dir={by === 'number' ? 'ltr' : undefined}
           className={`cursor-pointer rounded-[0.6rem] px-2.5 py-1.5 transition ${
             sort === by ? 'bg-amber-100/90 text-stone-900' : 'text-amber-100/70 hover:text-amber-50'
           }`}
@@ -1383,7 +1391,7 @@ function PlayerChip({
           )}
         </AnimatePresence>
         {/* On small screens the chip is just the avatar: the tile count rides on it. */}
-        <span className="absolute -bottom-1 -right-1.5 hidden min-w-5 rounded-full bg-slate-900 px-1 text-center text-[0.7rem] font-semibold tabular-nums text-slate-200 ring-1 ring-white/15 max-md:block short:block">
+        <span className="absolute -bottom-1 -end-1.5 hidden min-w-5 rounded-full bg-slate-900 px-1 text-center text-[0.7rem] font-semibold tabular-nums text-slate-200 ring-1 ring-white/15 max-md:block short:block">
           {tiles}
         </span>
       </div>
@@ -1468,7 +1476,7 @@ function OpenRacks({
         <span className="flex-1 max-sm:hidden">
           {view.you === undefined ? t('openRacks.watchingHint') : t('openRacks.debugHint')}
         </span>
-        <Button look="quiet" className="ml-auto px-2 py-0.5 text-xs" onClick={() => fold(!folded)}>
+        <Button look="quiet" className="ms-auto px-2 py-0.5 text-xs" onClick={() => fold(!folded)}>
           {folded ? t('openRacks.show') : t('openRacks.hide')}
         </Button>
       </div>
@@ -1554,7 +1562,7 @@ function OpenRack({
       </div>
       <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onDragEnd}>
         <SortableContext items={ids} strategy={rectSortingStrategy}>
-          <div className="flex min-w-0 flex-1 flex-wrap gap-0.5">
+          <div dir="ltr" className="flex min-w-0 flex-1 flex-wrap gap-0.5">
             {tiles.map((tile, i) => (
               <OpenTile key={ids[i]} id={ids[i]} tile={tile} fresh={fresh.has(i)} />
             ))}
@@ -1603,8 +1611,9 @@ function TurnLine({ turn, name }: { turn: TurnRecord; name: string }) {
     <li className="flex flex-wrap items-center gap-1.5">
       <span className="font-semibold">{name}</span>
       {t('openRacks.played', { count: turn.played.length })}
-      <span className="flex gap-0.5">
+      <span dir="ltr" className="flex gap-0.5">
         {sortTiles(turn.played, 'color').map((tile, i) => (
+
           <TileFace key={i} tile={tile} size="mini" />
         ))}
       </span>

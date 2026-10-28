@@ -241,7 +241,12 @@ only builds it on start.
     keeps an `import.meta.glob`'s old file list. Adding text: the key in
     `en.json` and every other catalogue (the test says what's missing).
     Adding a language: its code and own name in `LANGUAGES`, and its
-    catalogue.
+    catalogue; a script Inter lacks also needs its Noto font (fontsource,
+    imported in `main.tsx`, named in `--font-sans`; `unicode-range` means
+    only pages showing it download it). Right-to-left languages (Hebrew,
+    Arabic) set `<html dir>`: use logical classes (`ms-`, `pe-`, `start-`,
+    `end-`, `text-start`), and the playing surface (table, rack, plans,
+    open racks' tiles) stays `dir="ltr"` so runs read 1 2 3.
   - Planned: shadcn/ui for menus, `@heroiclabs/nakama-js` for
     accounts/matchmaking.
 
