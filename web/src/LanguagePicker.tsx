@@ -27,7 +27,7 @@ export function LanguagePicker({
         value={value}
         onChange={(e) => onChange(e.target.value as LanguageChoice)}
         aria-label={t('settings.language')}
-        className="min-w-0 flex-1 cursor-pointer appearance-none truncate bg-transparent py-1.5 pr-7 text-sm font-medium text-slate-200 [color-scheme:dark] focus:outline-none"
+        className="min-w-0 flex-1 cursor-pointer appearance-none truncate bg-transparent py-1.5 pr-7 text-sm font-medium text-slate-200 [color-scheme:dark] focus:outline-none [&_option]:bg-slate-900 [&_option]:text-slate-100"
       >
         <option value="auto">{t('settings.languageAuto', { language: browser })}</option>
         {Object.entries(LANGUAGES).map(([code, name]) => (

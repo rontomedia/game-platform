@@ -189,7 +189,7 @@ function Home({ send, problem, ready }: { send: (m: ClientMessage) => void; prob
   }
 
   return (
-    <div className="mx-auto w-full max-w-md">
+    <div className="mx-auto w-full max-w-lg">
       <Panel>
         <label className="flex flex-col gap-2">
           <span className="text-sm font-medium text-slate-300">{t('home.yourName')}</span>
@@ -441,7 +441,7 @@ function Lobby({
   const isHost = (watching ? room.watchers[room.watching!] : room.seats[room.you ?? -1])?.host ?? false
   const full = room.seats.length >= MAX_PLAYERS
   return (
-    <div className="mx-auto w-full max-w-md">
+    <div className="mx-auto w-full max-w-lg">
       <Panel>
         <p className="text-sm text-slate-400">{t('lobby.code')}</p>
         <p className="mt-1 font-mono text-5xl font-bold tracking-[0.2em] text-teal-300">{room.code}</p>
@@ -496,9 +496,15 @@ function Lobby({
         {isHost && !full && (
           <div className="mt-3 text-sm text-slate-400">
             <span>{t('lobby.addBot')}</span>
-            <div className="mt-1.5 grid grid-cols-2 gap-1 sm:grid-cols-4">
+            {/* Whole buttons wrap, never a label: some levels' names are long. */}
+            <div className="mt-1.5 flex flex-wrap gap-1">
               {(['easy', 'medium', 'hard', 'extraHard'] as const).map((level) => (
-                <Button key={level} look="quiet" className="px-2 py-1.5 text-sm" onClick={() => send({ type: 'addBot', level })}>
+                <Button
+                  key={level}
+                  look="quiet"
+                  className="grow whitespace-nowrap px-2 py-1.5 text-sm"
+                  onClick={() => send({ type: 'addBot', level })}
+                >
                   + {t(`bots.level.${level}`)}
                 </Button>
               ))}
