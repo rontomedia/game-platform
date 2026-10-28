@@ -44,8 +44,10 @@ pub struct Outcome {
 #[cfg_attr(feature = "wasm", derive(Tsify))]
 #[serde(rename_all = "camelCase")]
 pub struct PlayerView {
-    /// This player's seat.
-    pub you: usize,
+    /// This player's seat; absent for someone watching, who has none.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[cfg_attr(feature = "wasm", tsify(optional))]
+    pub you: Option<usize>,
     pub rules: Rules,
     pub rack: Vec<Tile>,
     pub table: Vec<Vec<Tile>>,
@@ -183,10 +185,15 @@ impl Game {
     /// The game as `player` sees it: other racks only by size, the pool
     /// only by count.
     pub fn view(&self, player: usize) -> PlayerView {
+        PlayerView { you: Some(player), rack: self.racks[player].clone(), ..self.watcher_view() }
+    }
+
+    /// What someone watching may see: everything but the racks.
+    pub fn watcher_view(&self) -> PlayerView {
         PlayerView {
-            you: player,
+            you: None,
             rules: self.rules.clone(),
-            rack: self.racks[player].clone(),
+            rack: Vec::new(),
             table: self.table.clone(),
             rack_sizes: self.racks.iter().map(Vec::len).collect(),
             melded: self.melded.clone(),
@@ -365,7 +372,7 @@ mod tests {
         let mut game = Game::new(3, Rules::default(), 5);
         game.draw(0).unwrap();
         let view = game.view(1);
-        assert_eq!(view.you, 1);
+        assert_eq!(view.you, Some(1));
         assert_eq!(view.rack, game.rack(1));
         assert_eq!(view.rack_sizes, vec![15, 14, 14]);
         assert_eq!(view.pool, 106 - 3 * 14 - 1);

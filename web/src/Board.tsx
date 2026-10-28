@@ -276,6 +276,9 @@ export function Board({
 }) {
   const { view } = game
   const myTurn = view.current === view.you && !view.outcome
+  // Someone watching has no seat, so no rack and no turns.
+  const watching = view.you === undefined
+  const melded = view.you !== undefined && view.melded[view.you]
   const [start] = useState(() => lay(view, arrangement, settings.rackStyle))
   const [layout, setLayout] = useState(start)
   const [sort, setSort] = useState<RackSort>(arrangement.sort)
@@ -295,7 +298,11 @@ export function Board({
   const lastPlan = useRef<number | null>(null)
   const tableGrid = useRef<HTMLDivElement | null>(null)
   const [metrics, setMetrics] = useState<Metrics | null>(null)
-  const now = useNow()
+  const ticking = useNow()
+  // While the game is paused, the clocks stand still as they were.
+  const [pausedAt, setPausedAt] = useState(() => (room.paused ? Date.now() : null))
+  if (room.paused !== (pausedAt !== null)) setPausedAt(room.paused ? ticking : null)
+  const now = pausedAt ?? ticking
   const playing = !view.outcome
   const overdue = game.turnEnds === undefined ? 0 : Math.max(0, now - game.turnEnds)
   const clock = (seat: number): Clock => {
@@ -466,7 +473,7 @@ export function Board({
   const table = layout.sets.map((key) => tilesOf(layout.holders[setHolder(key)])).filter((set) => set.length > 0)
   const changed = canonical(table) !== canonical(view.table)
   const verdict = myTurn && changed
-    ? checkTurn({ before: view.table, after: table, rack: view.rack, melded: view.melded[view.you], rules: view.rules })
+    ? checkTurn({ before: view.table, after: table, rack: view.rack, melded, rules: view.rules })
     : null
 
   // On this player's turn: the table after each drop, for the server to
@@ -693,14 +700,16 @@ export function Board({
     if (problem) return { tone: 'bad', text: problem }
     if (notice) return { tone: 'bad', text: notice }
     if (view.outcome) return { tone: 'neutral', text: 'The game is over.' }
+    if (room.paused) return { tone: 'neutral', text: `Paused on ${name(view.current)}’s turn.` }
     if (!myTurn) {
       const placed = liveTable ? liveTable.flat().length - view.table.flat().length : 0
+      const watcher = watching ? 'You’re watching. ' : ''
       return {
         tone: 'neutral',
         text:
           liveTable && (placed > 0 || liveSets.size > 0)
-            ? `${name(view.current)} is playing: ${placed} tile${placed === 1 ? '' : 's'} from their rack so far.`
-          : `${name(view.current)} is playing.`,
+            ? `${watcher}${name(view.current)} is playing: ${placed} tile${placed === 1 ? '' : 's'} from their rack so far.`
+          : `${watcher}${name(view.current)} is playing.`,
       }
     }
     if (verdict?.verdict === 'rejected') return { tone: 'bad', text: verdict.message }
@@ -713,7 +722,7 @@ export function Board({
       recentBy?.fresh && game.lastPlay
         ? `${recentBy.name} played ${game.lastPlay.played} tile${game.lastPlay.played === 1 ? '' : 's'}. `
         : ''
-    if (view.melded[view.you]) return { tone: 'neutral', text: `${news}Your turn: drag tiles onto the table (or double-click them), or draw.` }
+    if (melded) return { tone: 'neutral', text: `${news}Your turn: drag tiles onto the table (or double-click them), or draw.` }
     return {
       tone: 'neutral',
       text: `${news}Your turn. Your first sets must be worth ${view.rules.initialMeld}, from your rack alone.`,
@@ -793,6 +802,9 @@ export function Board({
           <AnimatePresence>{view.outcome && <Results view={view} name={name} leave={leave} />}</AnimatePresence>
         </main>
 
+        {watching ? (
+          <WatchBar room={room} over={!!view.outcome} note={note.text} noteColor={noteColor} send={send} />
+        ) : (
         <section className={flat ? 'tray rounded-3xl p-3 sm:p-4 short:rounded-2xl short:p-2' : ''}>
           <div className={`flex flex-wrap items-center gap-x-4 gap-y-2 ${flat ? 'mb-3 short:mb-2' : 'mb-2 px-1'}`}>
             <p className={`min-w-0 flex-1 text-sm font-medium short:truncate ${noteColor}`}>{note.text}</p>
@@ -824,6 +836,7 @@ export function Board({
             </div>
           )}
         </section>
+        )}
       </div>
 
       <DragOverlay dropAnimation={draggedSet ? null : { duration: 180, easing: 'cubic-bezier(0.2, 0.8, 0.2, 1)' }}>
@@ -1318,8 +1331,9 @@ function useRackOrders(code: string): [Record<number, RackOrder>, (seat: number,
 
 /**
  * Everyone else's rack and the turns so far, when the server shows every
- * rack (`--open-racks`): for judging how the bots play. The racks can be
- * sorted and reordered by dragging, to think through their moves.
+ * rack (`--open-racks`, or to those watching a game only bots play): for
+ * judging how the bots play. The racks can be sorted and reordered by
+ * dragging, to think through their moves.
  */
 function OpenRacks({
   code,
@@ -1344,7 +1358,10 @@ function OpenRacks({
     <section className="shrink-0 rounded-2xl bg-white/[0.04] px-3 py-2 ring-1 ring-white/10">
       <div className="flex items-center gap-2 text-xs text-slate-400">
         <span className="font-semibold uppercase tracking-wide text-violet-300">Open racks</span>
-        <span className="flex-1 max-sm:hidden">Debugging: every rack is shown. Sort or drag them to think their moves through.</span>
+        <span className="flex-1 max-sm:hidden">
+          {view.you === undefined ? 'Watching the bots: ' : 'Debugging: '}every rack is shown. Sort or drag them to think
+          their moves through.
+        </span>
         <Button look="quiet" className="ml-auto px-2 py-0.5 text-xs" onClick={() => fold(!folded)}>
           {folded ? 'Show' : 'Hide'}
         </Button>
@@ -1490,10 +1507,49 @@ function TurnLine({ turn, name }: { turn: TurnRecord; name: string }) {
   )
 }
 
+/**
+ * In place of the tray for someone watching: what's going on and, for the
+ * host of a game only bots play, buttons to pause it and step through it.
+ */
+function WatchBar({
+  room,
+  over,
+  note,
+  noteColor,
+  send,
+}: {
+  room: RoomInfo
+  over: boolean
+  note: string
+  noteColor: string
+  send: (message: ClientMessage) => void
+}) {
+  const host = room.watching !== undefined && room.watchers[room.watching]?.host
+  const botsOnly = room.seats.every((seat) => seat.bot !== undefined)
+  return (
+    <section className="tray flex flex-wrap items-center gap-x-4 gap-y-2 rounded-3xl p-3 sm:p-4 short:rounded-2xl short:p-2">
+      <span className="rounded-full bg-violet-400/15 px-2.5 py-1 text-xs font-semibold uppercase tracking-wide text-violet-200">
+        Watching
+      </span>
+      <p className={`min-w-0 flex-1 text-sm font-medium short:truncate ${noteColor}`}>{note}</p>
+      {host && botsOnly && !over && (
+        <div className="flex gap-2">
+          <Button look="quiet" disabled={!room.paused} onClick={() => send({ type: 'step' })} title="Play the next turn, then pause">
+            Step
+          </Button>
+          <Button look="primary" className="min-w-24" onClick={() => send({ type: 'pause', paused: !room.paused })}>
+            {room.paused ? 'Resume' : 'Pause'}
+          </Button>
+        </div>
+      )}
+    </section>
+  )
+}
+
 function Results({ view, name, leave }: { view: GameState['view']; name: (seat: number) => string; leave: () => void }) {
   const outcome = view.outcome!
   const order = view.rackSizes.map((_, seat) => seat).sort((a, b) => outcome.scores[b] - outcome.scores[a])
-  const won = outcome.winners.includes(view.you)
+  const won = view.you !== undefined && outcome.winners.includes(view.you)
   return (
     <motion.div
       initial={{ opacity: 0 }}

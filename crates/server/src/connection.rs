@@ -66,12 +66,13 @@ async fn handle(message: ClientMessage, rooms: &Arc<Rooms>, membership: &mut Opt
         }
         ClientMessage::CreateRoom { name, options } => {
             let room = rooms.create(options.checked());
-            *membership = enter(room, outbox, |reply| Command::Join { name: clean(&name), connection: connection(), reply }).await;
+            let join = |reply| Command::Join { name: clean(&name), watch: false, connection: connection(), reply };
+            *membership = enter(room, outbox, join).await;
         }
-        ClientMessage::JoinRoom { code, name } => match rooms.get(&code) {
+        ClientMessage::JoinRoom { code, name, watch } => match rooms.get(&code) {
             Some(room) => {
-                *membership =
-                    enter(room, outbox, |reply| Command::Join { name: clean(&name), connection: connection(), reply }).await
+                let join = |reply| Command::Join { name: clean(&name), watch, connection: connection(), reply };
+                *membership = enter(room, outbox, join).await
             }
             None => error(outbox, format!("no room with code {}", code.trim().to_uppercase())),
         },
@@ -83,7 +84,10 @@ async fn handle(message: ClientMessage, rooms: &Arc<Rooms>, membership: &mut Opt
         ClientMessage::RemoveBot { seat } => {
             forward(membership, outbox, |player| Command::RemoveBot { player, seat }).await
         }
+        ClientMessage::Watch { watching } => forward(membership, outbox, |player| Command::Watch { player, watching }).await,
         ClientMessage::Start => forward(membership, outbox, |player| Command::Start { player }).await,
+        ClientMessage::Pause { paused } => forward(membership, outbox, |player| Command::Pause { player, paused }).await,
+        ClientMessage::Step => forward(membership, outbox, |player| Command::Step { player }).await,
         ClientMessage::Play { table } => forward(membership, outbox, |player| Command::Play { player, table }).await,
         ClientMessage::Draw => forward(membership, outbox, |player| Command::Draw { player }).await,
         ClientMessage::Draft { table } => forward(membership, outbox, |player| Command::Draft { player, table }).await,

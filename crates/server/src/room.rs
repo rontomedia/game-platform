@@ -6,6 +6,10 @@
 //! bot's turn the room waits a moment, works out its move on a blocking
 //! thread (it can take a while on a full table), shows it as a live turn,
 //! and plays it.
+//!
+//! Others may watch without a seat: they see the table and live turns, and
+//! in a game only bots play, every rack too. The host of such a game, who
+//! may be watching it, can pause it and step through it a turn at a time.
 
 use std::sync::Arc;
 use std::time::Duration;
@@ -19,6 +23,7 @@ use crate::clock::Bonus;
 use crate::rooms::Rooms;
 
 pub const MAX_PLAYERS: usize = 4;
+pub const MAX_WATCHERS: usize = 8;
 
 /// Names for computer players, the first not taken.
 const BOT_NAMES: [&str; 4] = ["Ada", "Bruno", "Cleo", "Dev"];
@@ -83,12 +88,15 @@ pub struct Connection {
 }
 
 pub enum Command {
-    Join { name: String, connection: Connection, reply: oneshot::Sender<Result<PlayerId, String>> },
+    Join { name: String, watch: bool, connection: Connection, reply: oneshot::Sender<Result<PlayerId, String>> },
     Rejoin { token: String, connection: Connection, reply: oneshot::Sender<Result<PlayerId, String>> },
     Leave { player: PlayerId, connection: u64 },
+    Watch { player: PlayerId, watching: bool },
     AddBot { player: PlayerId, level: BotLevel },
     RemoveBot { player: PlayerId, seat: usize },
     Start { player: PlayerId },
+    Pause { player: PlayerId, paused: bool },
+    Step { player: PlayerId },
     Play { player: PlayerId, table: Vec<Vec<Tile>> },
     Draw { player: PlayerId },
     Draft { player: PlayerId, table: Vec<Vec<Tile>> },
@@ -96,6 +104,7 @@ pub enum Command {
     BotMove { turn: u64, choice: Move },
 }
 
+/// A player in a room, or someone watching (the time fields unused).
 struct Player {
     id: PlayerId,
     token: String,
@@ -126,8 +135,9 @@ enum BotTurn {
     Thinking,
     /// Working it out.
     Choosing,
-    /// Showing this play before making it.
-    Showing(Vec<Vec<Tile>>),
+    /// Making this move, once its play has been shown (in rooms with live
+    /// turns).
+    Ready(Move),
 }
 
 /// How a room was set up.
@@ -148,6 +158,8 @@ pub struct Room {
     commands: mpsc::WeakSender<Command>,
     /// In seat order.
     players: Vec<Player>,
+    /// Those watching, in the order they came.
+    watchers: Vec<Player>,
     next_id: PlayerId,
     game: Option<Game>,
     /// Counts turns, so a bot's move that arrives late is known for one.
@@ -169,6 +181,11 @@ pub struct Room {
     /// Extra time given this turn for tiles: what the best table so far was
     /// worth.
     granted: Duration,
+    /// Since when the game has been paused (only bots play it): the clock
+    /// and the bots wait.
+    paused: Option<Instant>,
+    /// Whether to pause again as the next turn begins (a step).
+    step: bool,
 }
 
 /// Starts a room's task; it removes itself from `rooms` when it closes.
@@ -180,6 +197,7 @@ pub fn spawn(code: String, config: Config, options: RoomOptions, rooms: Arc<Room
         options,
         commands: sender.downgrade(),
         players: Vec::new(),
+        watchers: Vec::new(),
         next_id: 0,
         game: None,
         turn: 0,
@@ -189,6 +207,8 @@ pub fn spawn(code: String, config: Config, options: RoomOptions, rooms: Arc<Room
         draft: None,
         bot_turn: None,
         granted: Duration::ZERO,
+        paused: None,
+        step: false,
     };
     tokio::spawn(room.run(commands, rooms));
     sender
@@ -202,8 +222,13 @@ impl Room {
         loop {
             // select! evaluates every branch's future, even a disabled one.
             let never = Instant::now() + Duration::from_secs(365 * 24 * 3600);
-            let (turn_ends, closes) = (self.deadline(), self.closes);
-            let bot_step = self.bot_turn.as_ref().filter(|(turn, _)| !matches!(turn, BotTurn::Choosing)).map(|(_, at)| *at);
+            let running = self.paused.is_none();
+            let (turn_ends, closes) = (self.deadline().filter(|_| running), self.closes);
+            let bot_step = self
+                .bot_turn
+                .as_ref()
+                .filter(|(turn, _)| running && !matches!(turn, BotTurn::Choosing))
+                .map(|(_, at)| *at);
             tokio::select! {
                 command = commands.recv() => match command {
                     Some(command) => self.handle(command),
@@ -220,16 +245,19 @@ impl Room {
 
     fn handle(&mut self, command: Command) {
         match command {
-            Command::Join { name, connection, reply } => {
-                let _ = reply.send(self.join(name, connection));
+            Command::Join { name, watch, connection, reply } => {
+                let _ = reply.send(self.join(name, watch, connection));
             }
             Command::Rejoin { token, connection, reply } => {
                 let _ = reply.send(self.rejoin(&token, connection));
             }
             Command::Leave { player, connection } => self.leave(player, connection),
+            Command::Watch { player, watching } => self.watch(player, watching),
             Command::AddBot { player, level } => self.add_bot(player, level),
             Command::RemoveBot { player, seat } => self.remove_bot(player, seat),
             Command::Start { player } => self.start(player),
+            Command::Pause { player, paused } => self.pause(player, paused),
+            Command::Step { player } => self.step(player),
             Command::Play { player, table } => self.make_move(player, Some(table)),
             Command::Draw { player } => self.make_move(player, None),
             Command::Draft { player, table } => self.share_draft(player, table),
@@ -237,13 +265,32 @@ impl Room {
         }
     }
 
-    fn join(&mut self, name: String, connection: Connection) -> Result<PlayerId, String> {
-        self.check_seat_free()?;
+    fn join(&mut self, name: String, watch: bool, connection: Connection) -> Result<PlayerId, String> {
+        if watch {
+            self.check_watcher_room()?;
+        } else {
+            self.check_seat_free()?;
+        }
         let token = format!("{:032x}", rand::random::<u128>());
         let _ = connection.outbox.send(ServerMessage::Joined { code: self.code.clone(), token: token.clone() });
         let id = self.seat_player(name, token, Some(connection), None);
+        if watch {
+            let watcher = self.players.pop().expect("just seated");
+            self.watchers.push(watcher);
+        }
         self.connections_changed();
+        if watch {
+            self.send_state_to(id);
+            self.send_draft_to(id);
+        }
         Ok(id)
+    }
+
+    fn check_watcher_room(&self) -> Result<(), String> {
+        if self.watchers.len() >= MAX_WATCHERS {
+            return Err(format!("enough are watching already ({MAX_WATCHERS})"));
+        }
+        Ok(())
     }
 
     fn check_seat_free(&self) -> Result<(), String> {
@@ -265,6 +312,15 @@ impl Room {
     }
 
     fn rejoin(&mut self, token: &str, connection: Connection) -> Result<PlayerId, String> {
+        if let Some(watcher) = self.watchers.iter_mut().find(|w| w.token == token) {
+            let _ = connection.outbox.send(ServerMessage::Joined { code: self.code.clone(), token: watcher.token.clone() });
+            watcher.connection = Some(connection);
+            let id = watcher.id;
+            self.connections_changed();
+            self.send_state_to(id);
+            self.send_draft_to(id);
+            return Ok(id);
+        }
         let seat = self.players.iter().position(|p| p.bot.is_none() && p.token == token).ok_or("no such seat in this room")?;
         let player = &mut self.players[seat];
         let _ = connection.outbox.send(ServerMessage::Joined { code: self.code.clone(), token: player.token.clone() });
@@ -278,16 +334,28 @@ impl Room {
         }
         self.connections_changed();
         self.broadcast_state();
-        if let Some(table) = self.draft.as_ref().filter(|_| self.options.live_turns) {
-            let by = self.game.as_ref().map_or(0, Game::current);
-            if by != seat {
-                self.send(seat, ServerMessage::Draft { by, table: table.clone() });
-            }
-        }
+        self.send_draft_to(id);
         Ok(id)
     }
 
+    /// The current player's table so far, for someone who just came, in
+    /// rooms with live turns (not for the current player: it's theirs).
+    fn send_draft_to(&self, player: PlayerId) {
+        let Some(table) = self.draft.as_ref().filter(|_| self.options.live_turns) else { return };
+        let by = self.game.as_ref().map_or(0, Game::current);
+        if self.seat(player) != Some(by) {
+            self.send_to(player, ServerMessage::Draft { by, table: table.clone() });
+        }
+    }
+
     fn leave(&mut self, player: PlayerId, connection: u64) {
+        if let Some(watcher) = self.watchers.iter_mut().find(|w| w.id == player) {
+            if watcher.connection.as_ref().is_some_and(|c| c.id == connection) {
+                watcher.connection = None;
+                self.connections_changed();
+            }
+            return;
+        }
         let Some(seat) = self.seat(player) else { return };
         if self.players[seat].connection.as_ref().is_none_or(|c| c.id != connection) {
             return;
@@ -305,11 +373,32 @@ impl Room {
         self.connections_changed();
     }
 
-    /// Why the host's lobby request from `seat` can't be done, if it can't.
-    fn host_refusal(&self, seat: usize) -> Option<&'static str> {
+    /// Watch instead of playing, or take a seat again: before the start.
+    fn watch(&mut self, player: PlayerId, watching: bool) {
+        if self.game.is_some() {
+            return self.send_to(player, ServerMessage::Error { message: "the game has already started".into() });
+        }
+        let from = if watching { &self.players } else { &self.watchers };
+        let Some(at) = from.iter().position(|p| p.id == player) else { return };
+        let room = if watching { self.check_watcher_room() } else { self.check_seat_free() };
+        if let Err(message) = room {
+            return self.send_to(player, ServerMessage::Error { message });
+        }
+        if watching {
+            let moved = self.players.remove(at);
+            self.watchers.push(moved);
+        } else {
+            let moved = self.watchers.remove(at);
+            self.players.push(moved);
+        }
+        self.broadcast_room();
+    }
+
+    /// Why the host's lobby request from `player` can't be done, if it can't.
+    fn host_refusal(&self, player: PlayerId) -> Option<&'static str> {
         if self.game.is_some() {
             Some("the game has already started")
-        } else if seat != self.host() {
+        } else if self.host() != Some(player) {
             Some("only the host can do that")
         } else {
             None
@@ -317,12 +406,11 @@ impl Room {
     }
 
     fn add_bot(&mut self, player: PlayerId, level: BotLevel) {
-        let Some(seat) = self.seat(player) else { return };
-        if let Some(message) = self.host_refusal(seat) {
-            return self.send(seat, ServerMessage::Error { message: message.into() });
+        if let Some(message) = self.host_refusal(player) {
+            return self.send_to(player, ServerMessage::Error { message: message.into() });
         }
         if let Err(message) = self.check_seat_free() {
-            return self.send(seat, ServerMessage::Error { message });
+            return self.send_to(player, ServerMessage::Error { message });
         }
         let taken = |name: &&str| self.players.iter().any(|p| p.name == **name);
         let name = BOT_NAMES.iter().find(|name| !taken(name)).unwrap_or(&"Bot").to_string();
@@ -331,22 +419,20 @@ impl Room {
     }
 
     fn remove_bot(&mut self, player: PlayerId, bot: usize) {
-        let Some(seat) = self.seat(player) else { return };
-        if let Some(message) = self.host_refusal(seat) {
-            return self.send(seat, ServerMessage::Error { message: message.into() });
+        if let Some(message) = self.host_refusal(player) {
+            return self.send_to(player, ServerMessage::Error { message: message.into() });
         }
         if self.players.get(bot).is_none_or(|p| p.bot.is_none()) {
-            return self.send(seat, ServerMessage::Error { message: "that seat isn't a bot's".into() });
+            return self.send_to(player, ServerMessage::Error { message: "that seat isn't a bot's".into() });
         }
         self.players.remove(bot);
         self.broadcast_room();
     }
 
     fn start(&mut self, player: PlayerId) {
-        let Some(seat) = self.seat(player) else { return };
         let refusal = if self.game.is_some() {
             Some("the game has already started")
-        } else if seat != self.host() {
+        } else if self.host() != Some(player) {
             Some("only the host can start the game")
         } else if self.players.iter().filter(|p| p.present()).count() < 2 {
             Some("a game needs at least 2 players")
@@ -354,7 +440,7 @@ impl Room {
             None
         };
         if let Some(message) = refusal {
-            return self.send(seat, ServerMessage::Error { message: message.into() });
+            return self.send_to(player, ServerMessage::Error { message: message.into() });
         }
         // Those who left before the start don't get a seat.
         self.players.retain(Player::present);
@@ -365,10 +451,68 @@ impl Room {
         self.broadcast_state();
     }
 
+    /// Why `player` can't pause or step the game, if they can't: only the
+    /// host, in a game only bots play.
+    fn pause_refusal(&self, player: PlayerId) -> Option<&'static str> {
+        if self.game.as_ref().is_none_or(|g| g.outcome().is_some()) {
+            Some("there's no game going on")
+        } else if self.host() != Some(player) {
+            Some("only the host can do that")
+        } else if self.players.iter().any(|p| p.bot.is_none()) {
+            Some("only a game the bots play alone can be paused")
+        } else {
+            None
+        }
+    }
+
+    fn pause(&mut self, player: PlayerId, paused: bool) {
+        if let Some(message) = self.pause_refusal(player) {
+            return self.send_to(player, ServerMessage::Error { message: message.into() });
+        }
+        self.step = false;
+        if paused {
+            self.paused.get_or_insert_with(Instant::now);
+        } else {
+            self.resume();
+        }
+        self.broadcast_room();
+        self.broadcast_state();
+    }
+
+    /// Plays the next turn of a paused game, then pauses again.
+    fn step(&mut self, player: PlayerId) {
+        if let Some(message) = self.pause_refusal(player) {
+            return self.send_to(player, ServerMessage::Error { message: message.into() });
+        }
+        if self.paused.is_none() {
+            return;
+        }
+        self.resume();
+        self.step = true;
+        // A bot waiting to think, or to play what it has shown, needn't.
+        if let Some((BotTurn::Thinking | BotTurn::Ready(_), at)) = &mut self.bot_turn {
+            *at = Instant::now();
+        }
+        self.broadcast_room();
+    }
+
+    /// Restarts the clock and the bots, from where they were when paused.
+    fn resume(&mut self) {
+        let Some(since) = self.paused.take() else { return };
+        let stopped = since.elapsed();
+        self.turn_ends = self.turn_ends.map(|t| t + stopped);
+        self.full_turn_ends = self.full_turn_ends.map(|t| t + stopped);
+        if let Some((_, at)) = &mut self.bot_turn {
+            *at += stopped;
+        }
+    }
+
     /// A play (the new table) or a draw (`None`) by `player`: applied, or
     /// rejected to them.
     fn make_move(&mut self, player: PlayerId, table: Option<Vec<Vec<Tile>>>) {
-        let Some(seat) = self.seat(player) else { return };
+        let Some(seat) = self.seat(player) else {
+            return self.send_to(player, ServerMessage::Error { message: "you're watching this game, not playing".into() });
+        };
         if self.game.is_none() {
             return self.send(seat, ServerMessage::Error { message: "the game hasn't started".into() });
         }
@@ -435,9 +579,7 @@ impl Room {
         self.turn_ends = self.turn_ends.map(|t| t + added);
         self.full_turn_ends = self.full_turn_ends.map(|t| t + added);
         let turn_ms = self.turn_ends.map_or(0, |t| t.saturating_duration_since(Instant::now()).as_millis() as u32);
-        for other in 0..self.players.len() {
-            self.send(other, ServerMessage::Clock { by: seat, added_ms: added.as_millis() as u32, turn_ms });
-        }
+        self.broadcast(ServerMessage::Clock { by: seat, added_ms: added.as_millis() as u32, turn_ms });
     }
 
     /// Extra time `seat` was given this turn beyond what their play kept
@@ -514,6 +656,7 @@ impl Room {
             for other in (0..self.players.len()).filter(|&other| other != by) {
                 self.send(other, ServerMessage::Draft { by, table: table.clone() });
             }
+            self.send_watchers(ServerMessage::Draft { by, table: table.clone() });
         }
         self.draft = Some(table);
     }
@@ -536,26 +679,28 @@ impl Room {
                     }
                 });
             }
-            BotTurn::Showing(table) => self.bot_moves(Move::Play(table)),
+            BotTurn::Ready(choice) => self.bot_moves(choice),
             BotTurn::Choosing => {}
         }
     }
 
     /// A bot's move has been worked out: shown first in rooms with live
-    /// turns, else made.
+    /// turns, then made (once the game isn't paused).
     fn bot_chose(&mut self, turn: u64, choice: Move) {
         if turn != self.turn || !matches!(self.bot_turn, Some((BotTurn::Choosing, _))) {
             return; // its turn has passed
         }
-        self.bot_turn = None;
-        match choice {
+        // While paused, from when the pause began: that's shifted on resuming.
+        let now = self.paused.unwrap_or_else(Instant::now);
+        let at = match &choice {
             Move::Play(table) if self.options.live_turns => {
                 let seat = self.game.as_ref().map_or(0, Game::current);
                 self.pass_on_draft(seat, table.clone());
-                self.bot_turn = Some((BotTurn::Showing(table), Instant::now() + self.config.timing.bot_show));
+                now + self.config.timing.bot_show
             }
-            choice => self.bot_moves(choice),
-        }
+            _ => now,
+        };
+        self.bot_turn = Some((BotTurn::Ready(choice), at));
     }
 
     /// The current player, a bot, makes this move (or draws, should the
@@ -630,12 +775,16 @@ impl Room {
         if game.outcome().is_none() && player.bot.is_some() {
             self.bot_turn = Some((BotTurn::Thinking, Instant::now() + timing.bot_think));
         }
+        if std::mem::take(&mut self.step) && game.outcome().is_none() {
+            self.paused = Some(Instant::now());
+            self.broadcast_room();
+        }
     }
 
     /// Someone connected or left: tell everyone, and close the room once
     /// nobody has been here for a while.
     fn connections_changed(&mut self) {
-        if self.players.iter().any(|p| p.connection.is_some()) {
+        if self.members().any(|p| p.connection.is_some()) {
             self.closes = None;
         } else if self.closes.is_none() {
             self.closes = Some(Instant::now() + self.config.timing.abandoned);
@@ -647,9 +796,15 @@ impl Room {
         self.players.iter().position(|p| p.id == player)
     }
 
-    /// The first connected player.
-    fn host(&self) -> usize {
-        self.players.iter().position(|p| p.connection.is_some()).unwrap_or(0)
+    /// Players and those watching.
+    fn members(&self) -> impl Iterator<Item = &Player> {
+        self.players.iter().chain(&self.watchers)
+    }
+
+    /// Of those here, seated or watching, the one who came first (ids count
+    /// up); none when nobody is.
+    fn host(&self) -> Option<PlayerId> {
+        self.members().filter(|p| p.connection.is_some()).map(|p| p.id).min()
     }
 
     fn send(&self, seat: usize, message: ServerMessage) {
@@ -658,31 +813,79 @@ impl Room {
         }
     }
 
+    /// To a member, seated or watching.
+    fn send_to(&self, player: PlayerId, message: ServerMessage) {
+        if let Some(connection) = self.members().find(|p| p.id == player).and_then(|p| p.connection.as_ref()) {
+            let _ = connection.outbox.send(message);
+        }
+    }
+
+    fn send_watchers(&self, message: ServerMessage) {
+        for connection in self.watchers.iter().filter_map(|w| w.connection.as_ref()) {
+            let _ = connection.outbox.send(message.clone());
+        }
+    }
+
+    /// To everyone, seated or watching.
+    fn broadcast(&self, message: ServerMessage) {
+        for connection in self.members().filter_map(|p| p.connection.as_ref()) {
+            let _ = connection.outbox.send(message.clone());
+        }
+    }
+
     fn broadcast_room(&self) {
-        let seats: Vec<Seat> = self
-            .players
-            .iter()
-            .map(|p| Seat { name: p.name.clone(), connected: p.present(), bot: p.bot })
-            .collect();
+        let host = self.host();
+        let seat = |p: &Player| Seat { name: p.name.clone(), connected: p.present(), bot: p.bot, host: host == Some(p.id) };
+        let room = RoomInfo {
+            code: self.code.clone(),
+            seats: self.players.iter().map(seat).collect(),
+            watchers: self.watchers.iter().map(seat).collect(),
+            you: None,
+            watching: None,
+            started: self.game.is_some(),
+            paused: self.paused.is_some(),
+            options: self.options.clone(),
+        };
         for you in 0..self.players.len() {
-            let room = RoomInfo {
-                code: self.code.clone(),
-                seats: seats.clone(),
-                you,
-                host: self.host(),
-                started: self.game.is_some(),
-                options: self.options.clone(),
-            };
-            self.send(you, ServerMessage::Room { room });
+            self.send(you, ServerMessage::Room { room: RoomInfo { you: Some(you), ..room.clone() } });
+        }
+        for (watching, watcher) in self.watchers.iter().enumerate() {
+            if let Some(connection) = &watcher.connection {
+                let room = RoomInfo { watching: Some(watching), ..room.clone() };
+                let _ = connection.outbox.send(ServerMessage::Room { room });
+            }
+        }
+    }
+
+    /// The state for a member, seated or watching.
+    fn send_state_to(&self, player: PlayerId) {
+        match self.seat(player) {
+            Some(seat) => self.send_state(seat),
+            None => {
+                if let Some(state) = self.state(None) {
+                    self.send_to(player, state);
+                }
+            }
         }
     }
 
     fn send_state(&self, seat: usize) {
-        let Some(game) = &self.game else { return };
-        let turn_ms = self.turn_ends.map(|t| t.saturating_duration_since(Instant::now()).as_millis() as u32);
-        let racks = self.config.open_racks.then(|| (0..game.players()).map(|p| game.rack(p).to_vec()).collect());
+        if let Some(state) = self.state(Some(seat)) {
+            self.send(seat, state);
+        }
+    }
+
+    /// The game as `seat` may see it, or someone watching (`None`).
+    fn state(&self, seat: Option<usize>) -> Option<ServerMessage> {
+        let game = self.game.as_ref()?;
+        // The clock stands still while the game is paused.
+        let now = self.paused.unwrap_or_else(Instant::now);
+        let turn_ms = self.turn_ends.map(|t| t.saturating_duration_since(now).as_millis() as u32);
+        // Watching a game only bots play, there's nobody to give a rack away to.
+        let open = self.config.open_racks || (seat.is_none() && self.players.iter().all(|p| p.bot.is_some()));
+        let racks = open.then(|| (0..game.players()).map(|p| game.rack(p).to_vec()).collect());
         // The current player's bank as of now, should they be using it.
-        let overdue = self.turn_ends.map_or(Duration::ZERO, |t| Instant::now().saturating_duration_since(t));
+        let overdue = self.turn_ends.map_or(Duration::ZERO, |t| now.saturating_duration_since(t));
         let banks = self.options.time_bank.then(|| {
             let current = game.current();
             self.players
@@ -694,12 +897,16 @@ impl Room {
                 })
                 .collect()
         });
-        self.send(seat, ServerMessage::State { view: game.view(seat), turn_ms, banks, racks });
+        let view = seat.map_or_else(|| game.watcher_view(), |seat| game.view(seat));
+        Some(ServerMessage::State { view, turn_ms, banks, racks })
     }
 
     fn broadcast_state(&self) {
         for seat in 0..self.players.len() {
             self.send_state(seat);
+        }
+        if let Some(state) = self.state(None) {
+            self.send_watchers(state);
         }
     }
 }

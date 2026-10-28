@@ -33,7 +33,8 @@ npm run wasm      # only rebuild the engine WASM (needs wasm-pack)
 
 `http://localhost:5173/?demo` shows the board with a made-up 4-player game
 and no server (`src/demo.ts`): the place to work on the board's look.
-`?demo=racks` adds the open racks panel.
+`?demo=racks` adds the open racks panel; `?demo=watcher` is a bots-only
+game seen by its watching host (Pause works).
 
 `cargo test -p engine --release -- --ignored --nocapture strength` plays
 the bot levels against each other and prints wins and time per move.
@@ -105,6 +106,15 @@ only builds it on start.
   - The server is the authority; the client's engine checks are for
     instant feedback. Tests (`tests.rs`) play matches through real
     WebSockets against a server on a free port, with short `Timing`s.
+  - Watchers: members without a seat (`Room.watchers`, the same `Player`
+    struct and `PlayerId` counter). `JoinRoom { watch }` at any time, or
+    `Watch` in the lobby. They get `Game::watcher_view()` (no rack, `you`
+    absent; `RoomInfo.watching` instead of `you`), drafts and clocks, and
+    every rack when all seats are bots. The host is the connected member
+    with the lowest id, seated or watching (`Seat.host`). In a bots-only
+    game the host can `Pause` (the clock and bot steps stand still and are
+    shifted on resuming) and `Step` (resume, then pause again as the next
+    turn starts).
 - **`web/`**: Vite + React 19 + TypeScript client. Tailwind v4 (theme tokens
   and the tile/felt/rack looks in `src/index.css`; a `short:` variant for
   screens under 500 px high, i.e. phones held sideways), Motion for UI
@@ -140,6 +150,8 @@ only builds it on start.
     player's avatar (`data-seat`) if they came from the rack. Each player can switch watching
     off in the settings (`watchLive`); there's no per-player opt-out of
     being watched, as that's the room's rule. `?demo=watch` shows it.
+    Someone watching (`view.you` undefined) gets `WatchBar` in place of
+    the tray, with Pause and Step for the host of a bots-only game.
   - Plans: a strip at the top of the tray (`Plans`, holders `plan-<key>`)
     where the player builds sets from their rack any time; on their turn a
     plan goes onto the table whole (its ↑ button or double-click). Kept in

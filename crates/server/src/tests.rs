@@ -111,7 +111,7 @@ impl Client {
     }
 
     async fn join(&mut self, code: &str, name: &str) -> String {
-        self.send(ClientMessage::JoinRoom { code: code.into(), name: name.into() }).await;
+        self.send(ClientMessage::JoinRoom { code: code.into(), name: name.into(), watch: false }).await;
         let joined = self.receive().await;
         let ServerMessage::Joined { token, .. } = joined else { panic!("expected Joined, got {joined:?}") };
         self.room().await;
@@ -159,14 +159,15 @@ async fn creating_and_joining_a_room() {
     let ServerMessage::Joined { code, .. } = ann.receive().await else { panic!() };
     assert_eq!(code.len(), 4);
     let room = ann.room().await;
-    assert_eq!((room.you, room.host, room.started), (0, 0, false));
+    assert_eq!((room.you, room.seats[0].host, room.started), (Some(0), true, false));
     assert_eq!(room.seats[0].name, "Ann", "trimmed");
 
     let mut bob = Client::connect(server).await;
     bob.join(&code.to_lowercase(), "Bob").await;
     let room = ann.room().await;
     assert_eq!(room.seats.iter().map(|s| s.name.as_str()).collect::<Vec<_>>(), ["Ann", "Bob"]);
-    assert_eq!(room.you, 0);
+    assert_eq!(room.you, Some(0));
+    assert!(!room.seats[1].host);
 }
 
 #[tokio::test]
@@ -174,7 +175,7 @@ async fn joining_can_fail() {
     let server = start_server(SLOW).await;
     let mut ann = Client::connect(server).await;
     let mut outsider = Client::connect(server).await;
-    outsider.send(ClientMessage::JoinRoom { code: "ZZZZ".into(), name: "X".into() }).await;
+    outsider.send(ClientMessage::JoinRoom { code: "ZZZZ".into(), name: "X".into(), watch: false }).await;
     assert_eq!(outsider.error().await, "no room with code ZZZZ");
 
     let (code, _) = ann.create("Ann").await;
@@ -187,7 +188,7 @@ async fn joining_can_fail() {
         client.join(&code, name).await;
         others.push(client);
     }
-    outsider.send(ClientMessage::JoinRoom { code: code.clone(), name: "E".into() }).await;
+    outsider.send(ClientMessage::JoinRoom { code: code.clone(), name: "E".into(), watch: false }).await;
     assert_eq!(outsider.error().await, "the room is full (4 players)");
 }
 
@@ -208,7 +209,7 @@ async fn only_the_host_starts_and_not_alone() {
     ann.send(ClientMessage::Start).await;
     assert!(ann.room().await.started);
     let mut late = Client::connect(server).await;
-    late.send(ClientMessage::JoinRoom { code, name: "Cy".into() }).await;
+    late.send(ClientMessage::JoinRoom { code, name: "Cy".into(), watch: false }).await;
     assert_eq!(late.error().await, "the game in this room has started");
 }
 
@@ -225,7 +226,7 @@ async fn each_player_sees_only_their_own_rack() {
     bob.room().await;
     let (a, turn_ms) = ann.state().await;
     let (b, _) = bob.state().await;
-    assert_eq!((a.you, b.you), (0, 1));
+    assert_eq!((a.you, b.you), (Some(0), Some(1)));
     assert_eq!(a.rack.len(), 14);
     assert_eq!(a.rack_sizes, vec![14, 14]);
     assert_ne!(a.rack, b.rack);
@@ -349,7 +350,7 @@ async fn an_empty_room_closes() {
     drop(ann);
     tokio::time::sleep(Duration::from_millis(600)).await;
     let mut bob = Client::connect(server).await;
-    bob.send(ClientMessage::JoinRoom { code: code.clone(), name: "Bob".into() }).await;
+    bob.send(ClientMessage::JoinRoom { code: code.clone(), name: "Bob".into(), watch: false }).await;
     assert_eq!(bob.error().await, format!("no room with code {code}"));
 }
 
@@ -438,7 +439,7 @@ async fn the_host_seats_bots_before_the_start() {
     let (code, _) = ann.create("Ann").await;
     ann.send(ClientMessage::AddBot { level: BotLevel::Hard }).await;
     let room = ann.room().await;
-    assert_eq!(room.seats[1], Seat { name: "Ada".into(), connected: true, bot: Some(BotLevel::Hard) });
+    assert_eq!(room.seats[1], Seat { name: "Ada".into(), connected: true, bot: Some(BotLevel::Hard), host: false });
     ann.send(ClientMessage::AddBot { level: BotLevel::Easy }).await;
     assert_eq!(ann.room().await.seats[2].name, "Bruno");
 
@@ -716,4 +717,85 @@ async fn the_valid_part_of_a_table_is_played_when_time_runs_out() {
     })
     .await;
     assert!(message.contains("2 tiles went back to your rack"), "{message}");
+}
+
+/// Asserts no new state comes within `ms`: the game stands still.
+async fn no_state_for(client: &mut Client, ms: u64) {
+    let wait = tokio::time::timeout(Duration::from_millis(ms), async {
+        loop {
+            if let ServerMessage::State { .. } = client.receive().await {
+                return;
+            }
+        }
+    });
+    assert!(wait.await.is_err(), "no state while paused");
+}
+
+#[tokio::test]
+async fn watching_a_game_only_bots_play_with_pause_and_step() {
+    let server = start_server(SLOW).await;
+    let mut ann = Client::connect(server).await;
+    ann.create("Ann").await;
+    ann.send(ClientMessage::Watch { watching: true }).await;
+    let room = ann.room().await;
+    assert_eq!((room.you, room.watching, room.seats.len()), (None, Some(0), 0));
+    assert!(room.watchers[0].host, "watching, still the host");
+    for level in [BotLevel::Easy, BotLevel::Hard] {
+        ann.send(ClientMessage::AddBot { level }).await;
+        ann.room().await;
+    }
+    ann.send(ClientMessage::Start).await;
+    ann.send(ClientMessage::Pause { paused: true }).await;
+    let racks = next(&mut ann, |m| match m {
+        ServerMessage::State { view, racks, .. } => Some((view, racks)),
+        _ => None,
+    })
+    .await;
+    let (view, racks) = racks;
+    assert_eq!((view.you, view.rack.len()), (None, 0), "no seat, no rack");
+    assert_eq!(racks.expect("every rack, with nobody to give it away to").len(), 2);
+
+    while !ann.room().await.paused {}
+    let (_, turn_ms) = ann.state().await;
+    assert!(turn_ms.is_some(), "the clock as it stopped");
+    no_state_for(&mut ann, 100).await;
+
+    // A step plays one turn, then the game stands still again.
+    ann.send(ClientMessage::Step).await;
+    let (before, _) = ann.state().await;
+    no_state_for(&mut ann, 100).await;
+    ann.send(ClientMessage::Step).await;
+    let (after, _) = ann.state().await;
+    assert_ne!(before.current, after.current, "the next bot's turn");
+
+    ann.send(ClientMessage::Pause { paused: false }).await;
+    assert!(!ann.room().await.paused);
+    loop {
+        if ann.state().await.0.outcome.is_some() {
+            break;
+        }
+    }
+}
+
+#[tokio::test]
+async fn watchers_of_a_game_with_people_see_no_racks_and_cannot_pause_it() {
+    let mut game = two_player_game(SLOW).await;
+    let mut cy = Client::connect(game.server).await;
+    cy.send(ClientMessage::JoinRoom { code: game.code.clone(), name: "Cy".into(), watch: true }).await;
+    assert!(matches!(cy.receive().await, ServerMessage::Joined { .. }));
+    let room = cy.room().await;
+    assert_eq!((room.you, room.watching, room.seats.len()), (None, Some(0), 2));
+    let ServerMessage::State { view, racks, .. } = cy.receive().await else { panic!("the game so far") };
+    assert_eq!((view.you, view.rack.len(), racks), (None, 0, None));
+    assert_eq!(game.ann.room().await.watchers[0].name, "Cy");
+
+    // Cy watches Ann's turn live.
+    let table = vec![game.ann_view.rack[..1].to_vec()];
+    game.ann.send(ClientMessage::Draft { table: table.clone() }).await;
+    assert_eq!(cy.receive().await, ServerMessage::Draft { by: 0, table });
+
+    game.ann.send(ClientMessage::Pause { paused: true }).await;
+    assert_eq!(game.ann.error().await, "only a game the bots play alone can be paused");
+    cy.send(ClientMessage::Draw).await;
+    assert_eq!(cy.error().await, "you're watching this game, not playing");
 }

@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState, type FormEvent } from 'react'
 
 import { emptyArrangement, type Arrangement, type RackSort } from './arrange.ts'
 import { Board } from './Board.tsx'
-import { demoDrafts, demoGame, demoRoom, withOpenRacks } from './demo.ts'
+import { asWatcher, demoDrafts, demoGame, demoRoom, demoWatcherRoom, withOpenRacks } from './demo.ts'
 import { useSettings } from './settings.ts'
 import { remember, remembered } from './storage.ts'
 import { Button, inputClass, Note, Panel, Switch } from './ui.tsx'
@@ -25,20 +25,25 @@ export default function App() {
 /**
  * The demo game. `?demo=watch`: it's Maya's turn instead, and she shares it
  * live, a step every few seconds. `?demo=racks`: every rack is shown, as
- * with a server started with `--open-racks`.
+ * with a server started with `--open-racks`. `?demo=watcher`: bots play
+ * and the player watches, as the host who can pause them.
  */
 function Demo() {
   const mode = new URLSearchParams(location.search).get('demo')
-  const watch = mode === 'watch'
-  const [game] = useState(() => (mode === 'racks' ? withOpenRacks(demoGame()) : demoGame(watch)))
+  const watcher = mode === 'watcher'
+  const watch = mode === 'watch' || watcher
+  const [game] = useState(() =>
+    mode === 'racks' ? withOpenRacks(demoGame()) : watcher ? asWatcher(demoGame(true)) : demoGame(watch),
+  )
+  const [paused, setPaused] = useState(false)
   const [settings, changeSettings] = useSettings()
   const [arrangement, setArrangement] = useArrangement(demoRoom.code)
   const [step, setStep] = useState(0)
   useEffect(() => {
-    if (!watch) return
+    if (!watch || paused) return
     const timer = setInterval(() => setStep((step) => step + 1), 2500)
     return () => clearInterval(timer)
-  }, [watch])
+  }, [watch, paused])
   // Made once: a new table each render would look like a new draft each time.
   const [drafts] = useState(demoDrafts)
   const table = watch ? drafts[step % drafts.length] : null
@@ -46,7 +51,7 @@ function Demo() {
   return (
     <Board
       game={game}
-      room={demoRoom}
+      room={watcher ? { ...demoWatcherRoom, paused } : demoRoom}
       status="open"
       problem={null}
       notice={null}
@@ -55,7 +60,10 @@ function Demo() {
       arrangement={arrangement}
       onArrange={setArrangement}
       draft={settings.watchLive ? draft : null}
-      send={(message) => console.info('demo, not sent:', message)}
+      send={(message) => {
+        if (message.type === 'pause') setPaused(message.paused)
+        else console.info('demo, not sent:', message)
+      }}
       leave={() => location.reload()}
     />
   )
@@ -163,10 +171,9 @@ function Home({ send, problem, ready }: { send: (m: ClientMessage) => void; prob
     remember(NAME_KEY, name.trim())
     send({ type: 'createRoom', name, options })
   }
-  const join = (e: FormEvent) => {
-    e.preventDefault()
+  const join = (watch: boolean) => {
     remember(NAME_KEY, name.trim())
-    send({ type: 'joinRoom', code, name })
+    send({ type: 'joinRoom', code, name, watch })
   }
 
   return (
@@ -219,7 +226,13 @@ function Home({ send, problem, ready }: { send: (m: ClientMessage) => void; prob
           or join one
           <span className="h-px flex-1 bg-white/10" />
         </div>
-        <form onSubmit={join} className="flex gap-2">
+        <form
+          onSubmit={(e: FormEvent) => {
+            e.preventDefault()
+            join(false)
+          }}
+          className="flex gap-2"
+        >
           <input
             value={code}
             onChange={(e) => setCode(e.target.value.toUpperCase())}
@@ -231,6 +244,9 @@ function Home({ send, problem, ready }: { send: (m: ClientMessage) => void; prob
             className={`${inputClass} flex-1 text-center font-mono text-lg tracking-[0.3em]`}
           />
           <Button disabled={!ready || code.trim().length !== 4}>Join</Button>
+          <Button type="button" look="quiet" disabled={!ready || code.trim().length !== 4} onClick={() => join(true)}>
+            Watch
+          </Button>
         </form>
         {problem && (
           <div className="mt-4">
@@ -304,7 +320,8 @@ function Lobby({
   leave: () => void
 }) {
   const present = room.seats.filter((s) => s.connected).length
-  const isHost = room.you === room.host
+  const watching = room.watching !== undefined
+  const isHost = (watching ? room.watchers[room.watching!] : room.seats[room.you ?? -1])?.host ?? false
   const full = room.seats.length >= MAX_PLAYERS
   return (
     <div className="mx-auto w-full max-w-md">
@@ -331,10 +348,34 @@ function Lobby({
                   ×
                 </button>
               )}
-              {i === room.host && <span className="text-xs uppercase tracking-wide text-teal-300">host</span>}
+              {seat.host && <span className="text-xs uppercase tracking-wide text-teal-300">host</span>}
             </li>
           ))}
         </ul>
+        {room.watchers.length > 0 && (
+          <>
+            <p className="mt-5 text-sm text-slate-400">Watching</p>
+            <ul className="mt-2 space-y-2">
+              {room.watchers.map((watcher, i) => (
+                <li key={i} className="flex items-center gap-3 rounded-xl bg-white/[0.03] px-3 py-2 text-slate-300">
+                  <span className={`size-2 rounded-full ${watcher.connected ? 'bg-emerald-400' : 'bg-slate-500'}`} />
+                  <span className="flex-1">
+                    {watcher.name}
+                    {i === room.watching && <span className="text-slate-400"> (you)</span>}
+                  </span>
+                  {watcher.host && <span className="text-xs uppercase tracking-wide text-teal-300">host</span>}
+                </li>
+              ))}
+            </ul>
+          </>
+        )}
+        <button
+          className="mt-3 cursor-pointer text-sm text-teal-300 hover:text-teal-200 disabled:cursor-default disabled:text-slate-500"
+          disabled={watching && full}
+          onClick={() => send({ type: 'watch', watching: !watching })}
+        >
+          {watching ? 'Take a seat instead' : 'Watch instead of playing'}
+        </button>
         {isHost && !full && (
           <div className="mt-3 flex items-center gap-2 text-sm text-slate-400">
             <span className="flex-1">Add a computer player:</span>

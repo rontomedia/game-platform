@@ -14,7 +14,7 @@ use tsify::Tsify;
 
 /// Bumped when a message changes in a way an older client can't read; the
 /// server says which it speaks in `Welcome`.
-pub const PROTOCOL_VERSION: u32 = 5;
+pub const PROTOCOL_VERSION: u32 = 6;
 
 /// How a room plays, chosen by whoever opens it. Options left out take
 /// their defaults.
@@ -64,11 +64,21 @@ pub enum ClientMessage {
         #[cfg_attr(feature = "wasm", tsify(optional))]
         options: RoomOptions,
     },
-    /// Join a room that hasn't started, by its code.
-    JoinRoom { code: String, name: String },
-    /// Take back a seat after a lost connection, with the token from
-    /// `Joined`.
+    /// Join a room by its code: to play, if it hasn't started, or with
+    /// `watch` to watch, at any time.
+    JoinRoom {
+        code: String,
+        name: String,
+        #[serde(default)]
+        #[cfg_attr(feature = "wasm", tsify(optional))]
+        watch: bool,
+    },
+    /// Take back a seat (or a watcher's place) after a lost connection, with
+    /// the token from `Joined`.
     Rejoin { code: String, token: String },
+    /// Watch the game instead of playing in it, or take a seat again
+    /// (before the start).
+    Watch { watching: bool },
     /// Seat a computer player (the host only, before the start).
     AddBot { level: BotLevel },
     /// Take a computer player's seat away again (the host only, before the
@@ -76,6 +86,12 @@ pub enum ClientMessage {
     RemoveBot { seat: usize },
     /// Deal and play (the host only).
     Start,
+    /// Stop or restart the clock and the bots, in a game only bots play
+    /// (the host only).
+    Pause { paused: bool },
+    /// In a paused game only bots play: play the next turn, then pause
+    /// again (the host only).
+    Step,
     /// End the turn with the table rearranged to this (see
     /// `engine::check_turn`).
     Play { table: Vec<Vec<Tile>> },
@@ -88,7 +104,7 @@ pub enum ClientMessage {
     Draft { table: Vec<Vec<Tile>> },
 }
 
-/// A player in a room.
+/// A player in a room, or someone watching.
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[cfg_attr(feature = "wasm", derive(Tsify))]
 #[serde(rename_all = "camelCase")]
@@ -100,9 +116,11 @@ pub struct Seat {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     #[cfg_attr(feature = "wasm", tsify(optional))]
     pub bot: Option<BotLevel>,
+    /// Whether they may start the game (and pause one only bots play).
+    pub host: bool,
 }
 
-/// A room as one of its players sees it.
+/// A room as one of its players, or one of those watching, sees it.
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[cfg_attr(feature = "wasm", derive(Tsify))]
 #[serde(rename_all = "camelCase")]
@@ -110,11 +128,19 @@ pub struct RoomInfo {
     pub code: String,
     /// In turn order once the game has started.
     pub seats: Vec<Seat>,
-    /// The seat of the player this is sent to.
-    pub you: usize,
-    /// The seat that may start the game.
-    pub host: usize,
+    /// Those watching, without a seat.
+    pub watchers: Vec<Seat>,
+    /// The seat of the player this is sent to; absent for a watcher...
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[cfg_attr(feature = "wasm", tsify(optional))]
+    pub you: Option<usize>,
+    /// ...who is this one of `watchers`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[cfg_attr(feature = "wasm", tsify(optional))]
+    pub watching: Option<usize>,
     pub started: bool,
+    /// Whether the host has paused the game (only bots play it).
+    pub paused: bool,
     pub options: RoomOptions,
 }
 
@@ -130,7 +156,8 @@ pub enum ServerMessage {
     /// The room's players changed (someone joined, left, came back) or the
     /// game started.
     Room { room: RoomInfo },
-    /// The game as this player may see it, after every change.
+    /// The game as this player may see it, after every change (a watcher:
+    /// with no rack, and `view.you` absent).
     State {
         view: PlayerView,
         /// Milliseconds left in the current turn; absent once the game is
@@ -144,7 +171,8 @@ pub enum ServerMessage {
         #[cfg_attr(feature = "wasm", tsify(optional))]
         banks: Option<Vec<u32>>,
         /// Every player's rack, in seat order: only from a server started
-        /// to show them (`--open-racks`), for judging the bots.
+        /// to show them (`--open-racks`), for judging the bots, and to
+        /// watchers of a game only bots play.
         #[serde(default, skip_serializing_if = "Option::is_none")]
         #[cfg_attr(feature = "wasm", tsify(optional))]
         racks: Option<Vec<Vec<Tile>>>,
@@ -199,7 +227,11 @@ mod tests {
         );
         assert_eq!(
             ClientMessage::from_json(r#"{"type":"joinRoom","code":"ABCD","name":"Ann"}"#).unwrap(),
-            ClientMessage::JoinRoom { code: "ABCD".into(), name: "Ann".into() }
+            ClientMessage::JoinRoom { code: "ABCD".into(), name: "Ann".into(), watch: false }
+        );
+        assert_eq!(
+            ClientMessage::from_json(r#"{"type":"pause","paused":true}"#).unwrap(),
+            ClientMessage::Pause { paused: true }
         );
         assert_eq!(
             ClientMessage::from_json(r#"{"type":"addBot","level":"hard"}"#).unwrap(),

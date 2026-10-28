@@ -12,15 +12,36 @@ const joker: Tile = { kind: 'joker' }
 export const demoRoom: RoomInfo = {
   code: 'KQVT',
   seats: [
-    { name: 'Alex', connected: true },
-    { name: 'Maya', connected: true },
-    { name: 'Jonas', connected: false },
-    { name: 'Priya', connected: true, bot: 'hard' },
+    { name: 'Alex', connected: true, host: true },
+    { name: 'Maya', connected: true, host: false },
+    { name: 'Jonas', connected: false, host: false },
+    { name: 'Priya', connected: true, bot: 'hard', host: false },
   ],
+  watchers: [],
   you: 0,
-  host: 0,
   started: true,
+  paused: false,
   options: { liveTurns: true },
+}
+
+/** `?demo=watcher`: four bots playing, watched by their host. */
+export const demoWatcherRoom: RoomInfo = {
+  ...demoRoom,
+  seats: [
+    { name: 'Ada', connected: true, bot: 'easy', host: false },
+    { name: 'Bruno', connected: true, bot: 'medium', host: false },
+    { name: 'Cleo', connected: true, bot: 'hard', host: false },
+    { name: 'Dev', connected: true, bot: 'hard', host: false },
+  ],
+  watchers: [{ name: 'Alex', connected: true, host: true }],
+  you: undefined,
+  watching: 0,
+}
+
+/** The demo game as someone watching sees it: no rack of their own, every rack shown. */
+export function asWatcher(game: GameState): GameState {
+  const open = withOpenRacks(game)
+  return { ...open, lastPlay: undefined, view: { ...open.view, you: undefined, rack: [] } }
 }
 
 /** `watching`: Maya's turn, so the player watches it (with `demoDrafts`). */

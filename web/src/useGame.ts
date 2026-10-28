@@ -85,6 +85,8 @@ function lastPlay(previous: GameState | null, view: PlayerView, version: number)
 /** The turn that led from `previous` to `view`, if both show every rack. */
 function turnRecord(previous: GameState | null, view: PlayerView, racks: Tile[][] | undefined, version: number) {
   if (!previous?.racks || !racks) return undefined
+  // The same turn sent again (someone came back, the game was paused).
+  if (view.current === previous.view.current && !view.outcome) return undefined
   const by = previous.view.current
   return {
     by,

@@ -54,7 +54,7 @@ const EASY_SPOTS: (u64, u64) = (1, 2);
 
 /// The bot's move for the player whose view this is, on their turn.
 pub fn bot_move(view: &PlayerView, level: BotLevel) -> Move {
-    let melded = view.melded[view.you];
+    let melded = view.you.is_some_and(|you| view.melded[you]);
     let table = if !melded {
         initial_meld(view)
     } else {
@@ -250,7 +250,7 @@ mod tests {
 
     fn view(table: Vec<Vec<Tile>>, rack: Vec<Tile>, melded: bool) -> PlayerView {
         PlayerView {
-            you: 0,
+            you: Some(0),
             rules: Rules::default(),
             rack_sizes: vec![rack.len(), 14],
             rack,
