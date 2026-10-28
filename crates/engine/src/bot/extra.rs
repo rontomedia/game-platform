@@ -13,8 +13,8 @@
 //! the table as they left it, or they'd have gone out) and counts how many
 //! could all go on the table it would leave.
 //!
-//! Then it looks ahead (`LOOKAHEAD`): its best few options are each played
-//! on in many imagined games, the hidden tiles dealt at random among the
+//! Then it looks ahead (`LOOKAHEAD`): its best option and drawing are each
+//! played on in many imagined games, the hidden tiles dealt at random among the
 //! others' racks and the pool, everyone then playing as Hard for a couple
 //! of rounds. The option that does best across them is the move.
 
@@ -58,7 +58,7 @@ pub(crate) struct Lookahead {
     pub rounds: usize,
 }
 
-pub(crate) const LOOKAHEAD: Lookahead = Lookahead { options: 3, games: 24, rounds: 2 };
+pub(crate) const LOOKAHEAD: Lookahead = Lookahead { options: 1, games: 24, rounds: 2 };
 
 /// Extra Hard, once melded: the best of its options; `None` to draw.
 pub(super) fn extra_hard(view: &PlayerView) -> Option<Vec<Vec<Tile>>> {
@@ -389,16 +389,21 @@ mod tests {
     /// How a player choosing by `policy` fares against Hard players: its
     /// share of the wins (ties split) over `games` games of `players`, its
     /// seat changing each game, and its average time a move. Games run on
-    /// every core.
+    /// every core, each thread taking the next game when it's done.
     fn arena(games: u64, players: usize, policy: impl Fn(&PlayerView) -> Move + Sync) -> (f64, f64, std::time::Duration) {
-        let threads = std::thread::available_parallelism().map_or(4, |n| n.get()) as u64;
+        let threads = std::thread::available_parallelism().map_or(4, |n| n.get());
+        let next = std::sync::atomic::AtomicU64::new(0);
         let results: Vec<(f64, i64, std::time::Duration, u32)> = std::thread::scope(|scope| {
             let handles: Vec<_> = (0..threads)
-                .map(|thread| {
-                    let policy = &policy;
+                .map(|_| {
+                    let (policy, next) = (&policy, &next);
                     scope.spawn(move || {
                         let (mut wins, mut score, mut time, mut moves) = (0.0, 0, std::time::Duration::ZERO, 0);
-                        for seed in (thread..games).step_by(threads as usize) {
+                        loop {
+                            let seed = next.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+                            if seed >= games {
+                                break;
+                            }
                             let seat = seed as usize % players;
                             let mut game = Game::new(players, Rules::default(), 1_000_000 + seed);
                             while game.outcome().is_none() {
@@ -440,9 +445,11 @@ mod tests {
     }
 
     fn report(name: &str, policy: impl Fn(&PlayerView) -> Move + Sync + Copy) {
-        // `EXTRA_GAMES` for a quicker look.
+        // `EXTRA_GAMES` for a quicker look, `EXTRA_PLAYERS` (as "2,4") for
+        // some sizes only.
         let games = std::env::var("EXTRA_GAMES").map_or(2000, |n| n.parse().unwrap());
-        for players in [2, 4] {
+        let sizes = std::env::var("EXTRA_PLAYERS").unwrap_or_else(|_| "2,4".into());
+        for players in sizes.split(',').map(|n| n.trim().parse::<usize>().unwrap()) {
             let (share, score, time) = arena(games, players, policy);
             let fair = 1.0 / players as f64;
             println!(
@@ -451,6 +458,44 @@ mod tests {
                 fair * 100.0,
                 time
             );
+        }
+    }
+
+    /// How long a move takes, one game at a time on one core as in a room:
+    /// `cargo test -p engine --release -- --ignored --nocapture extra_timing`.
+    #[test]
+    #[ignore]
+    fn extra_timing() {
+        for players in [2, 4] {
+            for level in [BotLevel::Hard, BotLevel::ExtraHard] {
+                let mut times = Vec::new();
+                for seed in 0..20 {
+                    let mut game = Game::new(players, Rules::default(), 2_000_000 + seed);
+                    while game.outcome().is_none() {
+                        let who = game.current();
+                        let view = game.view(who);
+                        let start = std::time::Instant::now();
+                        let choice = bot_move(&view, if who == 0 { level } else { BotLevel::Hard });
+                        if who == 0 && view.melded[who] {
+                            times.push(start.elapsed());
+                        }
+                        match choice {
+                            Move::Play(table) => game.play(who, table).unwrap(),
+                            Move::Draw => {
+                                game.draw(who).unwrap();
+                            }
+                        }
+                    }
+                }
+                times.sort();
+                let mean = times.iter().sum::<std::time::Duration>() / times.len() as u32;
+                let p95 = times[times.len() * 95 / 100];
+                println!(
+                    "{level:?}, {players} players: {} moves, mean {mean:?}, 95% under {p95:?}, slowest {:?}",
+                    times.len(),
+                    times.last().unwrap()
+                );
+            }
         }
     }
 
