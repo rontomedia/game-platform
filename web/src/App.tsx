@@ -131,8 +131,8 @@ function Online() {
   return (
     <div className="mx-auto flex max-w-5xl flex-col gap-6 px-4 py-6 sm:px-6 lg:py-10">
       <header className="flex items-center gap-3 sm:gap-4">
-        <h1 className="mr-auto text-3xl font-bold tracking-tight">{t('app.title')}</h1>
-        <span className="flex items-center gap-2 text-sm text-slate-300" title={SERVER_URL}>
+        <h1 className="mr-auto shrink-0 text-3xl font-bold tracking-tight">{t('app.title')}</h1>
+        <span className="flex shrink-0 items-center gap-2 whitespace-nowrap text-sm text-slate-300" title={SERVER_URL}>
           <span className={`size-2.5 shrink-0 rounded-full ${statusDot[status]}`} />
           <span className="max-sm:sr-only">{t(`app.status.${status}`)}</span>
           {status === 'closed' && (
@@ -144,7 +144,7 @@ function Online() {
         <LanguagePicker
           value={settings.language}
           onChange={(language) => changeSettings({ language })}
-          className="max-w-52 sm:max-w-60"
+          className="min-w-0 max-w-52 sm:max-w-60"
         />
       </header>
       {mismatch !== null && (

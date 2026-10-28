@@ -37,7 +37,10 @@ npm run wasm      # only rebuild the engine WASM (needs wasm-pack)
 `http://localhost:5173/?demo` shows the board with a made-up 4-player game
 and no server (`src/demo.ts`): the place to work on the board's look.
 `?demo=racks` adds the open racks panel; `?demo=watcher` is a bots-only
-game seen by its watching host (Pause works).
+game seen by its watching host (Pause works). `?lang=de` (any page) shows
+a language without changing the setting; `?lang=en-XA` (development only)
+is English accented and 40% longer, to find text that clips or isn't
+translated.
 
 `cargo test -p engine --release -- --ignored --nocapture strength` plays
 the bot levels against each other and prints wins and time per move.
@@ -81,6 +84,11 @@ only builds it on start.
   frame each, tagged by `type`. Never serialize `null`: tsify types say
   `field?: T` for an `Option`, so use `skip_serializing_if = "Option::is_none"`
   with `#[tsify(optional)]`. Bump `PROTOCOL_VERSION` on incompatible changes.
+  Messages say what happened, never a sentence for players: `Notice`,
+  `Refusal` and `TurnError` are enums the client words in the player's
+  language (`web/src/messages.ts`); `Error { message }` is only for
+  messages the server couldn't read. A new thing to tell players is a new
+  variant, not text.
 - **`crates/engine-wasm`**: the browser API (`wasm-bindgen`): engine
   functions plus `protocolVersion`. wasm-pack writes JS glue and `.d.ts` into
   `web/src/wasm/` (gitignored), so TypeScript types for the engine *and* the
@@ -215,8 +223,22 @@ only builds it on start.
     sorted or reordered by dragging (its own nested `DndContext`), the
     order kept per tab like the player's own.
   - `settings.ts` / `SettingsMenu.tsx`: device preferences (rack style: flat
-    tray or two-row rack; watching live turns) behind the gear in the top
-    bar.
+    tray or two-row rack; watching live turns; language) behind the gear in
+    the top bar.
+  - Languages: react-i18next, every visible text through `t('key')` (no
+    text in components). `src/locales/en.json` is the source and types the
+    keys and their `{{values}}` (`i18next.d.ts`), so a wrong key fails the
+    type check; the others (`languages.ts`: pl, es, fr, de, pt-BR, tr, el,
+    sv) load as chunks of their own, before the first render (`i18n.ts`).
+    The language is the setting, else the first of `navigator.languages`
+    the game has (by language alone when the region differs), else
+    English; `<html lang>` follows it. `LanguagePicker` (home header and
+    settings) names each in itself, no flags. Counts use plural keys
+    (`_one`, `_few`, ...: each language's own forms from
+    `Intl.PluralRules`, Polish has four), lists `Intl.ListFormat`.
+    `i18n.test.ts` checks every catalogue against English: keys, plural
+    forms, values. Adding text: the key in `en.json` and every other
+    catalogue (the test says what's missing).
   - Planned: shadcn/ui for menus, `@heroiclabs/nakama-js` for
     accounts/matchmaking.
 

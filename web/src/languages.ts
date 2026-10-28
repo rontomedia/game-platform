@@ -46,3 +46,30 @@ export function resolveLanguage(choice: LanguageChoice, preferred: readonly stri
   if (forced !== null && isLanguage(forced)) return forced
   return choice === 'auto' ? pickLanguage(preferred) : choice
 }
+
+/**
+ * A made-up language for checking the layout (`?lang=en-XA`, in
+ * development): English with accents, 40% longer, in brackets, so text that
+ * would clip or wrap in a long language, or isn't translated at all, shows.
+ */
+export const PSEUDO = 'en-XA'
+
+const ACCENTED: Record<string, string> = {
+  ...{ a: 'á', e: 'é', i: 'í', o: 'ö', u: 'ü', y: 'ý', c: 'ç', n: 'ñ', s: 'š', z: 'ž' },
+  ...{ A: 'Å', E: 'É', I: 'Î', O: 'Ø', U: 'Ü' },
+}
+
+/** One text in the made-up language; `{{values}}` stay as they are. */
+export function pseudoText(text: string): string {
+  const parts = text.split(/(\{\{[^}]*\}\})/)
+  const accented = parts.map((part, i) => (i % 2 ? part : [...part].map((c) => ACCENTED[c] ?? c).join(''))).join('')
+  const letters = parts.filter((_, i) => i % 2 === 0).join('').length
+  return `[${accented}${letters > 0 ? ' ' + '~'.repeat(Math.ceil(letters * 0.4)) : ''}]`
+}
+
+/** A whole catalogue in the made-up language. */
+export function pseudoCatalogue<T extends object>(catalogue: T): T {
+  return Object.fromEntries(
+    Object.entries(catalogue).map(([key, value]) => [key, typeof value === 'string' ? pseudoText(value) : pseudoCatalogue(value)]),
+  ) as T
+}

@@ -2,15 +2,22 @@ import i18n from 'i18next'
 import resourcesToBackend from 'i18next-resources-to-backend'
 import { initReactI18next } from 'react-i18next'
 
-import { resolveLanguage, type LanguageChoice } from './languages.ts'
+import { PSEUDO, pseudoCatalogue, resolveLanguage, type LanguageChoice } from './languages.ts'
 import en from './locales/en.json'
 
 /** The other catalogues, each a chunk of its own. */
 const catalogues = import.meta.glob<object>(['./locales/*.json', '!./locales/en.json'], { import: 'default' })
 
 /** The language to show for the player's choice, here and now. */
-export function currentLanguage(choice: LanguageChoice) {
-  return resolveLanguage(choice, navigator.languages, new URLSearchParams(location.search).get('lang'))
+export function currentLanguage(choice: LanguageChoice): string {
+  const forced = new URLSearchParams(location.search).get('lang')
+  if (import.meta.env.DEV && forced === PSEUDO) return PSEUDO
+  return resolveLanguage(choice, navigator.languages, forced)
+}
+
+function load(language: string): Promise<object> {
+  if (language === PSEUDO) return Promise.resolve(pseudoCatalogue(en))
+  return catalogues[`./locales/${language}.json`]?.() ?? Promise.resolve({})
 }
 
 /**
@@ -24,7 +31,7 @@ export async function initI18n(choice: LanguageChoice) {
   })
   await i18n
     .use(initReactI18next)
-    .use(resourcesToBackend((language: string) => catalogues[`./locales/${language}.json`]?.() ?? Promise.resolve({})))
+    .use(resourcesToBackend(load))
     .init({
       lng: currentLanguage(choice),
       fallbackLng: 'en',

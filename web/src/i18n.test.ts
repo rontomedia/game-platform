@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { LANGUAGES, pickLanguage, resolveLanguage } from './languages.ts'
+import { LANGUAGES, pickLanguage, pseudoText, resolveLanguage } from './languages.ts'
 
 describe('pickLanguage', () => {
   it('takes the first preferred language the game has', () => {
@@ -27,6 +27,13 @@ describe('resolveLanguage', () => {
     expect(resolveLanguage('pl', ['de'], 'el')).toBe('el')
     expect(resolveLanguage('pl', ['de'], 'xx')).toBe('pl')
     expect(resolveLanguage('auto', ['de'], null)).toBe('de')
+  })
+})
+
+describe('pseudoText', () => {
+  it('accents and lengthens the text, keeping the values', () => {
+    expect(pseudoText('Ready: {{count}} tiles')).toBe('[Réádý: {{count}} tíléš ~~~~~~]')
+    expect(pseudoText('{{n}}')).toBe('[{{n}}]')
   })
 })
 
