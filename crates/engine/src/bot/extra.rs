@@ -44,9 +44,12 @@ pub(crate) struct Weights {
     pub risk: i32,
     /// Each point left on the rack while someone is in danger.
     pub danger_point: i32,
+    /// How much the look-ahead judges an imagined game by points rather
+    /// than by who wins, in percent (see `outlook`).
+    pub score: i32,
 }
 
-pub(crate) const WEIGHTS: Weights = Weights { tile: 100, wait: 1, point: 1, risk: 20000, danger_point: 3 };
+pub(crate) const WEIGHTS: Weights = Weights { tile: 100, wait: 1, point: 1, risk: 20000, danger_point: 3, score: 0 };
 
 /// Another player with this many tiles or fewer may go out next turn.
 const DANGER: usize = 2;
@@ -117,7 +120,7 @@ pub(crate) fn extra_hard_with(
             candidates.push(option);
         }
     }
-    look_ahead(view, &unseen, candidates, lookahead, spent)
+    look_ahead(view, &unseen, candidates, lookahead, weights, spent)
 }
 
 /// The candidate (a table to leave, or `None` to draw) that does best when
@@ -128,6 +131,7 @@ fn look_ahead(
     unseen: &Counts,
     candidates: Vec<Option<Vec<Vec<Tile>>>>,
     lookahead: Lookahead,
+    weights: Weights,
     spent: &dyn Fn() -> f64,
 ) -> Option<Vec<Vec<Tile>>> {
     let me = view.you.expect("a bot has a seat");
@@ -149,7 +153,7 @@ fn look_ahead(
                 }
             }
             play_on(&mut game, lookahead.rounds * view.rack_sizes.len() - 1);
-            *total += outlook(&game, me);
+            *total += outlook(&game, me, weights.score as f64 / 100.0);
         }
     }
     // The best total; on a tie, the earlier.
@@ -190,17 +194,45 @@ fn play_on(game: &mut Game, turns: usize) {
     }
 }
 
-/// How well `me` stands in `game`: winning or losing outright, else by how
-/// many tiles it holds against the others.
-fn outlook(game: &Game, me: usize) -> f64 {
-    if let Some(outcome) = game.outcome() {
-        return if outcome.winners.contains(&me) { 1.0 } else { -1.0 };
+/// How well `me` stands in `game`: by winning (`chances`), and by points
+/// (`points`) as much as `score` (0 to 1) says.
+fn outlook(game: &Game, me: usize, score: f64) -> f64 {
+    let win = match game.outcome() {
+        Some(outcome) => if outcome.winners.contains(&me) { 1.0 } else { -1.0 },
+        None => chances(game, me) * 2.0 - 1.0,
+    };
+    if score == 0.0 {
+        return win;
     }
+    (1.0 - score) * win + score * points(game, me) / POINT_SCALE
+}
+
+/// Points about as many as a game is won or lost by, so that `outlook`'s
+/// two measures weigh alike.
+const POINT_SCALE: f64 = 30.0;
+
+/// How likely `me` is to win `game`, not yet over: a little better for each
+/// tile it holds fewer than the closest opponent (going out is the whole
+/// game).
+fn chances(game: &Game, me: usize) -> f64 {
     let mine = game.rack(me).len() as f64;
     let others = (0..game.players()).filter(|&p| p != me).map(|p| game.rack(p).len() as f64);
     let fewest = others.fold(f64::INFINITY, f64::min);
-    // A tile is worth a little: going out is the whole game.
-    ((fewest - mine) * 0.05).clamp(-0.9, 0.9)
+    0.5 + ((fewest - mine) * 0.025).clamp(-0.45, 0.45)
+}
+
+/// The points `me` scores in `game`, or can expect to if it isn't over:
+/// the others' racks if it wins, less its own if it doesn't.
+fn points(game: &Game, me: usize) -> f64 {
+    if let Some(outcome) = game.outcome() {
+        return outcome.scores[me] as f64;
+    }
+    let total = |p: usize| game.rack(p).iter().map(|t| t.penalty(game.rules().joker_penalty)).sum::<u32>() as f64;
+    let others: f64 = (0..game.players()).filter(|&p| p != me).map(total).sum();
+    // Its chance of winning: from the tiles held, against a fair share.
+    let fair = 1.0 / game.players() as f64;
+    let win = (fair + (chances(game, me) - 0.5)).clamp(0.02, 0.98);
+    win * others - (1.0 - win) * total(me)
 }
 
 /// What leaving `table` is worth (`view.table`: drawing).
@@ -437,21 +469,54 @@ mod tests {
         assert_eq!(risk(&v.table, &threats[0]), 0.0, "drawing opens nothing");
     }
 
-    /// How a player choosing by `policy` fares against Hard players: its
-    /// share of the wins (ties split) over `games` games of `players`, its
-    /// seat changing each game, and its average time a move. Games run on
-    /// every core, each thread taking the next game when it's done.
-    fn arena(games: u64, players: usize, policy: impl Fn(&PlayerView) -> Move + Sync) -> (f64, f64, std::time::Duration) {
+    /// What a player choosing by `policy` did over games against Hard
+    /// players.
+    #[derive(Default)]
+    struct Stats {
+        /// Wins, ties split.
+        wins: f64,
+        score: i64,
+        /// Points in the games it won, and in those it lost.
+        won: (i64, u32),
+        lost: (i64, u32),
+        /// Tiles put down by the play that emptied its rack, over the games
+        /// it went out.
+        last_play: (u64, u32),
+        /// Its turns once melded, and those it drew on.
+        turns: u32,
+        draws: u32,
+        time: std::time::Duration,
+        moves: u32,
+    }
+
+    impl Stats {
+        fn add(&mut self, other: Stats) {
+            self.wins += other.wins;
+            self.score += other.score;
+            self.won = (self.won.0 + other.won.0, self.won.1 + other.won.1);
+            self.lost = (self.lost.0 + other.lost.0, self.lost.1 + other.lost.1);
+            self.last_play = (self.last_play.0 + other.last_play.0, self.last_play.1 + other.last_play.1);
+            self.turns += other.turns;
+            self.draws += other.draws;
+            self.time += other.time;
+            self.moves += other.moves;
+        }
+    }
+
+    /// How a player choosing by `policy` fares against Hard players over
+    /// `games` games of `players`, its seat changing each game. Games run
+    /// on every core, each thread taking the next game when it's done.
+    fn arena(games: u64, players: usize, policy: impl Fn(&PlayerView) -> Move + Sync) -> Stats {
         // `EXTRA_THREADS` for fewer at once (less contention, for timed runs).
         let cores = std::thread::available_parallelism().map_or(4, |n| n.get());
         let threads = std::env::var("EXTRA_THREADS").map_or(cores, |n| n.parse().unwrap());
         let next = std::sync::atomic::AtomicU64::new(0);
-        let results: Vec<(f64, i64, std::time::Duration, u32)> = std::thread::scope(|scope| {
+        let results: Vec<Stats> = std::thread::scope(|scope| {
             let handles: Vec<_> = (0..threads)
                 .map(|_| {
                     let (policy, next) = (&policy, &next);
                     scope.spawn(move || {
-                        let (mut wins, mut score, mut time, mut moves) = (0.0, 0, std::time::Duration::ZERO, 0);
+                        let mut stats = Stats::default();
                         loop {
                             let seed = next.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
                             if seed >= games {
@@ -465,36 +530,46 @@ mod tests {
                                 let choice = if who == seat {
                                     let start = std::time::Instant::now();
                                     let choice = policy(&view);
-                                    time += start.elapsed();
-                                    moves += 1;
+                                    stats.time += start.elapsed();
+                                    stats.moves += 1;
+                                    if view.melded[who] {
+                                        stats.turns += 1;
+                                        stats.draws += (choice == Move::Draw) as u32;
+                                    }
                                     choice
                                 } else {
                                     bot_move(&view, BotLevel::Hard)
                                 };
+                                let held = game.rack(who).len();
                                 match choice {
                                     Move::Play(table) => game.play(who, table).expect("a valid play"),
                                     Move::Draw => {
                                         game.draw(who).unwrap();
                                     }
                                 }
+                                if who == seat && game.rack(who).is_empty() {
+                                    stats.last_play = (stats.last_play.0 + held as u64, stats.last_play.1 + 1);
+                                }
                             }
                             let outcome = game.outcome().unwrap();
+                            let score = outcome.scores[seat] as i64;
                             if outcome.winners.contains(&seat) {
-                                wins += 1.0 / outcome.winners.len() as f64;
+                                stats.wins += 1.0 / outcome.winners.len() as f64;
+                                stats.won = (stats.won.0 + score, stats.won.1 + 1);
+                            } else {
+                                stats.lost = (stats.lost.0 + score, stats.lost.1 + 1);
                             }
-                            score += outcome.scores[seat] as i64;
+                            stats.score += score;
                         }
-                        (wins, score, time, moves)
+                        stats
                     })
                 })
                 .collect();
             handles.into_iter().map(|h| h.join().unwrap()).collect()
         });
-        let wins: f64 = results.iter().map(|r| r.0).sum();
-        let score: i64 = results.iter().map(|r| r.1).sum();
-        let time: std::time::Duration = results.iter().map(|r| r.2).sum();
-        let moves: u32 = results.iter().map(|r| r.3).sum();
-        (wins / games as f64, score as f64 / games as f64, time / moves.max(1))
+        let mut stats = Stats::default();
+        results.into_iter().for_each(|s| stats.add(s));
+        stats
     }
 
     fn report(name: &str, policy: impl Fn(&PlayerView) -> Move + Sync + Copy) {
@@ -502,14 +577,20 @@ mod tests {
         // some sizes only.
         let games = std::env::var("EXTRA_GAMES").map_or(2000, |n| n.parse().unwrap());
         let sizes = std::env::var("EXTRA_PLAYERS").unwrap_or_else(|_| "2,4".into());
+        let mean = |(sum, n): (i64, u32)| sum as f64 / n.max(1) as f64;
         for players in sizes.split(',').map(|n| n.trim().parse::<usize>().unwrap()) {
-            let (share, score, time) = arena(games, players, policy);
-            let fair = 1.0 / players as f64;
+            let s = arena(games, players, policy);
             println!(
-                "{name}, {players} players, {games} games vs Hard: wins {:.1}% (an equal player {:.1}%), score {score:+.1} a game, {:?} a move",
-                share * 100.0,
-                fair * 100.0,
-                time
+                "{name}, {players} players, {games} games vs Hard: wins {:.1}% (an equal player {:.1}%), score {:+.1} a game \
+                 ({:+.1} won, {:+.1} lost), went out with {:.1} tiles at once, drew {:.0}% of turns once melded, {:?} a move",
+                s.wins / games as f64 * 100.0,
+                100.0 / players as f64,
+                s.score as f64 / games as f64,
+                mean(s.won),
+                mean(s.lost),
+                mean((s.last_play.0 as i64, s.last_play.1)),
+                s.draws as f64 / s.turns.max(1) as f64 * 100.0,
+                s.time / s.moves.max(1)
             );
         }
     }
@@ -598,6 +679,26 @@ mod tests {
         }
     }
 
+    /// Tries judging imagined games by points: `EXTRA_SCORE="0;50;100"
+    /// cargo test -p engine --release -- --ignored --nocapture extra_score`
+    /// (percent, see `outlook`).
+    #[test]
+    #[ignore]
+    fn extra_score() {
+        let spec = std::env::var("EXTRA_SCORE").unwrap_or_else(|_| "0;50;100".into());
+        for score in spec.split(';').map(|x| x.trim().parse().unwrap()) {
+            let weights = Weights { score, ..WEIGHTS };
+            report(&format!("score {score}%"), move |view| {
+                let table = if !view.you.is_some_and(|you| view.melded[you]) {
+                    initial_meld(view)
+                } else {
+                    extra_hard_with(view, weights, Some(LOOKAHEAD), &|| 0.0)
+                };
+                table.map_or(Move::Draw, Move::Play)
+            });
+        }
+    }
+
     /// Tries weights: `EXTRA_WEIGHTS="tile,wait,point,risk,danger_point;..." cargo test -p
     /// engine --release -- --ignored --nocapture extra_weights`.
     #[test]
@@ -606,7 +707,7 @@ mod tests {
         let spec = std::env::var("EXTRA_WEIGHTS").unwrap_or_else(|_| "100,1,1,1000,3".into());
         for set in spec.split(';') {
             let w: Vec<i32> = set.split(',').map(|x| x.trim().parse().unwrap()).collect();
-            let weights = Weights { tile: w[0], wait: w[1], point: w[2], risk: w[3], danger_point: w[4] };
+            let weights = Weights { tile: w[0], wait: w[1], point: w[2], risk: w[3], danger_point: w[4], score: 0 };
             report(&format!("{weights:?}"), move |view| extra_move(view, weights));
         }
     }

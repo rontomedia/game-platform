@@ -454,6 +454,7 @@ mod tests {
         let games = 200;
         for (a, b) in [(Hard, Easy), (Medium, Easy), (Hard, Medium)] {
             let mut wins = [0.0; 2];
+            let mut points = [0i64; 2];
             let mut slowest = [std::time::Duration::ZERO; 2];
             let mut total = [std::time::Duration::ZERO; 2];
             let mut moves = [0u32; 2];
@@ -470,12 +471,22 @@ mod tests {
                     total[who] += took;
                     moves[who] += 1;
                 }
-                let winners = &game.outcome().unwrap().winners;
-                for &w in winners {
-                    wins[(levels[w] == b) as usize] += 1.0 / winners.len() as f64;
+                let outcome = game.outcome().unwrap();
+                for &w in &outcome.winners {
+                    wins[(levels[w] == b) as usize] += 1.0 / outcome.winners.len() as f64;
+                }
+                for (seat, &score) in outcome.scores.iter().enumerate() {
+                    points[(levels[seat] == b) as usize] += score as i64;
                 }
             }
-            println!("{a:?} vs {b:?} over {games} two-player games: {:.0} to {:.0}", wins[0], wins[1]);
+            println!(
+                "{a:?} vs {b:?} over {games} two-player games: {:.0} to {:.0}, points {:+} to {:+} ({:+.1} a game)",
+                wins[0],
+                wins[1],
+                points[0],
+                points[1],
+                points[0] as f64 / games as f64
+            );
             for (i, level) in [a, b].iter().enumerate() {
                 println!("  {level:?}: {} moves, average {:?}, slowest {:?}", moves[i], total[i] / moves[i], slowest[i]);
             }
