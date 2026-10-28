@@ -58,7 +58,9 @@
     "progressive": "Rostoucí otevření",
     "progressiveDetail": "Každé otevření musí překonat předchozí v rozdání: po 120 bodech 121.",
     "penalties": "Tresty",
-    "penaltiesDetail": "101 bodů za odhození okeye nebo kamene, který pasuje na stůl, a za okey vzatý z vaší sestavy; číslo odhozeného kamene ×10, když s ním další hráč otevře."
+    "penaltiesDetail": "101 bodů za odhození okeye nebo kamene, který pasuje na stůl, a za okey vzatý z vaší sestavy; číslo odhozeného kamene ×10, když s ním další hráč otevře.",
+    "okey": "Okey",
+    "points": "Body na začátku"
   },
   "room": {
     "summary": "{{parts}}.",
@@ -77,7 +79,8 @@
     "classic": "Klasická pravidla",
     "okey101": "Okey 101, rozdání: {{hands}}",
     "progressive": "rostoucí otevření",
-    "noPenalties": "bez trestů"
+    "noPenalties": "bez trestů",
+    "okeyPlain": "Okey, body: {{points}}"
   },
   "lobby": {
     "code": "Kód místnosti: pošlete ho ostatním hráčům",
@@ -313,7 +316,20 @@
     "nextHand": "další rozdání za {{n}} s",
     "thisHand": "Toto rozdání",
     "total": "Celkem",
-    "lowestWins": "Trestné body: vyhrává nejnižší součet."
+    "lowestWins": "Trestné body: vyhrává nejnižší součet.",
+    "finishHere": "Pusťte sem kámen a dohrajte: ostatních 14 v sestavách, nebo sedm párů",
+    "canFinish": "Můžete dohrát: pusťte poslední kámen doprostřed.",
+    "plainYourTurn": "Jste na tahu: lízněte si kámen, nebo vezměte kámen odhozený hráčem {{name}}.",
+    "plainPlay": "Odhoďte kámen, nebo dohrajte, pokud ostatních 14 vyhrává.",
+    "youFinishedSets": "Dohráli jste!",
+    "youFinishedPairs": "Dohráli jste sedmi páry!",
+    "finishedSets": "{{name}} dohrál/a.",
+    "finishedPairs": "{{name}} dohrál/a sedmi páry.",
+    "onOkey": "Na okey: dvojnásob.",
+    "dealtAgain": "Zásoba došla: rozdává se znovu.",
+    "points": "Body",
+    "lost": "Ztraceno",
+    "mostPointsWin": "Hra končí, když někomu dojdou body: vyhrává nejvíc bodů."
   },
   "okeyError": {
     "notYourTurn": "Nejste na tahu.",
@@ -332,6 +348,7 @@
     "setsAndPairs": "Postupky a skupiny nelze míchat s páry.",
     "openingTooLow": "Vaše otevření má {{points}} bodů; potřeba je {{needed}}.",
     "tooFewPairs": "Párů: {{pairs}}; otevření potřebuje {{needed}}.",
-    "discardNotUsed": "Vzatý kámen musí na stůl (do vašeho otevření, pokud otevíráte)."
+    "discardNotUsed": "Vzatý kámen musí na stůl (do vašeho otevření, pokud otevíráte).",
+    "notComplete": "Ostatních 14 kamenů musí být v sestavách, nebo tvořit sedm párů."
   }
 }

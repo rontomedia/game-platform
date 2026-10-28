@@ -103,3 +103,10 @@ pub fn okey_meld_kind(okey: Ts<Tile>, tiles: Vec<Ts<Tile>>) -> Result<Option<Ts<
     let tiles = tiles.into_iter().map(|tile| tile.to_rust()).collect::<Result<Vec<_>, _>>()?;
     Ok(okey101::meld_kind(okey.to_rust()?, &tiles).map(|kind| Ts::from_rust(&kind)).transpose()?)
 }
+
+/// See `engine::plain_okey::complete`: how 14 tiles win, if they do.
+#[wasm_bindgen(js_name = okeyComplete)]
+pub fn okey_complete(okey: Ts<Tile>, tiles: Vec<Ts<Tile>>) -> Result<Option<Ts<engine::plain_okey::Finish>>, JsError> {
+    let tiles = tiles.into_iter().map(|tile| tile.to_rust()).collect::<Result<Vec<_>, _>>()?;
+    Ok(engine::plain_okey::complete(okey.to_rust()?, &tiles).map(|finish| Ts::from_rust(&finish)).transpose()?)
+}

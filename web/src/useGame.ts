@@ -8,6 +8,7 @@ import {
   type ClientMessage,
   type MatchView,
   type Notice,
+  type PlainView,
   type PlayerView,
   type RoomInfo,
   type ServerMessage,
@@ -56,6 +57,17 @@ export interface OkeyGame {
   /** Bumped on every state, so the board starts afresh from it. */
   version: number
   /** The state in which the current turn began. */
+  turnSince: number
+}
+
+/** The latest state of a plain Okey game: as `OkeyGame`. */
+export interface PlainOkeyGame {
+  view: PlainView
+  turnEnds?: number
+  nextHandAt?: number
+  banks?: number[]
+  racks?: Tile[][]
+  version: number
   turnSince: number
 }
 
@@ -198,6 +210,7 @@ export function useGame() {
   const [room, setRoom] = useState<RoomInfo | null>(null)
   const [game, setGame] = useState<GameState | null>(null)
   const [okey, setOkey] = useState<OkeyGame | null>(null)
+  const [plainOkey, setPlainOkey] = useState<PlainOkeyGame | null>(null)
   const [draft, setDraft] = useState<Draft | null>(null)
   /** The last refusal or error from the server, until the next change. */
   const [problem, setProblem] = useState<Problem | null>(null)
@@ -301,6 +314,24 @@ export function useGame() {
           setProblem(null)
           break
         }
+        case 'plainOkeyState': {
+          const next = ++version.current
+          const now = Date.now()
+          setPlainOkey((previous) => ({
+            view: message.view,
+            turnEnds: message.turnMs === undefined ? undefined : now + message.turnMs,
+            nextHandAt: message.nextHandMs === undefined ? undefined : now + message.nextHandMs,
+            banks: message.banks,
+            racks: message.racks,
+            version: next,
+            turnSince:
+              previous && previous.view.current === message.view.current && !previous.view.end
+                ? previous.turnSince
+                : next,
+          }))
+          setProblem(null)
+          break
+        }
         case 'okeyRejected':
           setProblem({ kind: 'okey', error: message.error })
           break
@@ -362,10 +393,11 @@ export function useGame() {
     setRoom(null)
     setGame(null)
     setOkey(null)
+    setPlainOkey(null)
     setDraft(null)
     setProblem(null)
     reconnect()
   }, [send, reconnect])
 
-  return { status, room, game, okey, draft, problem, notice, mismatch, send, reconnect, leave }
+  return { status, room, game, okey, plainOkey, draft, problem, notice, mismatch, send, reconnect, leave }
 }

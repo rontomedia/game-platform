@@ -1,9 +1,10 @@
-//! The game a room plays: the classic one (`engine::Game`) or an Okey 101
-//! match (`engine::okey101::Match`). The room runs either through this:
+//! The game a room plays: the classic one (`engine::Game`), an Okey 101
+//! match (`engine::okey101::Match`) or plain Okey (`engine::plain_okey`). The room runs either through this:
 //! turns, clocks, bots and watchers work the same; what a move is and
 //! what a player is sent differ.
 
 use engine::okey101::{self, Match, OkeyMove, Phase};
+use engine::plain_okey::{plain_bot_move, PlainGame, PlainMove};
 use engine::{bot_move_with, within_reach, BotLevel, Game, Lookahead, Move, Rules, Tile};
 use protocol::{RuleSet, ServerMessage};
 
@@ -11,12 +12,14 @@ use protocol::{RuleSet, ServerMessage};
 pub enum Contest {
     Classic(Game),
     Okey(Match),
+    Plain(PlainGame),
 }
 
-/// A bot's move in either game.
+/// A bot's move in any of them.
 pub enum BotChoice {
     Classic(Move),
     Okey(OkeyMove),
+    Plain(PlainMove),
 }
 
 /// What a state message carries besides the view.
@@ -32,6 +35,7 @@ impl Contest {
         match rules {
             RuleSet::Classic => Contest::Classic(Game::new(players, Rules::default(), seed)),
             RuleSet::Okey101(rules) => Contest::Okey(Match::new(players, rules.clone(), seed)),
+            RuleSet::Okey(rules) => Contest::Plain(PlainGame::new(players, rules.clone(), seed)),
         }
     }
 
@@ -39,6 +43,7 @@ impl Contest {
         match self {
             Contest::Classic(game) => game.players(),
             Contest::Okey(game) => game.hand().players(),
+            Contest::Plain(game) => game.players(),
         }
     }
 
@@ -47,6 +52,7 @@ impl Contest {
         match self {
             Contest::Classic(game) => game.current(),
             Contest::Okey(game) => game.hand().current(),
+            Contest::Plain(game) => game.current(),
         }
     }
 
@@ -54,6 +60,7 @@ impl Contest {
         match self {
             Contest::Classic(game) => game.rack(player),
             Contest::Okey(game) => game.hand().rack(player),
+            Contest::Plain(game) => game.rack(player),
         }
     }
 
@@ -61,6 +68,7 @@ impl Contest {
         match self {
             Contest::Classic(game) => game.table(),
             Contest::Okey(game) => game.hand().table(),
+            Contest::Plain(_) => &[],
         }
     }
 
@@ -69,6 +77,7 @@ impl Contest {
         match self {
             Contest::Classic(game) => game.outcome().is_some(),
             Contest::Okey(game) => game.is_over(),
+            Contest::Plain(game) => game.is_over(),
         }
     }
 
@@ -77,6 +86,7 @@ impl Contest {
         match self {
             Contest::Classic(game) => game.outcome().is_none(),
             Contest::Okey(game) => game.hand().end().is_none(),
+            Contest::Plain(game) => game.end().is_none(),
         }
     }
 
@@ -95,6 +105,8 @@ impl Contest {
                 }
                 within_reach(hand.table(), &rack, draft)
             }
+            // No table to share.
+            Contest::Plain(_) => draft.is_empty(),
         }
     }
 
@@ -104,6 +116,7 @@ impl Contest {
         match self {
             Contest::Classic(game) => BotChoice::Classic(bot_move_with(&game.view(seat), level, lookahead, spent)),
             Contest::Okey(game) => BotChoice::Okey(okey101::bot_move(&game.hand().view(seat), level)),
+            Contest::Plain(game) => BotChoice::Plain(plain_bot_move(&game.view(seat), level)),
         }
     }
 
@@ -118,6 +131,10 @@ impl Contest {
             Contest::Okey(game) => {
                 let view = seat.map_or_else(|| game.watcher_view(), |seat| game.view(seat));
                 ServerMessage::OkeyState { view, turn_ms, banks, racks, next_hand_ms }
+            }
+            Contest::Plain(game) => {
+                let view = seat.map_or_else(|| game.watcher_view(), |seat| game.view(seat));
+                ServerMessage::PlainOkeyState { view, turn_ms, banks, racks, next_hand_ms }
             }
         }
     }

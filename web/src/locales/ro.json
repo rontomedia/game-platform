@@ -57,7 +57,9 @@
     "progressive": "Deschidere crescătoare",
     "progressiveDetail": "Fiecare deschidere trebuie să o depășească pe cea dinainte din mână: după 120 de puncte, 121.",
     "penalties": "Penalizări",
-    "penaltiesDetail": "101 puncte pentru aruncarea okey-ului sau a unei piese care se potrivește pe masă și pentru un okey luat din formația ta; numărul piesei aruncate ×10 când următorul jucător deschide cu ea."
+    "penaltiesDetail": "101 puncte pentru aruncarea okey-ului sau a unei piese care se potrivește pe masă și pentru un okey luat din formația ta; numărul piesei aruncate ×10 când următorul jucător deschide cu ea.",
+    "okey": "Okey",
+    "points": "Puncte de început"
   },
   "room": {
     "summary": "{{parts}}.",
@@ -76,7 +78,8 @@
     "classic": "Reguli clasice",
     "okey101": "Okey 101, mâini: {{hands}}",
     "progressive": "deschidere crescătoare",
-    "noPenalties": "fără penalizări"
+    "noPenalties": "fără penalizări",
+    "okeyPlain": "Okey, puncte: {{points}}"
   },
   "lobby": {
     "code": "Codul camerei: trimite-l celorlalți jucători",
@@ -294,7 +297,20 @@
     "nextHand": "următoarea mână în {{n}} s",
     "thisHand": "Mâna asta",
     "total": "Total",
-    "lowestWins": "Puncte de penalizare: câștigă totalul cel mai mic."
+    "lowestWins": "Puncte de penalizare: câștigă totalul cel mai mic.",
+    "finishHere": "Lasă aici o piesă ca să închizi: celelalte 14 toate în formații sau șapte perechi",
+    "canFinish": "Poți închide: lasă ultima piesă în mijloc.",
+    "plainYourTurn": "Rândul tău: trage o piesă sau ia piesa aruncată de {{name}}.",
+    "plainPlay": "Aruncă o piesă sau închide dacă celelalte 14 câștigă.",
+    "youFinishedSets": "Ai închis!",
+    "youFinishedPairs": "Ai închis cu șapte perechi!",
+    "finishedSets": "{{name}} a închis.",
+    "finishedPairs": "{{name}} a închis cu șapte perechi.",
+    "onOkey": "Pe okey: dublu.",
+    "dealtAgain": "Grămada s-a terminat: mâna se împarte din nou.",
+    "points": "Puncte",
+    "lost": "Pierdute",
+    "mostPointsWin": "Jocul se termină când cineva rămâne fără puncte: câștigă cele mai multe puncte."
   },
   "okeyError": {
     "notYourTurn": "Nu e rândul tău.",
@@ -313,6 +329,7 @@
     "setsAndPairs": "Seriile și grupurile nu se amestecă cu perechi.",
     "openingTooLow": "Deschiderea ta valorează {{points}} de puncte; trebuie {{needed}}.",
     "tooFewPairs": "{{pairs}} perechi; deschiderea cere {{needed}}.",
-    "discardNotUsed": "Piesa luată trebuie să ajungă pe masă (în deschiderea ta, dacă deschizi)."
+    "discardNotUsed": "Piesa luată trebuie să ajungă pe masă (în deschiderea ta, dacă deschizi).",
+    "notComplete": "Celelalte 14 piese trebuie să fie toate în formații sau șapte perechi."
   }
 }

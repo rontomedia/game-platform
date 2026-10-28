@@ -57,7 +57,9 @@
     "progressive": "Apertura creciente",
     "progressiveDetail": "Cada apertura debe superar a la anterior de la mano: tras 120 puntos, 121.",
     "penalties": "Penalizaciones",
-    "penaltiesDetail": "101 puntos por descartar el okey o una ficha que encaja en la mesa, y por un okey quitado de tu combinación; el número del descarte ×10 si el siguiente jugador abre con él."
+    "penaltiesDetail": "101 puntos por descartar el okey o una ficha que encaja en la mesa, y por un okey quitado de tu combinación; el número del descarte ×10 si el siguiente jugador abre con él.",
+    "okey": "Okey",
+    "points": "Puntos iniciales"
   },
   "room": {
     "summary": "{{parts}}.",
@@ -76,7 +78,8 @@
     "classic": "Reglas clásicas",
     "okey101": "Okey 101, manos: {{hands}}",
     "progressive": "apertura creciente",
-    "noPenalties": "sin penalizaciones"
+    "noPenalties": "sin penalizaciones",
+    "okeyPlain": "Okey, puntos: {{points}}"
   },
   "lobby": {
     "code": "Código de sala: compártelo con los demás jugadores",
@@ -294,7 +297,20 @@
     "nextHand": "siguiente mano en {{n}} s",
     "thisHand": "Esta mano",
     "total": "Total",
-    "lowestWins": "Puntos de penalización: gana el total más bajo."
+    "lowestWins": "Puntos de penalización: gana el total más bajo.",
+    "finishHere": "Suelta aquí una ficha para cerrar: tus otras 14 en combinaciones, o siete parejas",
+    "canFinish": "Puedes cerrar: suelta tu última ficha en el centro.",
+    "plainYourTurn": "Tu turno: roba una ficha o toma el descarte de {{name}}.",
+    "plainPlay": "Descarta una ficha, o cierra si tus otras 14 ganan.",
+    "youFinishedSets": "¡Has cerrado!",
+    "youFinishedPairs": "¡Has cerrado con siete parejas!",
+    "finishedSets": "{{name}} ha cerrado.",
+    "finishedPairs": "{{name}} ha cerrado con siete parejas.",
+    "onOkey": "Con el okey: doble.",
+    "dealtAgain": "Se acabó el pozo: se reparte de nuevo.",
+    "points": "Puntos",
+    "lost": "Perdidos",
+    "mostPointsWin": "La partida termina cuando alguien se queda sin puntos: gana quien tenga más."
   },
   "okeyError": {
     "notYourTurn": "No es tu turno.",
@@ -313,6 +329,7 @@
     "setsAndPairs": "Las escaleras y los grupos no se mezclan con parejas.",
     "openingTooLow": "Tu apertura vale {{points}} puntos; necesita {{needed}}.",
     "tooFewPairs": "{{pairs}} parejas; la apertura necesita {{needed}}.",
-    "discardNotUsed": "El descarte que tomaste debe ir a la mesa (en tu apertura, si estás abriendo)."
+    "discardNotUsed": "El descarte que tomaste debe ir a la mesa (en tu apertura, si estás abriendo).",
+    "notComplete": "Tus otras 14 fichas deben estar todas en combinaciones, o ser siete parejas."
   }
 }

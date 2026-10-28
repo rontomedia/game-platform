@@ -56,7 +56,9 @@
     "progressive": "Stijgende opening",
     "progressiveDetail": "Elke opening moet de vorige in de ronde overtreffen: na 120 punten 121.",
     "penalties": "Strafpunten",
-    "penaltiesDetail": "101 punten voor het weggooien van de okey of een steen die op tafel past, en voor een okey die uit je combinatie wordt gehaald; het getal van de weggegooide steen ×10 als de volgende speler ermee opent."
+    "penaltiesDetail": "101 punten voor het weggooien van de okey of een steen die op tafel past, en voor een okey die uit je combinatie wordt gehaald; het getal van de weggegooide steen ×10 als de volgende speler ermee opent.",
+    "okey": "Okey",
+    "points": "Startpunten"
   },
   "room": {
     "summary": "{{parts}}.",
@@ -75,7 +77,8 @@
     "classic": "Klassieke regels",
     "okey101": "Okey 101, rondes: {{hands}}",
     "progressive": "stijgende opening",
-    "noPenalties": "geen strafpunten"
+    "noPenalties": "geen strafpunten",
+    "okeyPlain": "Okey, punten: {{points}}"
   },
   "lobby": {
     "code": "Kamercode: deel hem met de andere spelers",
@@ -275,7 +278,20 @@
     "nextHand": "volgende ronde over {{n}} s",
     "thisHand": "Deze ronde",
     "total": "Totaal",
-    "lowestWins": "Strafpunten: het laagste totaal wint."
+    "lowestWins": "Strafpunten: het laagste totaal wint.",
+    "finishHere": "Laat hier een steen los om uit te gaan: je andere 14 allemaal in combinaties, of zeven paren",
+    "canFinish": "Je kunt uitgaan: laat je laatste steen in het midden los.",
+    "plainYourTurn": "Jouw beurt: pak een steen of neem de weggegooide steen van {{name}}.",
+    "plainPlay": "Gooi een steen weg, of ga uit als je andere 14 winnen.",
+    "youFinishedSets": "Je bent uit!",
+    "youFinishedPairs": "Je bent uit met zeven paren!",
+    "finishedSets": "{{name}} is uit.",
+    "finishedPairs": "{{name}} is uit met zeven paren.",
+    "onOkey": "Met de okey: dubbel.",
+    "dealtAgain": "De pot is leeg: de ronde wordt opnieuw gedeeld.",
+    "points": "Punten",
+    "lost": "Verloren",
+    "mostPointsWin": "Het spel eindigt als iemand geen punten meer heeft: de meeste punten winnen."
   },
   "okeyError": {
     "notYourTurn": "Het is niet jouw beurt.",
@@ -294,6 +310,7 @@
     "setsAndPairs": "Reeksen en groepen gaan niet samen met paren.",
     "openingTooLow": "Je opening is {{points}} punten waard; nodig is {{needed}}.",
     "tooFewPairs": "{{pairs}} paren; openen vraagt {{needed}}.",
-    "discardNotUsed": "De genomen steen moet op tafel (in je opening, als je opent)."
+    "discardNotUsed": "De genomen steen moet op tafel (in je opening, als je opent).",
+    "notComplete": "Je andere 14 stenen moeten allemaal in combinaties liggen, of zeven paren zijn."
   }
 }

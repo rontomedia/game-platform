@@ -57,7 +57,9 @@
     "progressive": "Apertura crescente",
     "progressiveDetail": "Ogni apertura deve superare la precedente della mano: dopo 120 punti, 121.",
     "penalties": "Penalità",
-    "penaltiesDetail": "101 punti per scartare l’okey o una tessera che va sul tavolo, e per un okey tolto dalla tua combinazione; il numero dello scarto ×10 se il giocatore successivo apre con esso."
+    "penaltiesDetail": "101 punti per scartare l’okey o una tessera che va sul tavolo, e per un okey tolto dalla tua combinazione; il numero dello scarto ×10 se il giocatore successivo apre con esso.",
+    "okey": "Okey",
+    "points": "Punti iniziali"
   },
   "room": {
     "summary": "{{parts}}.",
@@ -76,7 +78,8 @@
     "classic": "Regole classiche",
     "okey101": "Okey 101, mani: {{hands}}",
     "progressive": "apertura crescente",
-    "noPenalties": "senza penalità"
+    "noPenalties": "senza penalità",
+    "okeyPlain": "Okey, punti: {{points}}"
   },
   "lobby": {
     "code": "Codice della stanza: condividilo con gli altri giocatori",
@@ -294,7 +297,20 @@
     "nextHand": "prossima mano tra {{n}} s",
     "thisHand": "Questa mano",
     "total": "Totale",
-    "lowestWins": "Punti di penalità: vince il totale più basso."
+    "lowestWins": "Punti di penalità: vince il totale più basso.",
+    "finishHere": "Rilascia qui una tessera per chiudere: le altre 14 tutte in combinazioni, o sette coppie",
+    "canFinish": "Puoi chiudere: rilascia l’ultima tessera al centro.",
+    "plainYourTurn": "Tocca a te: pesca una tessera o prendi lo scarto di {{name}}.",
+    "plainPlay": "Scarta una tessera, o chiudi se le altre 14 vincono.",
+    "youFinishedSets": "Hai chiuso!",
+    "youFinishedPairs": "Hai chiuso con sette coppie!",
+    "finishedSets": "{{name}} ha chiuso.",
+    "finishedPairs": "{{name}} ha chiuso con sette coppie.",
+    "onOkey": "Con l’okey: doppio.",
+    "dealtAgain": "Il mazzo è finito: la mano si ridistribuisce.",
+    "points": "Punti",
+    "lost": "Persi",
+    "mostPointsWin": "La partita finisce quando qualcuno resta senza punti: vince chi ne ha di più."
   },
   "okeyError": {
     "notYourTurn": "Non è il tuo turno.",
@@ -313,6 +329,7 @@
     "setsAndPairs": "Scale e gruppi non si mescolano con le coppie.",
     "openingTooLow": "La tua apertura vale {{points}} punti; ne servono {{needed}}.",
     "tooFewPairs": "{{pairs}} coppie; per aprire ne servono {{needed}}.",
-    "discardNotUsed": "Lo scarto che hai preso deve andare sul tavolo (nella tua apertura, se stai aprendo)."
+    "discardNotUsed": "Lo scarto che hai preso deve andare sul tavolo (nella tua apertura, se stai aprendo).",
+    "notComplete": "Le altre 14 tessere devono essere tutte in combinazioni, o sette coppie."
   }
 }

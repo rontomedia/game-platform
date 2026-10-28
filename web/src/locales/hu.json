@@ -56,7 +56,9 @@
     "progressive": "Emelkedő nyitás",
     "progressiveDetail": "Minden nyitásnak felül kell múlnia a leosztás előzőjét: 120 pont után 121.",
     "penalties": "Büntetések",
-    "penaltiesDetail": "101 pont az okey vagy az asztalhoz illő kő eldobásáért, és ha a kombinációdból elveszik az okeyt; az eldobott kő száma ×10, ha a következő játékos azzal nyit."
+    "penaltiesDetail": "101 pont az okey vagy az asztalhoz illő kő eldobásáért, és ha a kombinációdból elveszik az okeyt; az eldobott kő száma ×10, ha a következő játékos azzal nyit.",
+    "okey": "Okey",
+    "points": "Kezdőpontok"
   },
   "room": {
     "summary": "{{parts}}.",
@@ -75,7 +77,8 @@
     "classic": "Klasszikus szabályok",
     "okey101": "Okey 101, leosztások: {{hands}}",
     "progressive": "emelkedő nyitás",
-    "noPenalties": "büntetések nélkül"
+    "noPenalties": "büntetések nélkül",
+    "okeyPlain": "Okey, pontok: {{points}}"
   },
   "lobby": {
     "code": "Szobakód: küldd el a többi játékosnak",
@@ -275,7 +278,20 @@
     "nextHand": "következő leosztás {{n}} mp múlva",
     "thisHand": "Ez a leosztás",
     "total": "Összesen",
-    "lowestWins": "Büntetőpontok: a legkisebb összeg nyer."
+    "lowestWins": "Büntetőpontok: a legkisebb összeg nyer.",
+    "finishHere": "Ide engedj egy követ a befejezéshez: a többi 14 mind kombinációban, vagy hét pár",
+    "canFinish": "Befejezheted: engedd az utolsó követ középre.",
+    "plainYourTurn": "Te jössz: húzz egy követ, vagy vedd el {{name}} eldobott kövét.",
+    "plainPlay": "Dobj el egy követ, vagy fejezd be, ha a többi 14 nyer.",
+    "youFinishedSets": "Befejezted!",
+    "youFinishedPairs": "Hét párral fejezted be!",
+    "finishedSets": "{{name}} befejezte.",
+    "finishedPairs": "{{name}} hét párral fejezte be.",
+    "onOkey": "Okeyjal: dupla.",
+    "dealtAgain": "Elfogyott a pakli: újraosztás.",
+    "points": "Pontok",
+    "lost": "Elveszett",
+    "mostPointsWin": "A játék véget ér, ha valakinek elfogy a pontja: a legtöbb pont nyer."
   },
   "okeyError": {
     "notYourTurn": "Nem te jössz.",
@@ -294,6 +310,7 @@
     "setsAndPairs": "Sorokat és csoportokat nem lehet párokkal keverni.",
     "openingTooLow": "A nyitásod {{points}} pontot ér; {{needed}} kell.",
     "tooFewPairs": "{{pairs}} pár; a nyitáshoz {{needed}} kell.",
-    "discardNotUsed": "Az elvett követ az asztalra kell tenni (a nyitásodba, ha most nyitsz)."
+    "discardNotUsed": "Az elvett követ az asztalra kell tenni (a nyitásodba, ha most nyitsz).",
+    "notComplete": "A többi 14 kövednek mind kombinációban kell lennie, vagy hét párnak."
   }
 }

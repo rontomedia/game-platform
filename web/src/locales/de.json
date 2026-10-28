@@ -56,7 +56,9 @@
     "progressive": "Steigende Eröffnung",
     "progressiveDetail": "Jede Eröffnung muss die vorige der Runde übertreffen: nach 120 Punkten 121.",
     "penalties": "Strafen",
-    "penaltiesDetail": "101 Punkte fürs Abwerfen des Okey oder eines Steins, der an den Tisch passt, und für ein Okey, das aus deiner Kombination genommen wird; die Zahl des Abwurfs ×10, wenn der Nächste damit eröffnet."
+    "penaltiesDetail": "101 Punkte fürs Abwerfen des Okey oder eines Steins, der an den Tisch passt, und für ein Okey, das aus deiner Kombination genommen wird; die Zahl des Abwurfs ×10, wenn der Nächste damit eröffnet.",
+    "okey": "Okey",
+    "points": "Startpunkte"
   },
   "room": {
     "summary": "{{parts}}.",
@@ -75,7 +77,8 @@
     "classic": "Klassische Regeln",
     "okey101": "Okey 101, Runden: {{hands}}",
     "progressive": "steigende Eröffnung",
-    "noPenalties": "ohne Strafen"
+    "noPenalties": "ohne Strafen",
+    "okeyPlain": "Okey, Punkte: {{points}}"
   },
   "lobby": {
     "code": "Raumcode: Teile ihn mit den anderen",
@@ -275,7 +278,20 @@
     "nextHand": "nächste Runde in {{n}} s",
     "thisHand": "Diese Runde",
     "total": "Gesamt",
-    "lowestWins": "Strafpunkte: die niedrigste Summe gewinnt."
+    "lowestWins": "Strafpunkte: die niedrigste Summe gewinnt.",
+    "finishHere": "Stein hier ablegen, um zu beenden: die anderen 14 alle in Kombinationen oder sieben Paare",
+    "canFinish": "Du kannst beenden: leg deinen letzten Stein in die Mitte.",
+    "plainYourTurn": "Du bist dran: zieh einen Stein oder nimm den Abwurf von {{name}}.",
+    "plainPlay": "Wirf einen Stein ab oder beende, wenn deine anderen 14 gewinnen.",
+    "youFinishedSets": "Du hast beendet!",
+    "youFinishedPairs": "Du hast mit sieben Paaren beendet!",
+    "finishedSets": "{{name}} hat beendet.",
+    "finishedPairs": "{{name}} hat mit sieben Paaren beendet.",
+    "onOkey": "Mit dem Okey: doppelt.",
+    "dealtAgain": "Der Vorrat ist leer: die Runde wird neu gegeben.",
+    "points": "Punkte",
+    "lost": "Verloren",
+    "mostPointsWin": "Das Spiel endet, wenn jemand keine Punkte mehr hat: die meisten Punkte gewinnen."
   },
   "okeyError": {
     "notYourTurn": "Du bist nicht dran.",
@@ -294,6 +310,7 @@
     "setsAndPairs": "Reihen und Gruppen lassen sich nicht mit Paaren mischen.",
     "openingTooLow": "Deine Eröffnung ist {{points}} Punkte wert; nötig sind {{needed}}.",
     "tooFewPairs": "{{pairs}} Paare; zum Eröffnen nötig: {{needed}}.",
-    "discardNotUsed": "Der genommene Abwurf muss auf den Tisch (in deine Eröffnung, wenn du eröffnest)."
+    "discardNotUsed": "Der genommene Abwurf muss auf den Tisch (in deine Eröffnung, wenn du eröffnest).",
+    "notComplete": "Deine anderen 14 Steine müssen alle in Kombinationen liegen oder sieben Paare sein."
   }
 }

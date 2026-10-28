@@ -58,7 +58,9 @@
     "progressive": "Rosnące otwarcie",
     "progressiveDetail": "Każde otwarcie musi przebić poprzednie w rozdaniu: po 120 punktach 121.",
     "penalties": "Kary",
-    "penaltiesDetail": "101 punktów za odrzucenie okeya lub kamienia pasującego do stołu i za okeya zabranego z twojego układu; liczba z odrzuconego kamienia ×10, gdy następny gracz nim otworzy."
+    "penaltiesDetail": "101 punktów za odrzucenie okeya lub kamienia pasującego do stołu i za okeya zabranego z twojego układu; liczba z odrzuconego kamienia ×10, gdy następny gracz nim otworzy.",
+    "okey": "Okey",
+    "points": "Punkty na start"
   },
   "room": {
     "summary": "{{parts}}.",
@@ -77,7 +79,8 @@
     "classic": "Zasady klasyczne",
     "okey101": "Okey 101, rozdania: {{hands}}",
     "progressive": "rosnące otwarcie",
-    "noPenalties": "bez kar"
+    "noPenalties": "bez kar",
+    "okeyPlain": "Okey, punkty: {{points}}"
   },
   "lobby": {
     "code": "Kod pokoju: przekaż go pozostałym graczom",
@@ -313,7 +316,20 @@
     "nextHand": "następne rozdanie za {{n}} s",
     "thisHand": "To rozdanie",
     "total": "Razem",
-    "lowestWins": "Punkty karne: wygrywa najniższa suma."
+    "lowestWins": "Punkty karne: wygrywa najniższa suma.",
+    "finishHere": "Upuść tu kamień, by skończyć: pozostałe 14 w układach albo siedem par",
+    "canFinish": "Możesz skończyć: upuść ostatni kamień na środek.",
+    "plainYourTurn": "Twoja tura: dobierz kamień albo weź kamień odrzucony przez gracza {{name}}.",
+    "plainPlay": "Odrzuć kamień albo skończ, jeśli pozostałe 14 wygrywa.",
+    "youFinishedSets": "Skończyłeś!",
+    "youFinishedPairs": "Skończyłeś siedmioma parami!",
+    "finishedSets": "{{name}} kończy.",
+    "finishedPairs": "{{name}} kończy siedmioma parami.",
+    "onOkey": "Na okeyu: podwójnie.",
+    "dealtAgain": "Pula się skończyła: rozdanie od nowa.",
+    "points": "Punkty",
+    "lost": "Stracone",
+    "mostPointsWin": "Gra kończy się, gdy komuś skończą się punkty: wygrywa najwięcej punktów."
   },
   "okeyError": {
     "notYourTurn": "To nie twoja tura.",
@@ -332,6 +348,7 @@
     "setsAndPairs": "Stritów i grup nie można łączyć z parami.",
     "openingTooLow": "Twoje otwarcie jest warte {{points}} punktów; potrzeba {{needed}}.",
     "tooFewPairs": "Par: {{pairs}}; otwarcie wymaga {{needed}}.",
-    "discardNotUsed": "Wzięty kamień musi trafić na stół (do otwarcia, jeśli otwierasz)."
+    "discardNotUsed": "Wzięty kamień musi trafić na stół (do otwarcia, jeśli otwierasz).",
+    "notComplete": "Pozostałe 14 kamieni musi być w układach albo tworzyć siedem par."
   }
 }

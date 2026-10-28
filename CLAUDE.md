@@ -92,6 +92,13 @@ only builds it on start.
   equally linked, discard the one of least use to the next player
   (`Care`); they win 60.5% of matches against Easy. `okey_strength`
   (ignored test, `--release`; `OKEY_GAMES`, `OKEY_CARE`) measures them.
+  `plain_okey` is plain Okey ("düz okey", pagat's rules): no table, a
+  turn is draw or take the previous discard, then discard; `finish` shows
+  the other 14 as runs and groups (12-13-1 allowed here, not in 101) or
+  seven pairs (`complete`, its own search as the classic solver has no
+  wrap). Points from 20 down: 2 a win, doubled on the okey and for pairs;
+  the indicator's twin shown at the deal. `plain_bot_move` finishes when
+  it can (on the okey first) and keeps the 14 that cover most.
   Its `wasm` feature derives
   `tsify::Tsify` on the types that cross into JS; serde attributes define the
   TS shape (e.g. `Tile` is `{ kind: "number", color, value } | { kind:
@@ -287,6 +294,12 @@ only builds it on start.
     opening total as it builds (`okeyProgress`), the scores between hands
     and at the end. Shares `TopBar` and `WatchBar` with `Board.tsx`; the
     rack order is kept per tab. `?demo=okey` and `?demo=okey-scores`.
+  - `PlainOkeyBoard.tsx`: plain Okey (`rules` kind `okey`, states
+    `plainOkeyState`): no table; draw or take the discard, then drop a
+    tile on the discard spot, or on the finish spot in the middle to show
+    the other 14 as a winning hand (checked first, `okeyComplete`). Shares
+    the Okey board's parts (`okeyParts.ts`, `Middle`, `DiscardPile`,
+    `Rack`, `DiscardSpot`, `Overlay`). `?demo=plain`, `?demo=plain-scores`.
   - Planned: shadcn/ui for menus, `@heroiclabs/nakama-js` for
     accounts/matchmaking.
 

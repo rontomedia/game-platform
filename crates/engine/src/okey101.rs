@@ -155,6 +155,9 @@ pub enum OkeyError {
     /// The previous player's discard was taken but isn't on the table (or,
     /// for a player opening, isn't in their opening).
     DiscardNotUsed,
+    /// Plain Okey: finishing with a hand that isn't 14 tiles in sets or
+    /// seven pairs.
+    NotComplete,
 }
 
 impl fmt::Display for OkeyError {
@@ -179,6 +182,7 @@ impl fmt::Display for OkeyError {
             }
             OkeyError::TooFewPairs { pairs, needed } => write!(f, "{pairs} pairs; opening needs {needed}"),
             OkeyError::DiscardNotUsed => write!(f, "the discard you took must go on the table"),
+            OkeyError::NotComplete => write!(f, "the other 14 tiles must all be in sets, or seven pairs"),
         }
     }
 }
@@ -763,7 +767,7 @@ struct Extension {
 }
 
 /// The tile one higher than the indicator in its colour, 1 after 13.
-fn okey_for(indicator: Tile) -> Tile {
+pub(crate) fn okey_for(indicator: Tile) -> Tile {
     match indicator {
         Tile::Number { color, value } => Tile::Number { color, value: value % MAX_VALUE + 1 },
         Tile::Joker => panic!("a joker can't be the indicator"),
@@ -772,7 +776,7 @@ fn okey_for(indicator: Tile) -> Tile {
 
 /// The tiles as classic sets read them: the okey wild (a joker), a false
 /// okey the okey's own number.
-fn plain(okey: Tile, tiles: &[Tile]) -> Vec<Tile> {
+pub(crate) fn plain(okey: Tile, tiles: &[Tile]) -> Vec<Tile> {
     tiles
         .iter()
         .map(|&t| match t {

@@ -57,7 +57,9 @@
     "progressive": "Ouverture montante",
     "progressiveDetail": "Chaque ouverture doit battre la précédente de la manche : après 120 points, 121.",
     "penalties": "Pénalités",
-    "penaltiesDetail": "101 points pour défausser l’okey ou une tuile qui va sur la table, et pour un okey pris dans votre combinaison ; le chiffre de la défausse ×10 quand le joueur suivant ouvre avec."
+    "penaltiesDetail": "101 points pour défausser l’okey ou une tuile qui va sur la table, et pour un okey pris dans votre combinaison ; le chiffre de la défausse ×10 quand le joueur suivant ouvre avec.",
+    "okey": "Okey",
+    "points": "Points de départ"
   },
   "room": {
     "summary": "{{parts}}.",
@@ -76,7 +78,8 @@
     "classic": "Règles classiques",
     "okey101": "Okey 101, manches : {{hands}}",
     "progressive": "ouverture montante",
-    "noPenalties": "sans pénalités"
+    "noPenalties": "sans pénalités",
+    "okeyPlain": "Okey, points : {{points}}"
   },
   "lobby": {
     "code": "Code de la salle : partagez-le avec les autres joueurs",
@@ -294,7 +297,20 @@
     "nextHand": "manche suivante dans {{n}} s",
     "thisHand": "Cette manche",
     "total": "Total",
-    "lowestWins": "Points de pénalité : le total le plus bas gagne."
+    "lowestWins": "Points de pénalité : le total le plus bas gagne.",
+    "finishHere": "Déposez une tuile ici pour finir : vos 14 autres toutes en combinaisons, ou sept paires",
+    "canFinish": "Vous pouvez finir : déposez votre dernière tuile au milieu.",
+    "plainYourTurn": "À vous : piochez une tuile, ou prenez la défausse de {{name}}.",
+    "plainPlay": "Défaussez une tuile, ou finissez si vos 14 autres gagnent.",
+    "youFinishedSets": "Vous avez fini !",
+    "youFinishedPairs": "Vous avez fini avec sept paires !",
+    "finishedSets": "{{name}} a fini.",
+    "finishedPairs": "{{name}} a fini avec sept paires.",
+    "onOkey": "Sur l’okey : double.",
+    "dealtAgain": "La pioche est vide : la manche est redistribuée.",
+    "points": "Points",
+    "lost": "Perdus",
+    "mostPointsWin": "La partie s’arrête quand quelqu’un n’a plus de points : le plus de points gagne."
   },
   "okeyError": {
     "notYourTurn": "Ce n’est pas votre tour.",
@@ -313,6 +329,7 @@
     "setsAndPairs": "On ne mélange pas suites et groupes avec des paires.",
     "openingTooLow": "Votre ouverture vaut {{points}} points ; il en faut {{needed}}.",
     "tooFewPairs": "{{pairs}} paires ; l’ouverture en demande {{needed}}.",
-    "discardNotUsed": "La défausse prise doit aller sur la table (dans votre ouverture, si vous ouvrez)."
+    "discardNotUsed": "La défausse prise doit aller sur la table (dans votre ouverture, si vous ouvrez).",
+    "notComplete": "Vos 14 autres tuiles doivent toutes être en combinaisons, ou former sept paires."
   }
 }

@@ -1,16 +1,13 @@
 import {
-  closestCenter,
   DndContext,
   DragOverlay,
   KeyboardSensor,
   MouseSensor,
-  pointerWithin,
   TouchSensor,
   useDraggable,
   useDroppable,
   useSensor,
   useSensors,
-  type CollisionDetection,
   type DragEndEvent,
   type DragStartEvent,
 } from '@dnd-kit/core'
@@ -20,10 +17,25 @@ import { AnimatePresence, motion } from 'motion/react'
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 
-import { arrangeRack, compareTiles, type RackSort } from './arrange.ts'
+import { compareTiles, type RackSort } from './arrange.ts'
 import { TopBar, WatchBar, type Clock } from './Board.tsx'
 import { noticeText, okeyError, problemText, type Problem } from './messages.ts'
 import type { Settings } from './settings.ts'
+import {
+  collisions,
+  DISCARD,
+  isSetTarget,
+  NEW_SET,
+  OFFER,
+  orderedRack,
+  RACK,
+  same,
+  sameTile,
+  setTarget,
+  TAKEN,
+  tilesOf,
+  type Placed,
+} from './okeyParts.ts'
 import { remember, remembered } from './storage.ts'
 import { TileFace } from './TileView.tsx'
 import { Button } from './ui.tsx'
@@ -34,7 +46,6 @@ import {
   okeyMeldKind,
   okeyProgress,
   type ClientMessage,
-  type HandView,
   type Notice,
   type RoomInfo,
   type Tile,
@@ -51,40 +62,8 @@ import {
  * can't be rearranged, so only tiles put down this turn move again.
  */
 
-/** A tile where the board shows it, with an id for dragging. */
-interface Placed {
-  id: string
-  tile: Tile
-}
-
-const RACK = 'rack'
-const NEW_SET = 'new-set'
-const DISCARD = 'discard'
-/** The previous player's discard, to take. */
-const OFFER = 'offer'
-/** The discard once taken, wherever it is. */
-const TAKEN = 'taken'
-const setTarget = (index: number) => `set-${index}`
-const isSetTarget = (id: string) => id.startsWith('set-')
-
-const collisions: CollisionDetection = (args) => {
-  const within = pointerWithin(args)
-  return within.length > 0 ? within : closestCenter(args)
-}
-
 /** Remembered for the tab: the player's rack order in their current room. */
 const RACK_KEY = 'rummy.okeyRack'
-
-/** The rack in the player's order: as they last left it, new tiles at the end. */
-function orderedRack(code: string, rack: Tile[], sort: RackSort): Placed[] {
-  const saved = remembered<{ code: string; tiles: Tile[] }>(RACK_KEY, 'session')
-  const previous = saved && saved.code === code ? saved.tiles : []
-  const [first, second] = arrangeRack([previous, []], sort, rack)
-  return [...first, ...second].map((tile, i) => ({ id: `r${i}`, tile }))
-}
-
-const tilesOf = (placed: Placed[]) => placed.map((p) => p.tile)
-const same = (a: Tile[][], b: Tile[][]) => JSON.stringify(a) === JSON.stringify(b)
 
 /** Give it `key={okey.version}`: a new state starts the turn afresh. */
 export function OkeyBoard({
@@ -120,10 +99,10 @@ export function OkeyBoard({
   const players = hand.rackSizes.length
   const previous = (hand.current + players - 1) % players
   const offer = hand.discards[previous]?.at(-1)
-  const canTake = myTurn && hand.phase === 'draw' && offer !== undefined && JSON.stringify(offer) !== JSON.stringify(hand.okey)
+  const canTake = myTurn && hand.phase === 'draw' && offer !== undefined && !sameTile(offer, hand.okey)
 
   const [sort, setSort] = useState<RackSort>(() => remembered<RackSort>('rummy.rackSort') ?? 'custom')
-  const [rack, setRack] = useState(() => orderedRack(room.code, hand.rack, sort))
+  const [rack, setRack] = useState(() => orderedRack(RACK_KEY, room.code, hand.rack, sort))
   const [sets, setSets] = useState<Placed[][]>(() =>
     hand.table.map((set, s) => set.map((tile, i) => ({ id: `t${s}-${i}`, tile }))),
   )
@@ -270,7 +249,7 @@ export function OkeyBoard({
     const atFront = [placed, ...set]
     const atBack = [...set, placed]
     const okeyAt = tiles.findIndex((tile, i) => {
-      if (JSON.stringify(tile) !== JSON.stringify(hand.okey) || !fixed.has(set[i].id)) return false
+      if (!sameTile(tile, hand.okey) || !fixed.has(set[i].id)) return false
       return fits(tiles.map((other, j) => (j === i ? placed.tile : other)))
     })
     let nextSet: Placed[]
@@ -286,7 +265,7 @@ export function OkeyBoard({
   }
 
   const reset = () => {
-    setRack(orderedRack(room.code, hand.rack, sort))
+    setRack(orderedRack(RACK_KEY, room.code, hand.rack, sort))
     setSets(hand.table.map((set, s) => set.map((tile, i) => ({ id: `t${s}-${i}`, tile }))))
     setTaken(false)
     setRefused(null)
@@ -368,8 +347,10 @@ export function OkeyBoard({
           >
             <div className="flex flex-wrap items-start gap-3">
               <Middle
-                hand={hand}
-                handNumber={handNumber}
+                indicator={hand.indicator}
+                okey={hand.okey}
+                pool={hand.pool}
+                caption={t('okey.hand', { n: handNumber, total: hand.rules.hands ?? handNumber })}
                 canDraw={myTurn && hand.phase === 'draw' && !taken}
                 onDraw={() => send({ type: 'draw' })}
               />
@@ -442,7 +423,7 @@ export function OkeyBoard({
             </div>
             <div className="flex items-stretch gap-3">
               <Rack tiles={rack} sortable={!watching} okey={hand.okey} />
-              <DiscardSpot active={myTurn && (hand.phase === 'play' || taken)} />
+              <DiscardSpot id={DISCARD} label={t('okey.discardHere')} active={myTurn && (hand.phase === 'play' || taken)} />
             </div>
           </section>
         )}
@@ -455,17 +436,31 @@ export function OkeyBoard({
   )
 }
 
-/** The indicator, the okey it picks, the pool to draw from, and the hand's number. */
-function Middle({ hand, handNumber, canDraw, onDraw }: { hand: HandView; handNumber: number; canDraw: boolean; onDraw: () => void }) {
+/** The indicator, the okey it picks, the pool to draw from, and a caption (the hand's number). */
+export function Middle({
+  indicator,
+  okey,
+  pool,
+  caption,
+  canDraw,
+  onDraw,
+}: {
+  indicator: Tile
+  okey: Tile
+  pool: number
+  caption: string
+  canDraw: boolean
+  onDraw: () => void
+}) {
   const { t } = useTranslation()
   return (
     <div className="flex items-center gap-3 rounded-2xl bg-black/20 p-2 pe-3">
       <Labelled label={t('okey.indicator')}>
-        <TileFace tile={hand.indicator} size="table" />
+        <TileFace tile={indicator} size="table" />
       </Labelled>
       <Labelled label={t('okey.okey')}>
         <div className="rounded-md ring-2 ring-amber-300/80">
-          <TileFace tile={hand.okey} size="table" />
+          <TileFace tile={okey} size="table" />
         </div>
       </Labelled>
       <Labelled label={t('board.draw')}>
@@ -473,17 +468,15 @@ function Middle({ hand, handNumber, canDraw, onDraw }: { hand: HandView; handNum
           onClick={onDraw}
           disabled={!canDraw}
           data-pool
-          title={t('board.pool', { count: hand.pool })}
+          title={t('board.pool', { count: pool })}
           className={`relative grid h-[3.25rem] w-9 place-items-center rounded-md bg-linear-to-b from-stone-100 to-stone-300 text-sm font-bold tabular-nums text-slate-700 shadow sm:h-16 sm:w-11 short:h-11 short:w-8 ${
             canDraw ? 'cursor-pointer ring-2 ring-teal-300 hover:brightness-105' : 'cursor-default opacity-80'
           }`}
         >
-          {hand.pool}
+          {pool}
         </button>
       </Labelled>
-      <p className="ms-1 text-xs leading-tight text-emerald-100/70">
-        {t('okey.hand', { n: handNumber, total: hand.rules.hands ?? handNumber })}
-      </p>
+      <p className="ms-1 max-w-28 text-xs leading-tight text-emerald-100/70">{caption}</p>
     </div>
   )
 }
@@ -498,7 +491,7 @@ function Labelled({ label, children }: { label: string; children: ReactNode }) {
 }
 
 /** A player's discards: the last on top, and how many. The previous player's may be taken. */
-function DiscardPile({ name, pile, offered, returnable }: { name: string; pile: Tile[]; offered: boolean; returnable: boolean }) {
+export function DiscardPile({ name, pile, offered, returnable }: { name: string; pile: Tile[]; offered: boolean; returnable: boolean }) {
   const { t } = useTranslation()
   const top = pile.at(-1)
   const drag = useDraggable({ id: OFFER, disabled: !offered })
@@ -558,7 +551,7 @@ function TableSet({
 
 function TableTile({ placed, draggable, okey }: { placed: Placed; draggable: boolean; okey: Tile }) {
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({ id: placed.id, disabled: !draggable })
-  const isOkey = JSON.stringify(placed.tile) === JSON.stringify(okey)
+  const isOkey = sameTile(placed.tile, okey)
   return (
     <div
       ref={setNodeRef}
@@ -588,7 +581,7 @@ function NewSet() {
 }
 
 /** The rack: one row that wraps, sorted by dragging. */
-function Rack({ tiles, sortable, okey }: { tiles: Placed[]; sortable: boolean; okey: Tile }) {
+export function Rack({ tiles, sortable, okey }: { tiles: Placed[]; sortable: boolean; okey: Tile }) {
   const { setNodeRef } = useDroppable({ id: RACK })
   return (
     <SortableContext items={tiles.map((p) => p.id)} strategy={rectSortingStrategy} disabled={!sortable}>
@@ -604,7 +597,7 @@ function Rack({ tiles, sortable, okey }: { tiles: Placed[]; sortable: boolean; o
 function RackTile({ placed, okey }: { placed: Placed; okey: Tile }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: placed.id })
   const { t } = useTranslation()
-  const isOkey = JSON.stringify(placed.tile) === JSON.stringify(okey)
+  const isOkey = sameTile(placed.tile, okey)
   return (
     <div
       ref={setNodeRef}
@@ -621,15 +614,24 @@ function RackTile({ placed, okey }: { placed: Placed; okey: Tile }) {
   )
 }
 
-/** Where a tile dropped is discarded, ending the turn. */
-function DiscardSpot({ active }: { active: boolean }) {
-  const { t } = useTranslation()
-  const { setNodeRef, isOver } = useDroppable({ id: DISCARD, disabled: !active })
+/** Where a tile dropped is discarded, ending the turn (`id` DISCARD, or FINISH in plain Okey). */
+export function DiscardSpot({
+  id,
+  label,
+  active,
+  className = 'w-20 sm:w-28',
+}: {
+  id: string
+  label: string
+  active: boolean
+  className?: string
+}) {
+  const { setNodeRef, isOver } = useDroppable({ id, disabled: !active })
   return (
     <div
       ref={setNodeRef}
       dir="auto"
-      className={`grid w-20 shrink-0 place-items-center rounded-2xl border-2 border-dashed p-2 text-center text-xs transition sm:w-28 ${
+      className={`grid shrink-0 place-items-center rounded-2xl border-2 border-dashed p-2 text-center text-xs transition ${className} ${
         active
           ? isOver
             ? 'border-amber-200 bg-amber-200/15 text-amber-100'
@@ -637,7 +639,7 @@ function DiscardSpot({ active }: { active: boolean }) {
           : 'border-white/10 text-slate-500'
       }`}
     >
-      {t('okey.discardHere')}
+      {label}
     </div>
   )
 }
@@ -693,7 +695,7 @@ function MatchScores({ okey, name, leave }: { okey: OkeyGame; name: (seat: numbe
   )
 }
 
-function Overlay({ children }: { children: ReactNode }) {
+export function Overlay({ children }: { children: ReactNode }) {
   return (
     <motion.div
       initial={{ opacity: 0 }}

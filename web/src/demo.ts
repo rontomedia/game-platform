@@ -1,5 +1,5 @@
-import type { GameState, OkeyGame, TurnRecord } from './useGame.ts'
-import type { HandView, RoomInfo, Tile } from './wasm/engine.js'
+import type { GameState, OkeyGame, PlainOkeyGame, TurnRecord } from './useGame.ts'
+import type { HandView, PlainView, RoomInfo, Tile } from './wasm/engine.js'
 
 /**
  * A game in progress with no server, for working on the board's look:
@@ -175,6 +175,49 @@ export function demoOkey(scores = false): OkeyGame {
   return {
     view: { hand, played: scores ? 3 : 2, totals: scores ? [91, -147, 457, 404] : [-111, -46, 234, 202] },
     turnEnds: scores ? undefined : Date.now() + 45_000,
+    nextHandAt: scores ? Date.now() + 12_000 : undefined,
+    version: 1,
+    turnSince: 1,
+  }
+}
+
+/** `?demo=plain`: a plain Okey room. */
+export const demoPlainOkeyRoom: RoomInfo = {
+  ...demoRoom,
+  options: { liveTurns: true, rules: { kind: 'okey', points: 20 } },
+}
+
+/**
+ * A plain Okey hand: the indicator red 9, so the red 10s are okeys; the
+ * player has drawn and holds a winning hand but for the orange 2.
+ * `scores`: Maya has just finished on the okey.
+ */
+export function demoPlainOkey(scores = false): PlainOkeyGame {
+  const okey = n('red', 10)
+  const rack = [
+    n('black', 12), n('black', 13), n('black', 1), n('blue', 4), n('blue', 5), n('blue', 6), n('blue', 7),
+    n('orange', 9), n('black', 9), n('blue', 9), n('red', 2), n('red', 3), okey, n('orange', 2), n('red', 4),
+  ]
+  const view: PlainView = {
+    you: 0,
+    rules: { points: 20 },
+    indicator: n('red', 9),
+    okey,
+    rack,
+    rackSizes: [15, 14, 14, 14],
+    discards: [[n('blue', 13)], [n('orange', 6), n('black', 3)], [n('red', 12)], [n('orange', 11)]],
+    showed: [false, false, true, false],
+    pool: 31,
+    current: 0,
+    phase: 'play',
+    points: [16, 20, 13, 9],
+    end: scores
+      ? { winner: 1, finish: 'sets', okeyLast: true, hand: rack.slice(0, 14), lost: [5, 1, 4, 5] }
+      : undefined,
+  }
+  return {
+    view,
+    turnEnds: scores ? undefined : Date.now() + 38_000,
     nextHandAt: scores ? Date.now() + 12_000 : undefined,
     version: 1,
     turnSince: 1,

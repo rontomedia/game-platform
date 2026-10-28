@@ -912,7 +912,7 @@ async fn okey_draw_and_discard(ann: &mut Client, view: &engine::okey101::MatchVi
         ann.send(ClientMessage::Draw).await;
     } else {
         let discard = safe_discard(hand.okey, &hand.table, &hand.rack);
-        ann.send(ClientMessage::Discard { take_discard: false, table: hand.table.clone(), discard }).await;
+        ann.send(ClientMessage::Discard { take_discard: false, table: hand.table.clone(), discard, finish: false }).await;
     }
 }
 
@@ -984,7 +984,7 @@ async fn okey_moves_that_arent_allowed() {
     assert_eq!(rejected, engine::okey101::OkeyError::AlreadyDrawn);
     // A tile she doesn't hold.
     let missing = engine::full_set().into_iter().find(|t| !view.hand.rack.contains(t)).unwrap();
-    ann.send(ClientMessage::Discard { take_discard: false, table: vec![], discard: missing }).await;
+    ann.send(ClientMessage::Discard { take_discard: false, table: vec![], discard: missing, finish: false }).await;
     let rejected = next(&mut ann, |m| match m {
         ServerMessage::OkeyRejected { error } => Some(error),
         _ => None,
@@ -1019,4 +1019,43 @@ async fn an_okey_turn_that_runs_out_discards() {
     }
     let (view, _, _) = okey_state(&mut ann).await;
     assert_eq!((view.hand.current, view.hand.rack.len()), (1, 21));
+}
+
+#[tokio::test]
+async fn a_plain_okey_game_against_bots() {
+    use engine::plain_okey::{plain_bot_move, PlainMove, PlainRules};
+    let server = start_server(SLOW).await;
+    let mut ann = Client::connect(server).await;
+    let options = RoomOptions { rules: protocol::RuleSet::Okey(PlainRules { points: 4 }), ..RoomOptions::default() };
+    ann.create_with("Ann", options).await;
+    ann.send(ClientMessage::AddBot { level: BotLevel::Hard }).await;
+    ann.room().await;
+    ann.send(ClientMessage::Start).await;
+    let mut hands = 0;
+    let last = loop {
+        let view = next(&mut ann, |m| match m {
+            ServerMessage::PlainOkeyState { view, .. } => Some(view),
+            _ => None,
+        })
+        .await;
+        if view.winners.is_some() {
+            break view;
+        }
+        if view.end.is_some() {
+            hands += 1;
+            continue;
+        }
+        // Ann plays as an Easy bot would.
+        if view.current == 0 {
+            match plain_bot_move(&view, BotLevel::Easy) {
+                PlainMove::Draw => ann.send(ClientMessage::Draw).await,
+                PlainMove::Turn(turn) => {
+                    let (take_discard, discard, finish) = (turn.take_discard, turn.discard, turn.finish);
+                    ann.send(ClientMessage::Discard { take_discard, table: vec![], discard, finish }).await
+                }
+            }
+        }
+    };
+    assert!(last.points.iter().any(|&p| p <= 0), "someone ran out of points");
+    assert!(hands >= 1);
 }

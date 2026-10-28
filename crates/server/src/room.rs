@@ -20,6 +20,7 @@ use std::sync::Arc;
 use std::time::Duration;
 
 use engine::okey101::{OkeyMove, Phase, Turn};
+use engine::plain_okey::{PlainMove, PlainTurn};
 use engine::{salvage, BotLevel, Lookahead, Move, Tile};
 use protocol::{Notice, Refusal, RoomInfo, RoomOptions, Seat, ServerMessage};
 use tokio::sync::{mpsc, oneshot, Semaphore};
@@ -117,18 +118,27 @@ pub enum Command {
     Step { player: PlayerId },
     Play { player: PlayerId, table: Vec<Vec<Tile>> },
     Draw { player: PlayerId },
-    /// Okey 101: the end of a turn.
-    Discard { player: PlayerId, turn: Turn },
+    /// Okey 101 or plain Okey: the end of a turn.
+    Discard { player: PlayerId, turn: Discard },
     Draft { player: PlayerId, table: Vec<Vec<Tile>> },
     /// A bot's move, worked out for turn number `turn`.
     BotMove { turn: u64, choice: BotChoice },
 }
 
-/// A player's move, in either game.
+/// The end of an Okey turn, as sent: Okey 101 uses the table, plain Okey
+/// `finish`.
+pub struct Discard {
+    pub take_discard: bool,
+    pub table: Vec<Vec<Tile>>,
+    pub discard: Tile,
+    pub finish: bool,
+}
+
+/// A player's move, in any of the games.
 enum Action {
     Play(Vec<Vec<Tile>>),
     Draw,
-    Discard(Turn),
+    Discard(Discard),
 }
 
 /// A player in a room, or someone watching (the time fields unused).
@@ -597,8 +607,8 @@ impl Room {
         };
         // Their turn's time left, should this end it.
         let left = self.turn_ends.map_or(Duration::ZERO, |t| t.saturating_duration_since(Instant::now()));
-        // Drawing in Okey 101 doesn't end the turn.
-        let ends_turn = !matches!((&self.game, &action), (Some(Contest::Okey(_)), Action::Draw));
+        // Drawing in Okey doesn't end the turn.
+        let ends_turn = !matches!((&self.game, &action), (Some(Contest::Okey(_) | Contest::Plain(_)), Action::Draw));
         if ends_turn && self.game.as_ref().is_some_and(|g| g.current() == seat) {
             self.settle_bank();
         }
@@ -616,11 +626,23 @@ impl Room {
                 Ok(_) => self.drawn(seat, left),
                 Err(error) => self.send(seat, ServerMessage::OkeyRejected { error }),
             },
-            (Contest::Okey(game), Action::Discard(turn)) => match game.play(seat, turn) {
-                Ok(()) => self.end_turn(seat, kept, left),
+            (Contest::Okey(game), Action::Discard(Discard { take_discard, table, discard, .. })) => {
+                match game.play(seat, Turn { take_discard, table, discard }) {
+                    Ok(()) => self.end_turn(seat, kept, left),
+                    Err(error) => self.send(seat, ServerMessage::OkeyRejected { error }),
+                }
+            }
+            (Contest::Plain(game), Action::Draw) => match game.draw(seat) {
+                Ok(_) => self.drawn(seat, left),
                 Err(error) => self.send(seat, ServerMessage::OkeyRejected { error }),
             },
-            (Contest::Classic(_), Action::Discard(_)) | (Contest::Okey(_), Action::Play(_)) => {
+            (Contest::Plain(game), Action::Discard(Discard { take_discard, discard, finish, .. })) => {
+                match game.play(seat, PlainTurn { take_discard, discard, finish }) {
+                    Ok(()) => self.end_turn(seat, kept, left),
+                    Err(error) => self.send(seat, ServerMessage::OkeyRejected { error }),
+                }
+            }
+            (Contest::Classic(_), Action::Discard(_)) | (Contest::Okey(_) | Contest::Plain(_), Action::Play(_)) => {
                 self.send(seat, wrong_game())
             }
         }
@@ -857,6 +879,28 @@ impl Room {
                     let _ = game.draw(seat);
                 }
             }
+            (Contest::Plain(game), BotChoice::Plain(PlainMove::Draw)) => {
+                if game.draw(seat).is_err() || game.end().is_some() {
+                    self.settle_bank();
+                    return self.end_turn(seat, Duration::ZERO, Duration::ZERO);
+                }
+                self.bot_turn = Some((BotTurn::Thinking, Instant::now() + self.config.timing.bot_think));
+                self.broadcast_state();
+                return;
+            }
+            (Contest::Plain(game), BotChoice::Plain(PlainMove::Turn(turn))) => {
+                if let Err(e) = game.play(seat, turn) {
+                    eprintln!("room {}: a bot's turn: {e}", self.code);
+                    if game.phase() == Phase::Draw {
+                        let _ = game.draw(seat);
+                    }
+                    if game.end().is_none() {
+                        if let PlainMove::Turn(turn) = engine::plain_okey::plain_bot_move(&game.view(seat), BotLevel::Easy) {
+                            let _ = game.play(seat, turn);
+                        }
+                    }
+                }
+            }
             _ => eprintln!("room {}: a bot's move for another game", self.code),
         }
         self.settle_bank();
@@ -870,6 +914,9 @@ impl Room {
         self.settle_bank();
         if matches!(self.game, Some(Contest::Okey(_))) {
             return self.okey_time_out();
+        }
+        if matches!(self.game, Some(Contest::Plain(_))) {
+            return self.plain_time_out();
         }
         let Some(Contest::Classic(game)) = self.game.as_ref() else { return };
         let seat = game.current();
@@ -924,14 +971,37 @@ impl Room {
         }
     }
 
-    /// Okey 101: deals the next hand once the scores have been shown.
+    /// Plain Okey: the current player's time ran out. They draw if they
+    /// hadn't (which may end the hand), then discard as an Easy bot would
+    /// (finishing, if their hand wins).
+    fn plain_time_out(&mut self) {
+        let Some(Contest::Plain(game)) = self.game.as_mut() else { return };
+        let seat = game.current();
+        if game.phase() == Phase::Draw {
+            let _ = game.draw(seat);
+            if game.end().is_some() {
+                return self.end_turn(seat, Duration::ZERO, Duration::ZERO);
+            }
+        }
+        if let PlainMove::Turn(turn) = engine::plain_okey::plain_bot_move(&game.view(seat), BotLevel::Easy) {
+            if let Err(e) = game.play(seat, turn) {
+                eprintln!("room {}: a turn played when time ran out: {e}", self.code);
+            }
+        }
+        self.end_turn(seat, Duration::ZERO, Duration::ZERO);
+    }
+
+    /// Okey: deals the next hand once the scores have been shown.
     fn next_hand(&mut self) {
         self.next_hand_at = None;
-        if let Some(Contest::Okey(game)) = self.game.as_mut() {
-            if game.next_hand() {
-                self.start_turn();
-                self.broadcast_state();
-            }
+        let dealt = match self.game.as_mut() {
+            Some(Contest::Okey(game)) => game.next_hand(),
+            Some(Contest::Plain(game)) => game.next_hand(),
+            _ => false,
+        };
+        if dealt {
+            self.start_turn();
+            self.broadcast_state();
         }
     }
 

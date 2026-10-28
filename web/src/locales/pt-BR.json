@@ -57,7 +57,9 @@
     "progressive": "Abertura crescente",
     "progressiveDetail": "Cada abertura precisa superar a anterior da mão: depois de 120 pontos, 121.",
     "penalties": "Penalidades",
-    "penaltiesDetail": "101 pontos por descartar o okey ou uma peça que cabe na mesa, e por um okey tirado da sua combinação; o número do descarte ×10 quando o próximo jogador abre com ele."
+    "penaltiesDetail": "101 pontos por descartar o okey ou uma peça que cabe na mesa, e por um okey tirado da sua combinação; o número do descarte ×10 quando o próximo jogador abre com ele.",
+    "okey": "Okey",
+    "points": "Pontos iniciais"
   },
   "room": {
     "summary": "{{parts}}.",
@@ -76,7 +78,8 @@
     "classic": "Regras clássicas",
     "okey101": "Okey 101, mãos: {{hands}}",
     "progressive": "abertura crescente",
-    "noPenalties": "sem penalidades"
+    "noPenalties": "sem penalidades",
+    "okeyPlain": "Okey, pontos: {{points}}"
   },
   "lobby": {
     "code": "Código da sala: compartilhe com os outros jogadores",
@@ -294,7 +297,20 @@
     "nextHand": "próxima mão em {{n}} s",
     "thisHand": "Esta mão",
     "total": "Total",
-    "lowestWins": "Pontos de penalidade: vence o menor total."
+    "lowestWins": "Pontos de penalidade: vence o menor total.",
+    "finishHere": "Solte uma peça aqui para bater: as outras 14 todas em combinações, ou sete pares",
+    "canFinish": "Você pode bater: solte sua última peça no meio.",
+    "plainYourTurn": "Sua vez: compre uma peça ou pegue o descarte de {{name}}.",
+    "plainPlay": "Descarte uma peça, ou bata se as outras 14 vencem.",
+    "youFinishedSets": "Você bateu!",
+    "youFinishedPairs": "Você bateu com sete pares!",
+    "finishedSets": "{{name}} bateu.",
+    "finishedPairs": "{{name}} bateu com sete pares.",
+    "onOkey": "No okey: dobro.",
+    "dealtAgain": "O monte acabou: a mão é distribuída de novo.",
+    "points": "Pontos",
+    "lost": "Perdidos",
+    "mostPointsWin": "O jogo acaba quando alguém fica sem pontos: vence quem tiver mais."
   },
   "okeyError": {
     "notYourTurn": "Não é a sua vez.",
@@ -313,6 +329,7 @@
     "setsAndPairs": "Sequências e grupos não se misturam com pares.",
     "openingTooLow": "Sua abertura vale {{points}} pontos; precisa de {{needed}}.",
     "tooFewPairs": "{{pairs}} pares; a abertura precisa de {{needed}}.",
-    "discardNotUsed": "O descarte que você pegou precisa ir para a mesa (na sua abertura, se estiver abrindo)."
+    "discardNotUsed": "O descarte que você pegou precisa ir para a mesa (na sua abertura, se estiver abrindo).",
+    "notComplete": "Suas outras 14 peças precisam estar todas em combinações, ou ser sete pares."
   }
 }

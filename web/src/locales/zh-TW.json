@@ -55,7 +55,9 @@
     "progressive": "遞增開牌",
     "progressiveDetail": "每次開牌都要高於本手上一次開牌：120 分之後要 121 分。",
     "penalties": "罰分",
-    "penaltiesDetail": "打出 okey 或能接到桌上的牌罰 101 分，自己組合裡的 okey 被拿走罰 101 分；下家用你打出的牌開牌時，罰該牌數字 ×10。"
+    "penaltiesDetail": "打出 okey 或能接到桌上的牌罰 101 分，自己組合裡的 okey 被拿走罰 101 分；下家用你打出的牌開牌時，罰該牌數字 ×10。",
+    "okey": "Okey",
+    "points": "起始分數"
   },
   "room": {
     "summary": "{{parts}}。",
@@ -74,7 +76,8 @@
     "classic": "經典規則",
     "okey101": "Okey 101，手數：{{hands}}",
     "progressive": "遞增開牌",
-    "noPenalties": "無罰分"
+    "noPenalties": "無罰分",
+    "okeyPlain": "Okey，分數：{{points}}"
   },
   "lobby": {
     "code": "房間代碼：分享給其他玩家",
@@ -256,7 +259,20 @@
     "nextHand": "{{n}} 秒後下一手",
     "thisHand": "本手",
     "total": "總計",
-    "lowestWins": "罰分：總分最低者獲勝。"
+    "lowestWins": "罰分：總分最低者獲勝。",
+    "finishHere": "把牌放到這裡胡牌：其餘 14 張都在組合裡，或七對",
+    "canFinish": "你可以胡牌：把最後一張牌放到中間。",
+    "plainYourTurn": "輪到你：摸一張牌，或拿 {{name}} 打出的牌。",
+    "plainPlay": "打出一張牌；如果其餘 14 張能胡，就胡牌。",
+    "youFinishedSets": "你胡了！",
+    "youFinishedPairs": "你以七對胡了！",
+    "finishedSets": "{{name}} 胡了。",
+    "finishedPairs": "{{name}} 以七對胡了。",
+    "onOkey": "打出 okey 胡：翻倍。",
+    "dealtAgain": "牌堆摸完了：重新發牌。",
+    "points": "分數",
+    "lost": "失分",
+    "mostPointsWin": "有人分數歸零時遊戲結束：分數最多者獲勝。"
   },
   "okeyError": {
     "notYourTurn": "還沒輪到你。",
@@ -275,6 +291,7 @@
     "setsAndPairs": "順子和刻子不能和對子混在一起。",
     "openingTooLow": "你的開牌是 {{points}} 分，需要 {{needed}} 分。",
     "tooFewPairs": "{{pairs}} 對；開牌需要 {{needed}} 對。",
-    "discardNotUsed": "你拿的牌必須放到桌上（如果正在開牌，要放進開牌裡）。"
+    "discardNotUsed": "你拿的牌必須放到桌上（如果正在開牌，要放進開牌裡）。",
+    "notComplete": "其餘 14 張牌必須都在組合裡，或組成七對。"
   }
 }

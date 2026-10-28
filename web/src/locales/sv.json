@@ -56,7 +56,9 @@
     "progressive": "Stigande öppning",
     "progressiveDetail": "Varje öppning måste slå den förra i given: efter 120 poäng, 121.",
     "penalties": "Straff",
-    "penaltiesDetail": "101 poäng för att kasta okey eller en bricka som passar på bordet, och för en okey som tas från din kombination; kastets tal ×10 när nästa spelare öppnar med den."
+    "penaltiesDetail": "101 poäng för att kasta okey eller en bricka som passar på bordet, och för en okey som tas från din kombination; kastets tal ×10 när nästa spelare öppnar med den.",
+    "okey": "Okey",
+    "points": "Startpoäng"
   },
   "room": {
     "summary": "{{parts}}.",
@@ -75,7 +77,8 @@
     "classic": "Klassiska regler",
     "okey101": "Okey 101, givar: {{hands}}",
     "progressive": "stigande öppning",
-    "noPenalties": "inga straff"
+    "noPenalties": "inga straff",
+    "okeyPlain": "Okey, poäng: {{points}}"
   },
   "lobby": {
     "code": "Rumskod: dela den med de andra spelarna",
@@ -275,7 +278,20 @@
     "nextHand": "nästa giv om {{n}} s",
     "thisHand": "Denna giv",
     "total": "Totalt",
-    "lowestWins": "Straffpoäng: lägst summa vinner."
+    "lowestWins": "Straffpoäng: lägst summa vinner.",
+    "finishHere": "Släpp en bricka här för att gå ut: dina andra 14 i kombinationer, eller sju par",
+    "canFinish": "Du kan gå ut: släpp din sista bricka i mitten.",
+    "plainYourTurn": "Din tur: dra en bricka, eller ta brickan {{name}} kastade.",
+    "plainPlay": "Kasta en bricka, eller gå ut om dina andra 14 vinner.",
+    "youFinishedSets": "Du gick ut!",
+    "youFinishedPairs": "Du gick ut med sju par!",
+    "finishedSets": "{{name}} gick ut.",
+    "finishedPairs": "{{name}} gick ut med sju par.",
+    "onOkey": "På okey: dubbelt.",
+    "dealtAgain": "Högen är slut: given delas om.",
+    "points": "Poäng",
+    "lost": "Förlorat",
+    "mostPointsWin": "Spelet slutar när någon har slut på poäng: flest poäng vinner."
   },
   "okeyError": {
     "notYourTurn": "Det är inte din tur.",
@@ -294,6 +310,7 @@
     "setsAndPairs": "Följder och grupper kan inte blandas med par.",
     "openingTooLow": "Din öppning är värd {{points}} poäng; det krävs {{needed}}.",
     "tooFewPairs": "{{pairs}} par; öppningen kräver {{needed}}.",
-    "discardNotUsed": "Brickan du tog måste läggas på bordet (i din öppning, om du öppnar)."
+    "discardNotUsed": "Brickan du tog måste läggas på bordet (i din öppning, om du öppnar).",
+    "notComplete": "Dina andra 14 brickor måste alla vara i kombinationer, eller sju par."
   }
 }

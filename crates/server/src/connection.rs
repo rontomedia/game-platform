@@ -100,8 +100,8 @@ async fn handle(message: ClientMessage, rooms: &Arc<Rooms>, membership: &mut Opt
         ClientMessage::Step => forward(membership, outbox, |player| Command::Step { player }).await,
         ClientMessage::Play { table } => forward(membership, outbox, |player| Command::Play { player, table }).await,
         ClientMessage::Draw => forward(membership, outbox, |player| Command::Draw { player }).await,
-        ClientMessage::Discard { take_discard, table, discard } => {
-            let turn = engine::okey101::Turn { take_discard, table, discard };
+        ClientMessage::Discard { take_discard, table, discard, finish } => {
+            let turn = crate::room::Discard { take_discard, table, discard, finish };
             forward(membership, outbox, |player| Command::Discard { player, turn }).await
         }
         ClientMessage::Draft { table } => forward(membership, outbox, |player| Command::Draft { player, table }).await,

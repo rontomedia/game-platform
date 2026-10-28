@@ -55,7 +55,9 @@
     "progressive": "上がっていくオープン",
     "progressiveDetail": "オープンはハンド内で前のオープンを上回る必要があります。120点の後は121点。",
     "penalties": "ペナルティ",
-    "penaltiesDetail": "オーケイや場に付けられる牌を捨てると101点、自分のセットからオーケイを取られると101点。次の人が捨て牌でオープンしたら、その数字×10。"
+    "penaltiesDetail": "オーケイや場に付けられる牌を捨てると101点、自分のセットからオーケイを取られると101点。次の人が捨て牌でオープンしたら、その数字×10。",
+    "okey": "Okey",
+    "points": "持ち点"
   },
   "room": {
     "summary": "{{parts}}。",
@@ -74,7 +76,8 @@
     "classic": "クラシックのルール",
     "okey101": "Okey 101、ハンド数：{{hands}}",
     "progressive": "上がっていくオープン",
-    "noPenalties": "ペナルティなし"
+    "noPenalties": "ペナルティなし",
+    "okeyPlain": "Okey、持ち点：{{points}}"
   },
   "lobby": {
     "code": "ルームコード：ほかのプレイヤーに知らせてください",
@@ -256,7 +259,20 @@
     "nextHand": "次のハンドまで{{n}}秒",
     "thisHand": "このハンド",
     "total": "合計",
-    "lowestWins": "ペナルティ点：合計が最も低い人の勝ち。"
+    "lowestWins": "ペナルティ点：合計が最も低い人の勝ち。",
+    "finishHere": "ここに牌を置いて上がる：残り14枚がすべてセットか7ペア",
+    "canFinish": "上がれます：最後の牌を中央に置いてください。",
+    "plainYourTurn": "あなたの番：牌を引くか、{{name}}さんの捨て牌を取ってください。",
+    "plainPlay": "牌を1枚捨てるか、残り14枚で上がれるなら上がってください。",
+    "youFinishedSets": "上がりました！",
+    "youFinishedPairs": "7ペアで上がりました！",
+    "finishedSets": "{{name}}さんが上がりました。",
+    "finishedPairs": "{{name}}さんが7ペアで上がりました。",
+    "onOkey": "オーケイで上がり：2倍。",
+    "dealtAgain": "山がなくなりました：配り直します。",
+    "points": "持ち点",
+    "lost": "失点",
+    "mostPointsWin": "誰かの持ち点がなくなったら終了：持ち点が最も多い人の勝ち。"
   },
   "okeyError": {
     "notYourTurn": "あなたの番ではありません。",
@@ -275,6 +291,7 @@
     "setsAndPairs": "順子・刻子とペアは混ぜられません。",
     "openingTooLow": "オープンは{{points}}点です。{{needed}}点必要です。",
     "tooFewPairs": "{{pairs}}ペア。オープンには{{needed}}必要です。",
-    "discardNotUsed": "取った捨て牌は場に出してください（オープン中ならオープンの中に）。"
+    "discardNotUsed": "取った捨て牌は場に出してください（オープン中ならオープンの中に）。",
+    "notComplete": "残り14枚はすべてセットか7ペアでなければなりません。"
   }
 }

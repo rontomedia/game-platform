@@ -7,6 +7,7 @@
 //! an absent value is left out, which is what those types expect.
 
 use engine::okey101::{MatchView, Okey101Rules, OkeyError};
+use engine::plain_okey::{PlainRules, PlainView};
 use engine::{BotLevel, PlayerView, Tile, TurnError};
 use serde::{Deserialize, Serialize};
 
@@ -15,7 +16,7 @@ use tsify::Tsify;
 
 /// Bumped when a message changes in a way an older client can't read; the
 /// server says which it speaks in `Welcome`.
-pub const PROTOCOL_VERSION: u32 = 9;
+pub const PROTOCOL_VERSION: u32 = 10;
 
 /// How a room plays, chosen by whoever opens it. Options left out take
 /// their defaults.
@@ -52,6 +53,8 @@ pub enum RuleSet {
     Classic,
     /// Draw, meld, discard; 101 to open (`engine::okey101`).
     Okey101(Okey101Rules),
+    /// Draw, discard, no table: 14 tiles in sets to win (`engine::plain_okey`).
+    Okey(PlainRules),
 }
 
 impl Default for RoomOptions {
@@ -73,6 +76,9 @@ pub const TURN_SECONDS: [u32; 5] = [30, 60, 90, 120, 180];
 /// The match lengths an Okey 101 room may choose, in hands.
 pub const OKEY_HANDS: [u32; 6] = [1, 3, 5, 7, 9, 11];
 
+/// The points a plain Okey room may start each player with.
+pub const OKEY_POINTS: [u32; 4] = [4, 10, 20, 30];
+
 impl RoomOptions {
     /// The options with anything out of range back at its default. Extra
     /// time for tiles is the classic game's only.
@@ -84,6 +90,10 @@ impl RoomOptions {
             RuleSet::Okey101(rules) => {
                 let hands = if OKEY_HANDS.contains(&rules.hands) { rules.hands } else { Okey101Rules::default().hands };
                 (RuleSet::Okey101(Okey101Rules { hands, ..rules }), false)
+            }
+            RuleSet::Okey(rules) => {
+                let points = if OKEY_POINTS.contains(&rules.points) { rules.points } else { PlainRules::default().points };
+                (RuleSet::Okey(PlainRules { points }), false)
             }
         };
         RoomOptions { turn_seconds, stand_in, rules, tile_bonus, ..self }
@@ -142,13 +152,19 @@ pub enum ClientMessage {
     Draw,
     /// Okey 101: end the turn with the table as it now is and this tile
     /// discarded, having taken the previous player's discard instead of
-    /// drawing if `take_discard` (see `engine::okey101::Turn`).
+    /// drawing if `take_discard` (see `engine::okey101::Turn`). Plain
+    /// Okey: the table is left empty, and `finish` shows the other 14
+    /// tiles as a winning hand (`engine::plain_okey::PlainTurn`).
     Discard {
         #[serde(default)]
         #[cfg_attr(feature = "wasm", tsify(optional))]
         take_discard: bool,
+        #[serde(default)]
         table: Vec<Vec<Tile>>,
         discard: Tile,
+        #[serde(default)]
+        #[cfg_attr(feature = "wasm", tsify(optional))]
+        finish: bool,
     },
     /// The table as the current player is rearranging it: played for them
     /// if their time runs out and it's a valid turn, and passed on for the
@@ -250,6 +266,22 @@ pub enum ServerMessage {
         #[cfg_attr(feature = "wasm", tsify(optional))]
         next_hand_ms: Option<u32>,
     },
+    /// A plain Okey game as this player may see it: as `OkeyState`.
+    PlainOkeyState {
+        view: PlainView,
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        #[cfg_attr(feature = "wasm", tsify(optional))]
+        turn_ms: Option<u32>,
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        #[cfg_attr(feature = "wasm", tsify(optional))]
+        banks: Option<Vec<u32>>,
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        #[cfg_attr(feature = "wasm", tsify(optional))]
+        racks: Option<Vec<Vec<Tile>>>,
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        #[cfg_attr(feature = "wasm", tsify(optional))]
+        next_hand_ms: Option<u32>,
+    },
     /// The current player's table so far this turn (see `ClientMessage::Draft`).
     /// Gone with the next `State`.
     Draft { by: usize, table: Vec<Vec<Tile>> },
@@ -260,7 +292,7 @@ pub enum ServerMessage {
     Notice { notice: Notice },
     /// This player's move wasn't allowed; if it was their turn, it still is.
     Rejected { error: TurnError },
-    /// As `Rejected`, in an Okey 101 room.
+    /// As `Rejected`, in an Okey 101 or plain Okey room.
     OkeyRejected { error: OkeyError },
     /// A request the server won't do now (join a full room, start as
     /// someone other than the host, ...).
@@ -387,7 +419,7 @@ mod tests {
         let discard = r#"{"type":"discard","table":[],"discard":{"kind":"joker"}}"#;
         assert_eq!(
             ClientMessage::from_json(discard).unwrap(),
-            ClientMessage::Discard { take_discard: false, table: vec![], discard: Tile::Joker }
+            ClientMessage::Discard { take_discard: false, table: vec![], discard: Tile::Joker, finish: false }
         );
         assert!(ClientMessage::from_json(r#"{"type":"cheat"}"#).is_err());
         assert!(ClientMessage::from_json("hello").is_err());

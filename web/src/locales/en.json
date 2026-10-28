@@ -56,7 +56,9 @@
     "progressive": "Rising opening",
     "progressiveDetail": "Each opening must beat the one before it in the hand: after 120 points, 121.",
     "penalties": "Penalties",
-    "penaltiesDetail": "101 points for discarding the okey or a tile that fits the table, and for an okey taken from your set; the discard’s number ×10 when the next player opens with it."
+    "penaltiesDetail": "101 points for discarding the okey or a tile that fits the table, and for an okey taken from your set; the discard’s number ×10 when the next player opens with it.",
+    "okey": "Okey",
+    "points": "Points to start with"
   },
   "room": {
     "summary": "{{parts}}.",
@@ -75,7 +77,8 @@
     "classic": "Classic rules",
     "okey101": "Okey 101, hands: {{hands}}",
     "progressive": "rising opening",
-    "noPenalties": "no penalties"
+    "noPenalties": "no penalties",
+    "okeyPlain": "Okey, points: {{points}}"
   },
   "lobby": {
     "code": "Room code: share it with the other players",
@@ -275,7 +278,20 @@
     "nextHand": "next hand in {{n}} s",
     "thisHand": "This hand",
     "total": "Total",
-    "lowestWins": "Penalty points: the lowest total wins."
+    "lowestWins": "Penalty points: the lowest total wins.",
+    "finishHere": "Drop a tile here to finish: your other 14 all in sets, or seven pairs",
+    "canFinish": "You can finish: drop your last tile in the middle.",
+    "plainYourTurn": "Your turn: draw a tile, or take {{name}}’s discard.",
+    "plainPlay": "Discard a tile, or finish if your other 14 tiles win.",
+    "youFinishedSets": "You finished!",
+    "youFinishedPairs": "You finished with seven pairs!",
+    "finishedSets": "{{name}} finished.",
+    "finishedPairs": "{{name}} finished with seven pairs.",
+    "onOkey": "On the okey: double.",
+    "dealtAgain": "The pool ran out: the hand is dealt again.",
+    "points": "Points",
+    "lost": "Lost",
+    "mostPointsWin": "The game ends when someone has no points left: the most points win."
   },
   "okeyError": {
     "notYourTurn": "It isn’t your turn.",
@@ -294,6 +310,7 @@
     "setsAndPairs": "Runs and groups can’t be mixed with pairs.",
     "openingTooLow": "Your opening is worth {{points}} points; it needs {{needed}}.",
     "tooFewPairs": "{{pairs}} pairs; opening needs {{needed}}.",
-    "discardNotUsed": "The discard you took must go on the table (into your opening, if you’re opening)."
+    "discardNotUsed": "The discard you took must go on the table (into your opening, if you’re opening).",
+    "notComplete": "Your other 14 tiles must all be in sets, or seven pairs."
   }
 }
