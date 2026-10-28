@@ -44,6 +44,7 @@ import {
 } from './arrange.ts'
 import { footprint, gridWithout, resolve, type Cell } from './grid.ts'
 import type { Settings } from './settings.ts'
+import { centre, flyAway, flyIn, glide, pace, reducedMotion } from './flights.ts'
 import { LeaveMenu } from './LeaveMenu.tsx'
 import { SettingsMenu } from './SettingsMenu.tsx'
 import { remember, remembered } from './storage.ts'
@@ -220,6 +221,8 @@ interface Target {
   width: number
 }
 
+/** Seconds left on a turn when the player is warned. */
+const LOW_TIME = 10
 /** The most a time bank holds, which its ring shows a fraction of (the server's). */
 const BANK_SECONDS = 180
 /** How long extra time given shows by the player. */
@@ -317,6 +320,11 @@ export function Board({
     }
   }
 
+  // This player's time running out: the turn's own and any bank after it.
+  const mine = myTurn ? clock(view.you!) : undefined
+  const timeLeft = mine?.turn === undefined ? undefined : mine.turn + (mine.bank ?? 0)
+  const lowTime = room.paused || timeLeft === undefined || timeLeft > LOW_TIME ? undefined : timeLeft
+
   // Another player's turn, as they share it: their draft in place of the
   // table, until the next state (or the draft goes away).
   const liveTable = !myTurn && draft && draft.version === game.version ? draft.table : null
@@ -326,11 +334,13 @@ export function Board({
     setLayout((l) => withTable(l, liveTable ?? view.table))
   }
   // Watching: tiles new to the table in a draft glide to their places like
-  // dragged ones, from where they were on the table or, from the rack, from
-  // the player's avatar. Where every tile was is noted after each render
-  // (the tile's wrapper, which never moves; its face is what's animated).
-  const tilesWere = useRef(new Map<string, { tile: string; rect: DOMRect }>())
+  // dragged ones (a bot's more slowly), from where they were on the table
+  // or, from the rack, from the player's avatar; tiles taken back fly off
+  // to it. Where every tile was is noted after each render (the tile's
+  // wrapper, which never moves; its face is what's animated).
+  const tilesWere = useRef(new Map<string, { tile: string; rect: DOMRect; element: HTMLElement }>())
   const glidedFor = useRef<Tile[][] | null>(null)
+  const isBot = (seat: number) => room.seats[seat]?.bot !== undefined
   useLayoutEffect(() => {
     const grid = tableGrid.current
     if (myTurn || !grid) return
@@ -341,50 +351,89 @@ export function Board({
       rect: element.getBoundingClientRect(),
     }))
     const before = tilesWere.current
-    tilesWere.current = new Map(now.map(({ id, tile, rect }) => [id, { tile, rect }]))
+    tilesWere.current = new Map(now.map(({ id, tile, rect, element }) => [id, { tile, rect, element }]))
     if (shownLive === glidedFor.current) return
     glidedFor.current = shownLive
-    if (!shownLive || matchMedia('(prefers-reduced-motion: reduce)').matches) return
+    if (!shownLive || reducedMotion()) return
 
     // Tiles that left their place, to be found again elsewhere.
     const present = new Set(now.map(({ id }) => id))
     const left = [...before].filter(([id]) => !present.has(id)).map(([, was]) => was)
-    const avatar = document.querySelector(`[data-seat="${view.current}"]`)?.getBoundingClientRect()
-    let order = 0
-    for (const { element, id, tile, rect } of now) {
-      if (before.has(id)) continue
-      const centre = (r: DOMRect) => [r.left + r.width / 2, r.top + r.height / 2]
+    const avatarRect = document.querySelector(`[data-seat="${view.current}"]`)?.getBoundingClientRect()
+    const avatar = avatarRect && centre(avatarRect)
+    const arriving = now.filter(({ id }) => !before.has(id))
+    arriving.forEach(({ element, tile, rect }, i) => {
       const [x, y] = centre(rect)
       // The nearest tile like it that left its place; else the rack.
-      let from: number[] | undefined
+      let nearest = -1
       let best = Infinity
-      left.forEach((was, i) => {
+      left.forEach((was, j) => {
         if (was.tile !== tile) return
         const [wx, wy] = centre(was.rect)
         const distance = Math.hypot(wx - x, wy - y)
-        if (distance < best) [best, from] = [distance, [wx, wy, i]]
+        if (distance < best) [best, nearest] = [distance, j]
       })
-      if (from) left.splice(from[2], 1)
-      else if (avatar) from = centre(avatar)
-      if (!from || Math.hypot(from[0] - x, from[1] - y) < 2) continue
-      const face = element.firstElementChild as HTMLElement
-      const set = element.closest<HTMLElement>('[data-state]')
-      // Above the other sets while it travels.
-      if (set) set.style.zIndex = '20'
-      const lifted = 'scale(1.08) rotate(-3deg)'
-      face
-        .animate(
-          [
-            { transform: `translate(${from[0] - x}px, ${from[1] - y}px) ${lifted}`, offset: 0 },
-            { transform: `translate(0, 0) ${lifted}`, offset: 0.8 },
-            { transform: 'none', offset: 1 },
-          ],
-          { duration: 650, delay: order++ * 140, easing: 'cubic-bezier(0.3, 0.7, 0.2, 1)', fill: 'backwards' },
-        )
-        .finished.then(() => set && (set.style.zIndex = ''))
-        .catch(() => {})
+      const from = nearest >= 0 ? centre(left.splice(nearest, 1)[0].rect) : avatar
+      if (from) glide(element, from, pace(i, arriving.length, isBot(view.current)))
+    })
+    // What's left went back to their rack.
+    if (avatar) for (const was of left) flyAway(was.element, was.rect, avatar)
+  })
+
+  // A play that wasn't watched live (the room doesn't share turns, or this
+  // player doesn't watch them): its tiles glide in from the player's avatar
+  // as the board first shows it.
+  const playShown = useRef(false)
+  useLayoutEffect(() => {
+    const grid = tableGrid.current
+    const play = game.lastPlay
+    if (!metrics || !grid || playShown.current) return
+    playShown.current = true
+    const watched = room.options.liveTurns && settings.watchLive
+    if (!play || play.version !== game.version || watched || reducedMotion()) return
+    const avatar = document.querySelector(`[data-seat="${play.by}"]`)?.getBoundingClientRect()
+    if (!avatar) return
+    const wanted = new Map<string, number>()
+    for (const tile of play.tiles) wanted.set(tileName(tile), (wanted.get(tileName(tile)) ?? 0) + 1)
+    const arriving = [...grid.querySelectorAll<HTMLElement>('[data-state="recent"] [data-tile-id]')].filter((element) => {
+      const left = wanted.get(element.dataset.tile!) ?? 0
+      if (left > 0) wanted.set(element.dataset.tile!, left - 1)
+      return left > 0
+    })
+    arriving.forEach((element, i) => glide(element, centre(avatar), pace(i, arriving.length, isBot(play.by))))
+  })
+
+  // Tiles coming from the pool: the deal, and the tile this player just drew.
+  const tray = useRef<HTMLElement | null>(null)
+  const [drawnId] = useState(() => {
+    if (!game.drawn) return undefined
+    const name = tileName(game.drawn.tile)
+    return [...start.holders['rack-0'], ...start.holders['rack-1']].findLast((p) => tileName(p.tile) === name)?.id
+  })
+  const fromPool = useRef(false)
+  useLayoutEffect(() => {
+    const pool = document.querySelector('[data-pool]')?.getBoundingClientRect()
+    if (fromPool.current || !tray.current || !pool) return
+    fromPool.current = true
+    if (reducedMotion()) return
+    const tiles = (selector: string) => [...tray.current!.querySelectorAll<HTMLElement>(selector)]
+    if (game.dealt === game.version) {
+      tiles('[data-tile-id]').forEach((element, i) => flyIn(element, centre(pool), { duration: 600, delay: 200 + i * 70 }))
+    } else if (game.drawn?.version === game.version && drawnId) {
+      tiles(`[data-tile-id="${drawnId}"]`).forEach((element) => flyIn(element, centre(pool), { duration: 750, delay: 0 }))
     }
   })
+
+  // A cue as this player's turn begins, and the tab says so.
+  const [turnCue, setTurnCue] = useState(() => myTurn && game.turnSince === game.version)
+  useEffect(() => {
+    if (!turnCue) return
+    const timer = setTimeout(() => setTurnCue(false), 1800)
+    return () => clearTimeout(timer)
+  }, [turnCue])
+  useEffect(() => {
+    document.title = myTurn ? 'Your turn · Rummy' : 'Rummy'
+  }, [myTurn])
 
   // The sets they've made or changed so far.
   const liveSets = useMemo(
@@ -762,7 +811,13 @@ export function Board({
 
         {game.racks && <OpenRacks code={room.code} game={game} racks={game.racks} name={name} />}
 
-        <main className="felt relative min-h-0 flex-1 overflow-auto rounded-3xl p-3 [scrollbar-color:rgb(255_255_255/0.15)_transparent] [scrollbar-width:thin] sm:p-6 short:rounded-2xl short:p-3">
+        <div className="relative flex min-h-0 flex-1 flex-col">
+        <TableBanner turnCue={turnCue} lowTime={lowTime} />
+        <main
+          className={`felt relative min-h-0 flex-1 overflow-auto rounded-3xl p-3 [scrollbar-color:rgb(255_255_255/0.15)_transparent] [scrollbar-width:thin] sm:p-6 short:rounded-2xl short:p-3 ${
+            lowTime !== undefined ? 'low-time' : ''
+          }`}
+        >
           <TableGrid gridRef={tableGrid} droppable={myTurn} height={metrics ? rows * metrics.cellH : undefined}>
             {layout.sets.length === 0 && (
               <p className="pointer-events-none absolute inset-0 grid place-items-center text-center text-emerald-100/40">
@@ -803,25 +858,30 @@ export function Board({
           </TableGrid>
           <AnimatePresence>{view.outcome && <Results view={view} name={name} leave={leave} />}</AnimatePresence>
         </main>
+        </div>
 
         {watching ? (
           <WatchBar room={room} over={!!view.outcome} note={note.text} noteColor={noteColor} send={send} />
         ) : (
-        <section className={flat ? 'tray rounded-3xl p-3 sm:p-4 short:rounded-2xl short:p-2' : ''}>
+        <section
+          ref={tray}
+          className={`${flat ? 'tray rounded-3xl p-3 sm:p-4 short:rounded-2xl short:p-2' : 'rounded-3xl'} ${turnCue ? 'turn-cue' : ''}`}
+        >
           <div className={`flex flex-wrap items-center gap-x-4 gap-y-2 ${flat ? 'mb-3 short:mb-2' : 'mb-2 px-1'}`}>
             <p className={`min-w-0 flex-1 text-sm font-medium short:truncate ${noteColor}`}>{note.text}</p>
             <SortButtons sort={sort} onSort={sortRack} />
-            {myTurn && (
-              <div className="flex gap-2">
-                <Button look="quiet" onClick={() => setLayout(start)} disabled={!changed}>
-                  Reset
-                </Button>
-                <Button onClick={() => send({ type: 'draw' })}>Draw</Button>
-                <Button look="primary" disabled={verdict?.verdict !== 'allowed'} onClick={() => send({ type: 'play', table })}>
-                  End turn
-                </Button>
-              </div>
-            )}
+            {/* Always there, hidden off turn, so the tray keeps its size and the tiles stay put. */}
+            <div className={`flex gap-2 ${myTurn ? '' : 'invisible'}`} aria-hidden={!myTurn}>
+              <Button look="quiet" onClick={() => setLayout(start)} disabled={!myTurn || !changed}>
+                Reset
+              </Button>
+              <Button onClick={() => send({ type: 'draw' })} disabled={!myTurn}>
+                Draw
+              </Button>
+              <Button look="primary" disabled={!myTurn || verdict?.verdict !== 'allowed'} onClick={() => send({ type: 'play', table })}>
+                End turn
+              </Button>
+            </div>
           </div>
           <Plans
             plans={layout.plans.map((key) => ({ holder: planHolder(key), tiles: layout.holders[planHolder(key)] }))}
@@ -830,11 +890,11 @@ export function Board({
             onPlay={playPlan}
           />
           {flat ? (
-            <RackRow id="rack-0" tiles={layout.holders['rack-0']} wrap onPlay={quickMove} />
+            <RackRow id="rack-0" tiles={layout.holders['rack-0']} wrap onPlay={quickMove} drawnId={drawnId} />
           ) : (
             <div className="rack-classic space-y-1.5 rounded-2xl px-2 pb-1.5 pt-2 sm:px-3 short:space-y-1 short:pt-1.5">
-              <RackRow id="rack-0" tiles={layout.holders['rack-0']} onPlay={quickMove} />
-              <RackRow id="rack-1" tiles={layout.holders['rack-1']} onPlay={quickMove} />
+              <RackRow id="rack-0" tiles={layout.holders['rack-0']} onPlay={quickMove} drawnId={drawnId} />
+              <RackRow id="rack-1" tiles={layout.holders['rack-1']} onPlay={quickMove} drawnId={drawnId} />
             </div>
           )}
         </section>
@@ -860,16 +920,51 @@ export function Board({
   )
 }
 
+/** Over the top of the table: "Your turn" as it begins, and a warning when its time is nearly up. */
+function TableBanner({ turnCue, lowTime }: { turnCue: boolean; lowTime?: number }) {
+  return (
+    <div className="pointer-events-none absolute inset-x-0 top-3 z-30 flex justify-center short:top-2" aria-live="polite">
+      <AnimatePresence mode="wait">
+        {lowTime !== undefined ? (
+          <motion.span
+            key="low"
+            initial={{ opacity: 0, y: -8 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0 }}
+            className="low-time-pill rounded-full bg-amber-400 px-3.5 py-1 text-sm font-bold tabular-nums text-amber-950 shadow-lg"
+          >
+            {lowTime} s left
+          </motion.span>
+        ) : turnCue ? (
+          <motion.span
+            key="turn"
+            initial={{ opacity: 0, y: -12, scale: 0.9 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -8 }}
+            transition={{ type: 'spring', stiffness: 400, damping: 24 }}
+            className="rounded-full bg-teal-400 px-4 py-1.5 text-sm font-bold text-teal-950 shadow-[0_8px_30px_rgb(45_212_191/0.45)]"
+          >
+            Your turn
+          </motion.span>
+        ) : null}
+      </AnimatePresence>
+    </div>
+  )
+}
+
 function SortableTile({
   placed,
   size,
   draggable,
   onDoubleClick,
+  drawn = false,
 }: {
   placed: Placed
   size: TileSize
   draggable: boolean
   onDoubleClick?: () => void
+  /** The tile this player last drew: marked. */
+  drawn?: boolean
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: placed.id,
@@ -890,7 +985,7 @@ function SortableTile({
         draggable ? 'cursor-grab active:cursor-grabbing' : 'cursor-default'
       } ${isDragging ? 'opacity-30' : ''}`}
     >
-      <TileFace tile={placed.tile} size={size} />
+      <TileFace tile={placed.tile} size={size} drawn={drawn} />
     </div>
   )
 }
@@ -1019,12 +1114,15 @@ function RackRow({
   tiles,
   wrap = false,
   onPlay,
+  drawnId,
 }: {
   id: string
   tiles: Placed[]
   wrap?: boolean
   /** A double-clicked tile (see `quickMove`). */
   onPlay?: (tile: Placed) => void
+  /** The tile this player last drew, to mark. */
+  drawnId?: string
 }) {
   const { setNodeRef } = useDroppable({ id })
   const row = (
@@ -1044,6 +1142,7 @@ function RackRow({
             size={wrap ? 'rack' : 'ledge'}
             draggable
             onDoubleClick={onPlay && (() => onPlay(p))}
+            drawn={p.id === drawnId}
           />
         ))}
       </div>
@@ -1196,6 +1295,7 @@ function TopBar({
       <span
         className="flex shrink-0 items-center gap-1.5 text-sm font-medium tabular-nums text-slate-300"
         title={`${view.pool} tiles left to draw`}
+        data-pool
       >
         <span className="h-4 w-3 rounded-[3px] bg-linear-to-b from-stone-100 to-stone-300 shadow-sm" aria-hidden />
         {view.pool}

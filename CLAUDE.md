@@ -173,11 +173,22 @@ only builds it on start.
     hold moves), changed sets pulsing blue. Tiles new to the table glide
     in like dragged ones (Web Animations on the tile's face; the wrapper's
     position is what's recorded), from where they were or from the
-    player's avatar (`data-seat`) if they came from the rack. Each player can switch watching
+    player's avatar (`data-seat`) if they came from the rack (a bot's more
+    slowly, `pace`; the server shows its play for `Timing::bot_show`, long
+    enough for them); tiles taken back fly off to the avatar. Each player can switch watching
     off in the settings (`watchLive`); there's no per-player opt-out of
     being watched, as that's the room's rule. `?demo=watch` shows it.
     Someone watching (`view.you` undefined) gets `WatchBar` in place of
     the tray, with Pause and Step for the host of a bots-only game.
+  - Flights (`flights.ts`, Web Animations; skipped for reduced motion):
+    besides live turns, a play not watched live glides in from the
+    player's avatar as the board shows it (`lastPlay.tiles`); from the
+    pool (`data-pool`) the deal (`GameState.dealt`) and the tile this
+    player drew (`drawn`, marked on the rack until their next turn ends).
+    Rack flights use a copy of the tile above everything, as the rack
+    scrolls. Also: a "Your turn" banner and tray glow (`turnSince`), and
+    a warning at 10 s left (turn plus bank). The turn's buttons are
+    always laid out, hidden off turn, so the tray keeps its size.
   - Plans: a strip at the top of the tray (`Plans`, holders `plan-<key>`)
     where the player builds sets from their rack any time; on their turn a
     plan goes onto the table whole (its ↑ button or double-click). Kept in

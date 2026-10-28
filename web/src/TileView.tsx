@@ -19,12 +19,24 @@ const sizes = {
 export type TileSize = keyof typeof sizes
 
 /** A tile's face. Moving it around is up to whoever holds it (see Board). */
-export function TileFace({ tile, size, lifted = false }: { tile: Tile; size: TileSize; lifted?: boolean }) {
+export function TileFace({
+  tile,
+  size,
+  lifted = false,
+  drawn = false,
+}: {
+  tile: Tile
+  size: TileSize
+  lifted?: boolean
+  /** The tile the player last drew: marked out. */
+  drawn?: boolean
+}) {
   return (
     <div
       className={`tile relative flex shrink-0 select-none items-center justify-center font-extrabold tabular-nums tracking-tight ${sizes[size]} ${
         lifted ? 'tile-lifted' : ''
-      }`}
+      } ${drawn ? 'tile-drawn' : ''}`}
+      title={drawn ? 'You drew this tile' : undefined}
     >
       {tile.kind === 'joker' ? <JokerFace /> : <span className={numeralColor[tile.color]}>{tile.value}</span>}
     </div>

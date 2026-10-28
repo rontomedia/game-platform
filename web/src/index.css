@@ -177,3 +177,62 @@ body {
     box-shadow: 0 0 0 2px rgb(56 189 248 / 0.85);
   }
 }
+
+/* The tile the player last drew, until their next turn ends. */
+.tile.tile-drawn {
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 0.95),
+    inset 0 -3px 0 rgb(176 164 140 / 0.55),
+    0 0 0 2.5px rgb(45 212 191 / 0.9),
+    0 0 18px rgb(45 212 191 / 0.45),
+    0 6px 14px -4px rgb(0 0 0 / 0.55);
+}
+
+/* The player's turn begins: the tray lights up for a moment. */
+.turn-cue {
+  animation: turn-cue 1.8s ease-out;
+}
+
+@keyframes turn-cue {
+  0%,
+  30% {
+    box-shadow: 0 0 0 2px rgb(45 212 191 / 0.8), 0 0 40px rgb(45 212 191 / 0.35);
+  }
+  100% {
+    box-shadow: 0 0 0 2px rgb(45 212 191 / 0), 0 0 40px rgb(45 212 191 / 0);
+  }
+}
+
+/* The player's time is nearly up: the table's edge glows amber. */
+.felt.low-time {
+  box-shadow:
+    inset 0 0 0 2px rgb(251 191 36 / 0.7),
+    inset 0 2px 30px rgb(0 0 0 / 0.45);
+  animation: low-time 1s ease-in-out infinite;
+}
+
+@keyframes low-time {
+  50% {
+    box-shadow:
+      inset 0 0 0 3px rgb(251 191 36 / 0.95),
+      inset 0 0 40px rgb(251 191 36 / 0.2);
+  }
+}
+
+.low-time-pill {
+  animation: low-time-pill 1s ease-in-out infinite;
+}
+
+@keyframes low-time-pill {
+  50% {
+    transform: scale(1.08);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .turn-cue,
+  .felt.low-time,
+  .low-time-pill {
+    animation: none;
+  }
+}

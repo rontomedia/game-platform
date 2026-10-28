@@ -32,6 +32,12 @@ export interface GameState {
   banks?: number[]
   /** The last extra time given for tiles: to whom, how much, and when (`Date.now()`). */
   bonus?: { by: number; ms: number; at: number }
+  /** The tile this player drew to end their last turn, until their next one ends. */
+  drawn?: { tile: Tile; version: number }
+  /** The state in which the tiles were dealt (nobody has moved yet), seen as it happened. */
+  dealt?: number
+  /** The state in which the current turn began. */
+  turnSince: number
 }
 
 /** A finished turn, as open racks show it. */
@@ -64,6 +70,8 @@ export interface LastPlay {
   sets: Tile[][]
   /** Tiles they put down from their rack. */
   played: number
+  /** Those tiles. */
+  tiles: Tile[]
   /** The state it arrived with: on later states it's old news. */
   version: number
 }
@@ -79,7 +87,25 @@ function lastPlay(previous: GameState | null, view: PlayerView, version: number)
   const played = view.table.flat().length - previous.view.table.flat().length
   if (sets.length === 0 && played === 0) return previous.lastPlay
   const by = previous.view.current
-  return by === view.you ? undefined : { by, sets, played, version }
+  const tiles = without(view.table.flat(), previous.view.table.flat())
+  return by === view.you ? undefined : { by, sets, played, tiles, version }
+}
+
+/**
+ * What this player drew, if their turn has just ended in a draw; else what
+ * they last drew, until their next turn ends.
+ */
+function drawn(previous: GameState | null, view: PlayerView, version: number): GameState['drawn'] {
+  if (!previous) return undefined
+  const theirs = previous.view.current === view.you && !previous.view.outcome
+  if (!theirs || view.current === previous.view.current) return previous.drawn
+  const drew = without(view.rack, previous.view.rack)
+  return drew.length === 1 ? { tile: drew[0], version } : undefined
+}
+
+/** Whether nobody has moved yet: every rack as dealt, the table empty. */
+function freshDeal(view: PlayerView): boolean {
+  return view.table.length === 0 && view.rackSizes.every((size) => size === view.rules.rackSize) && !view.outcome
 }
 
 /** The turn that led from `previous` to `view`, if both show every rack. */
@@ -225,6 +251,11 @@ export function useGame() {
               racks: message.racks,
               log: turn ? [...log, turn].slice(-LOG_LENGTH) : log,
               banks: message.banks,
+              drawn: drawn(previous, message.view, next),
+              // Not again when the same deal is sent again (someone came back).
+              dealt: freshDeal(message.view) ? (previous && freshDeal(previous.view) ? previous.dealt : next) : undefined,
+              turnSince:
+                previous && previous.view.current === message.view.current ? previous.turnSince : next,
             }
           })
           setDraft(null)

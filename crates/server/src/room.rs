@@ -67,7 +67,8 @@ impl Default for Timing {
             absent_turn: Duration::from_secs(5),
             abandoned: Duration::from_secs(120),
             bot_think: Duration::from_millis(1500),
-            bot_show: Duration::from_millis(1500),
+            // Long enough for its tiles to glide in one by one (web/src/flights.ts).
+            bot_show: Duration::from_millis(2800),
             bot_time: Duration::from_secs(1),
             bank: Duration::from_secs(120),
             bank_cap: Duration::from_secs(180),

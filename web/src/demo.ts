@@ -59,8 +59,12 @@ export function demoGame(watching = false): GameState {
         [n('orange', 1), n('orange', 2), n('orange', 3)],
       ],
       played: 4,
+      tiles: [n('red', 9), n('orange', 1), n('orange', 2), n('orange', 3)],
       version: 1,
     },
+    // Drawn on this player's turn before (version 0: no flight now, just the mark).
+    drawn: watching ? undefined : { tile: n('red', 4), version: 0 },
+    turnSince: 1,
     view: {
       you: 0,
       rules: { rackSize: 14, initialMeld: 30, jokerPenalty: 30 },
