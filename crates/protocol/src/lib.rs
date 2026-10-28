@@ -14,7 +14,7 @@ use tsify::Tsify;
 
 /// Bumped when a message changes in a way an older client can't read; the
 /// server says which it speaks in `Welcome`.
-pub const PROTOCOL_VERSION: u32 = 6;
+pub const PROTOCOL_VERSION: u32 = 7;
 
 /// How a room plays, chosen by whoever opens it. Options left out take
 /// their defaults.
@@ -33,11 +33,14 @@ pub struct RoomOptions {
     /// Extra time on a turn for tiles put down: given as the table becomes
     /// a valid turn worth more than before (`Clock`).
     pub tile_bonus: bool,
+    /// The bot that takes over the seat of a player who leaves the game:
+    /// any level but Extra Hard.
+    pub stand_in: BotLevel,
 }
 
 impl Default for RoomOptions {
     fn default() -> RoomOptions {
-        RoomOptions { turn_seconds: 60, live_turns: true, time_bank: false, tile_bonus: false }
+        RoomOptions { turn_seconds: 60, live_turns: true, time_bank: false, tile_bonus: false, stand_in: BotLevel::Medium }
     }
 }
 
@@ -48,7 +51,8 @@ impl RoomOptions {
     /// The options with anything out of range back at its default.
     pub fn checked(self) -> RoomOptions {
         let turn_seconds = if TURN_SECONDS.contains(&self.turn_seconds) { self.turn_seconds } else { 60 };
-        RoomOptions { turn_seconds, ..self }
+        let stand_in = if self.stand_in == BotLevel::ExtraHard { BotLevel::Medium } else { self.stand_in };
+        RoomOptions { turn_seconds, stand_in, ..self }
     }
 }
 
@@ -76,6 +80,10 @@ pub enum ClientMessage {
     /// Take back a seat (or a watcher's place) after a lost connection, with
     /// the token from `Joined`.
     Rejoin { code: String, token: String },
+    /// Leave the room for good: before the start, the seat is given up;
+    /// during the game, a bot (`RoomOptions::stand_in`) plays it from now
+    /// on.
+    Leave,
     /// Watch the game instead of playing in it, or take a seat again
     /// (before the start).
     Watch { watching: bool },
@@ -239,6 +247,9 @@ mod tests {
         );
         assert_eq!(RoomOptions { turn_seconds: 45, ..RoomOptions::default() }.checked().turn_seconds, 60);
         assert_eq!(RoomOptions { turn_seconds: 180, ..RoomOptions::default() }.checked().turn_seconds, 180);
+        assert_eq!(RoomOptions { stand_in: BotLevel::ExtraHard, ..RoomOptions::default() }.checked().stand_in, BotLevel::Medium);
+        assert_eq!(RoomOptions { stand_in: BotLevel::Hard, ..RoomOptions::default() }.checked().stand_in, BotLevel::Hard);
+        assert_eq!(ClientMessage::from_json(r#"{"type":"leave"}"#).unwrap(), ClientMessage::Leave);
         assert!(ClientMessage::from_json(r#"{"type":"cheat"}"#).is_err());
         assert!(ClientMessage::from_json("hello").is_err());
     }

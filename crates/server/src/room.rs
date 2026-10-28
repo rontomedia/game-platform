@@ -86,7 +86,7 @@ pub type PlayerId = u64;
 pub type Outbox = mpsc::UnboundedSender<ServerMessage>;
 
 /// A connection, as a room knows it. The id tells a stale connection's
-/// `Leave` (after its player came back on a new one) from a current one.
+/// `Disconnect` (after its player came back on a new one) from a current one.
 pub struct Connection {
     pub id: u64,
     pub outbox: Outbox,
@@ -95,7 +95,10 @@ pub struct Connection {
 pub enum Command {
     Join { name: String, watch: bool, connection: Connection, reply: oneshot::Sender<Result<PlayerId, String>> },
     Rejoin { token: String, connection: Connection, reply: oneshot::Sender<Result<PlayerId, String>> },
-    Leave { player: PlayerId, connection: u64 },
+    /// A connection has gone; its player may come back.
+    Disconnect { player: PlayerId, connection: u64 },
+    /// A player leaves for good.
+    Leave { player: PlayerId },
     Watch { player: PlayerId, watching: bool },
     AddBot { player: PlayerId, level: BotLevel },
     RemoveBot { player: PlayerId, seat: usize },
@@ -264,7 +267,8 @@ impl Room {
             Command::Rejoin { token, connection, reply } => {
                 let _ = reply.send(self.rejoin(&token, connection));
             }
-            Command::Leave { player, connection } => self.leave(player, connection),
+            Command::Disconnect { player, connection } => self.disconnect(player, connection),
+            Command::Leave { player } => self.leave(player),
             Command::Watch { player, watching } => self.watch(player, watching),
             Command::AddBot { player, level } => self.add_bot(player, level),
             Command::RemoveBot { player, seat } => self.remove_bot(player, seat),
@@ -361,7 +365,7 @@ impl Room {
         }
     }
 
-    fn leave(&mut self, player: PlayerId, connection: u64) {
+    fn disconnect(&mut self, player: PlayerId, connection: u64) {
         if let Some(watcher) = self.watchers.iter_mut().find(|w| w.id == player) {
             if watcher.connection.as_ref().is_some_and(|c| c.id == connection) {
                 watcher.connection = None;
@@ -382,6 +386,36 @@ impl Room {
             self.full_turn_ends = self.turn_ends;
             self.turn_ends = self.turn_ends.map(|t| t.min(soon));
             self.broadcast_state();
+        }
+        self.connections_changed();
+    }
+
+    /// `player` leaves for good. Before the start, or watching, they're
+    /// gone from the room; during the game, the room's stand-in bot takes
+    /// over their seat (taking a turn of theirs afresh). Once the game is
+    /// over, their seat stays for the results.
+    fn leave(&mut self, player: PlayerId) {
+        if let Some(at) = self.watchers.iter().position(|w| w.id == player) {
+            self.watchers.remove(at);
+            return self.connections_changed();
+        }
+        let Some(seat) = self.seat(player) else { return };
+        match &self.game {
+            None => {
+                self.players.remove(seat);
+            }
+            Some(game) if game.outcome().is_none() => {
+                let current = game.current() == seat;
+                let stand_in = &mut self.players[seat];
+                stand_in.connection = None;
+                stand_in.bot = Some(self.options.stand_in);
+                println!("room {}: {} left, a bot plays on for them", self.code, stand_in.name);
+                if current {
+                    self.start_turn();
+                }
+                self.broadcast_state();
+            }
+            Some(_) => self.players[seat].connection = None,
         }
         self.connections_changed();
     }

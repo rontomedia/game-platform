@@ -305,6 +305,42 @@ async fn an_absent_players_turn_is_short() {
 }
 
 #[tokio::test]
+async fn leaving_the_lobby_gives_up_the_seat() {
+    let server = start_server(SLOW).await;
+    let mut ann = Client::connect(server).await;
+    let mut bob = Client::connect(server).await;
+    let (code, _) = ann.create("Ann").await;
+    bob.join(&code, "Bob").await;
+    ann.room().await;
+    ann.send(ClientMessage::Leave).await;
+    let room = bob.room().await;
+    assert_eq!(room.seats.len(), 1, "Ann's seat is gone");
+    assert!(room.seats[0].host, "Bob hosts now");
+    // Ann's connection is free for another room.
+    ann.create("Ann").await;
+}
+
+#[tokio::test]
+async fn a_bot_plays_on_for_a_player_who_leaves() {
+    let options = RoomOptions { stand_in: BotLevel::Hard, ..RoomOptions::default() };
+    let TwoPlayers { server, mut ann, mut bob, code, token, .. } = two_player_game_with(SLOW, options).await;
+    // Ann leaves on her turn: the bot takes it, and the game goes on.
+    ann.send(ClientMessage::Leave).await;
+    let room = bob.room().await;
+    assert_eq!((room.seats[0].name.as_str(), room.seats[0].bot, room.seats[0].connected), ("Ann", Some(BotLevel::Hard), true));
+    loop {
+        if bob.state().await.0.current == 1 {
+            break;
+        }
+    }
+    // For good: her seat can't be taken back.
+    let mut again = Client::connect(server).await;
+    again.send(ClientMessage::Rejoin { code, token }).await;
+    assert_eq!(again.error().await, "no such seat in this room");
+    ann.create("Ann").await;
+}
+
+#[tokio::test]
 async fn coming_back_in_time_keeps_the_turn() {
     let timing = Timing { absent_turn: Duration::from_millis(1500), ..SLOW };
     let TwoPlayers { server, ann, mut bob, code, token, .. } = two_player_game(timing).await;

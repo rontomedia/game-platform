@@ -273,15 +273,19 @@ export function useGame() {
     setAttempt((n) => n + 1)
   }, [])
 
-  /** Gives up this tab's seat and starts afresh on a new connection. */
+  /**
+   * Leaves the room for good (a bot takes over the seat in a game going
+   * on) and starts afresh on a new connection.
+   */
   const leave = useCallback(() => {
+    send({ type: 'leave' })
     saveSeat(null)
     setRoom(null)
     setGame(null)
     setDraft(null)
     setProblem(null)
     reconnect()
-  }, [reconnect])
+  }, [send, reconnect])
 
   return { status, room, game, draft, problem, notice, mismatch, send, reconnect, leave }
 }

@@ -44,6 +44,7 @@ import {
 } from './arrange.ts'
 import { footprint, gridWithout, resolve, type Cell } from './grid.ts'
 import type { Settings } from './settings.ts'
+import { LeaveMenu } from './LeaveMenu.tsx'
 import { SettingsMenu } from './SettingsMenu.tsx'
 import { remember, remembered } from './storage.ts'
 import { TileFace, type TileSize } from './TileView.tsx'
@@ -756,6 +757,7 @@ export function Board({
           status={status}
           settings={settings}
           onSettings={changeSettings}
+          leave={leave}
         />
 
         {game.racks && <OpenRacks code={room.code} game={game} racks={game.racks} name={name} />}
@@ -1159,6 +1161,7 @@ function TopBar({
   status,
   settings,
   onSettings,
+  leave,
 }: {
   room: RoomInfo
   view: GameState['view']
@@ -1166,6 +1169,7 @@ function TopBar({
   status: Status
   settings: Settings
   onSettings: (change: Partial<Settings>) => void
+  leave: () => void
 }) {
   return (
     <header className="flex items-center gap-3">
@@ -1201,6 +1205,7 @@ function TopBar({
         title={status === 'open' ? 'Connected' : status === 'connecting' ? 'Connecting' : 'Disconnected'}
       />
       <SettingsMenu settings={settings} onChange={onSettings} />
+      <LeaveMenu standIn={room.options.standIn ?? 'medium'} ask={view.you !== undefined && !view.outcome} leave={leave} />
     </header>
   )
 }

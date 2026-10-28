@@ -47,7 +47,7 @@ pub async fn run(mut socket: WebSocket, rooms: Arc<Rooms>, address: SocketAddr) 
         }
     }
     if let Some(Membership { room, player }) = membership {
-        let _ = room.send(Command::Leave { player, connection: id }).await;
+        let _ = room.send(Command::Disconnect { player, connection: id }).await;
     }
     println!("{address} disconnected");
 }
@@ -80,6 +80,12 @@ async fn handle(message: ClientMessage, rooms: &Arc<Rooms>, membership: &mut Opt
             Some(room) => *membership = enter(room, outbox, |reply| Command::Rejoin { token, connection: connection(), reply }).await,
             None => error(outbox, "that room has closed"),
         },
+        ClientMessage::Leave => {
+            // Free to create or join another room.
+            if let Some(Membership { room, player }) = membership.take() {
+                let _ = room.send(Command::Leave { player }).await;
+            }
+        }
         ClientMessage::AddBot { level } => forward(membership, outbox, |player| Command::AddBot { player, level }).await,
         ClientMessage::RemoveBot { seat } => {
             forward(membership, outbox, |player| Command::RemoveBot { player, seat }).await

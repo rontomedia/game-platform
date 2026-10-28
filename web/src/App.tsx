@@ -1,4 +1,5 @@
-import { useCallback, useEffect, useState, type FormEvent } from 'react'
+import { AnimatePresence, motion } from 'motion/react'
+import { useCallback, useEffect, useState, type FormEvent, type ReactNode } from 'react'
 
 import { emptyArrangement, type Arrangement, type RackSort } from './arrange.ts'
 import { Board } from './Board.tsx'
@@ -185,39 +186,43 @@ function Home({ send, problem, ready }: { send: (m: ClientMessage) => void; prob
         </label>
         <div className="mt-5">
           <span className="block text-sm font-medium text-slate-300">Time for a turn</span>
-          <div className="mt-2 flex rounded-xl bg-black/30 p-1 text-sm font-semibold" role="group" aria-label="Time for a turn">
-            {TURN_LENGTHS.map(([seconds, label]) => (
-              <button
-                key={seconds}
-                onClick={() => change({ turnSeconds: seconds })}
-                aria-pressed={options.turnSeconds === seconds}
-                className={`flex-1 cursor-pointer rounded-lg py-1.5 transition ${
-                  options.turnSeconds === seconds ? 'bg-teal-500 text-slate-950' : 'text-slate-300 hover:bg-white/10'
-                }`}
-              >
-                {label}
-              </button>
-            ))}
-          </div>
+          <Choice
+            label="Time for a turn"
+            choices={TURN_LENGTHS}
+            value={options.turnSeconds}
+            onChange={(turnSeconds) => change({ turnSeconds })}
+          />
         </div>
-        <Option
-          title="Time bank"
-          detail="Each player also has 2 minutes for the whole game, used once a turn’s time runs out. Time left over from a turn is added, up to 3 minutes."
-          checked={options.timeBank}
-          onChange={(timeBank) => change({ timeBank })}
-        />
-        <Option
-          title="Extra time for tiles"
-          detail="15 s for each tile put down and 20 s for each set it makes or changes, once the table is a valid turn."
-          checked={options.tileBonus}
-          onChange={(tileBonus) => change({ tileBonus })}
-        />
-        <Option
-          title="Show turns live"
-          detail="Everyone sees the current player’s moves as they make them, as at a real table."
-          checked={options.liveTurns}
-          onChange={(liveTurns) => change({ liveTurns })}
-        />
+        <Advanced changed={changedOptions(options)}>
+          <Option
+            title="Time bank"
+            detail="Each player also has 2 minutes for the whole game, used once a turn’s time runs out. Time left over from a turn is added, up to 3 minutes."
+            checked={options.timeBank}
+            onChange={(timeBank) => change({ timeBank })}
+          />
+          <Option
+            title="Extra time for tiles"
+            detail="15 s for each tile put down and 20 s for each set it makes or changes, once the table is a valid turn."
+            checked={options.tileBonus}
+            onChange={(tileBonus) => change({ tileBonus })}
+          />
+          <Option
+            title="Show turns live"
+            detail="Everyone sees the current player’s moves as they make them, as at a real table."
+            checked={options.liveTurns}
+            onChange={(liveTurns) => change({ liveTurns })}
+          />
+          <div className="mt-5">
+            <span className="block text-sm font-medium text-slate-300">When a player leaves</span>
+            <span className="mt-0.5 block text-xs text-slate-500">A computer player takes over their seat for the rest of the game.</span>
+            <Choice
+              label="Bot for a player who leaves"
+              choices={STAND_INS.map((level) => [level, botLabel[level].replace(' bot', '')])}
+              value={options.standIn}
+              onChange={(standIn) => change({ standIn })}
+            />
+          </div>
+        </Advanced>
         <Button look="primary" className="mt-4 w-full" disabled={!ready} onClick={create}>
           Create a room
         </Button>
@@ -259,7 +264,21 @@ function Home({ send, problem, ready }: { send: (m: ClientMessage) => void; prob
 }
 
 /** The room options to start from, as the server has them. */
-const defaultOptions: Required<RoomOptions> = { turnSeconds: 60, liveTurns: true, timeBank: false, tileBonus: false }
+const defaultOptions: Required<RoomOptions> = {
+  turnSeconds: 60,
+  liveTurns: true,
+  timeBank: false,
+  tileBonus: false,
+  standIn: 'medium',
+}
+/** The bots that may take over a seat: not Extra Hard (the server's `checked`). */
+const STAND_INS = ['easy', 'medium', 'hard'] as const
+
+/** How many of the options under "Advanced" differ from the defaults. */
+function changedOptions(options: Required<RoomOptions>): number {
+  const advanced = ['timeBank', 'tileBonus', 'liveTurns', 'standIn'] as const
+  return advanced.filter((key) => options[key] !== defaultOptions[key]).length
+}
 /** Remembered across visits: the options the player last created a room with. */
 const OPTIONS_KEY = 'rummy.roomOptions'
 /** The turn lengths a room may have (the server's `TURN_SECONDS`). */
@@ -278,7 +297,81 @@ function describe(options: RoomOptions): string {
   if (options.timeBank) parts.push('a 2-minute time bank')
   if (options.tileBonus) parts.push('extra time for tiles')
   parts.push(options.liveTurns ? 'turns shown live' : 'only finished turns shown')
+  parts.push(`${botLabel[options.standIn ?? 'medium'].toLowerCase()} for anyone who leaves`)
   return `${parts.join(', ')}.`.replace(/^./, (c) => c.toUpperCase())
+}
+
+/**
+ * Options most rooms leave as they are, folded away. When adding a room
+ * option, put it here unless most players would want to choose it.
+ */
+function Advanced({ changed, children }: { changed: number; children: ReactNode }) {
+  const [open, setOpen] = useState(false)
+  return (
+    <div className="mt-5 border-t border-white/10 pt-3">
+      <button
+        className="flex w-full cursor-pointer items-center gap-2 py-1 text-sm font-medium text-slate-300 hover:text-slate-100"
+        aria-expanded={open}
+        onClick={() => setOpen((open) => !open)}
+      >
+        <svg
+          viewBox="0 0 16 16"
+          className={`size-3.5 transition-transform ${open ? 'rotate-90' : ''}`}
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+          aria-hidden
+        >
+          <path d="m6 3 5 5-5 5" />
+        </svg>
+        <span className="flex-1 text-left">Advanced settings</span>
+        {changed > 0 && <span className="text-xs font-normal text-teal-300">{changed} changed</span>}
+      </button>
+      <AnimatePresence initial={false}>
+        {open && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.2 }}
+            className="overflow-hidden"
+          >
+            {children}
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  )
+}
+
+/** One of a few values, side by side. */
+function Choice<T extends string | number>({
+  label,
+  choices,
+  value,
+  onChange,
+}: {
+  label: string
+  choices: readonly (readonly [T, string])[]
+  value: T
+  onChange: (value: T) => void
+}) {
+  return (
+    <div className="mt-2 flex rounded-xl bg-black/30 p-1 text-sm font-semibold" role="group" aria-label={label}>
+      {choices.map(([choice, text]) => (
+        <button
+          key={choice}
+          onClick={() => onChange(choice)}
+          aria-pressed={value === choice}
+          className={`flex-1 cursor-pointer rounded-lg py-1.5 transition ${
+            value === choice ? 'bg-teal-500 text-slate-950' : 'text-slate-300 hover:bg-white/10'
+          }`}
+        >
+          {text}
+        </button>
+      ))}
+    </div>
+  )
 }
 
 function Option({

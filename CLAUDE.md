@@ -104,8 +104,13 @@ only builds it on start.
     (`clock.rs`: 15 s a tile and 20 s a set holding one, once a draft is a
     valid turn, only the amount above the best so far this turn, sent as
     `Clock`; time given for tiles then taken back counts against the
-    player: a `Notice` at 1 min, none for the rest of the game at 2), and
-    live turns. `Timing`: a minute's turn is 60 s, scaled by the room's
+    player: a `Notice` at 1 min, none for the rest of the game at 2), live
+    turns, and the stand-in bot (`stand_in`, default Medium, never Extra
+    Hard). Leaving for good (`Leave`, the board's door button; not a lost
+    connection, `Command::Disconnect`): in the lobby, or watching, the
+    member is gone; during a game the stand-in takes over the seat, under
+    the player's name, and a turn of theirs starts afresh for it.
+    `Timing`: a minute's turn is 60 s, scaled by the room's
     length (when it runs out, the most of the table they left, their last
     `draft`, that makes a valid turn is played, `engine::salvage`; the rest
     goes back to their rack, and a `Notice` says so), 5 s for a player who
@@ -141,6 +146,10 @@ only builds it on start.
     `sessionStorage` (per tab, so two tabs are two players), rejoins after a
     reload and retries a lost connection. Screens: home (create/join),
     lobby, `Board.tsx`.
+  - Room options on the home screen: only turn time is always shown; the
+    rest are under "Advanced settings" (`Advanced` in `App.tsx`, folded,
+    showing how many differ from the defaults). A new room option goes
+    under Advanced unless most players would want to choose it.
   - `Board.tsx`: everything moves by dragging (dnd-kit core + sortable):
     rack tiles any time; tiles onto and around the table on your turn (a
     tile dropped on empty table starts a set there); whole sets any time,
