@@ -442,7 +442,9 @@ mod tests {
     /// seat changing each game, and its average time a move. Games run on
     /// every core, each thread taking the next game when it's done.
     fn arena(games: u64, players: usize, policy: impl Fn(&PlayerView) -> Move + Sync) -> (f64, f64, std::time::Duration) {
-        let threads = std::thread::available_parallelism().map_or(4, |n| n.get());
+        // `EXTRA_THREADS` for fewer at once (less contention, for timed runs).
+        let cores = std::thread::available_parallelism().map_or(4, |n| n.get());
+        let threads = std::env::var("EXTRA_THREADS").map_or(cores, |n| n.parse().unwrap());
         let next = std::sync::atomic::AtomicU64::new(0);
         let results: Vec<(f64, i64, std::time::Duration, u32)> = std::thread::scope(|scope| {
             let handles: Vec<_> = (0..threads)
@@ -560,6 +562,20 @@ mod tests {
     fn extra_strength() {
         report("Hard", |view| bot_move(view, BotLevel::Hard));
         report("Extra Hard", |view| bot_move(view, BotLevel::ExtraHard));
+    }
+
+    /// Extra Hard with a time limit, as the server runs it: `EXTRA_LIMIT=1
+    /// EXTRA_THREADS=14 cargo test -p engine --release -- --ignored
+    /// --nocapture extra_limited` (seconds a move; fewer threads at once, so
+    /// they don't slow each other much).
+    #[test]
+    #[ignore]
+    fn extra_limited() {
+        let limit: f64 = std::env::var("EXTRA_LIMIT").map_or(1.0, |s| s.parse().unwrap());
+        report(&format!("Extra Hard, {limit} s a move"), move |view| {
+            let start = std::time::Instant::now();
+            bot_move_with(view, BotLevel::ExtraHard, LOOKAHEAD, &|| start.elapsed().as_secs_f64() / limit)
+        });
     }
 
     /// Tries look-aheads: `EXTRA_LOOKAHEAD="options,games,rounds;..." cargo
