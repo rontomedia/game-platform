@@ -1461,11 +1461,11 @@ mod tests {
     #[test]
     fn a_bot_with_nothing_to_lay_draws_then_discards() {
         let mut h = hand(vec![vec![n(Black, 2), n(Black, 3)], vec![OKEY, n(Blue, 3)]], vec![n(Red, 9)]);
-        let OkeyMove::Turn(turn) = bot_move(&h.view(0)) else { panic!("the starter discards") };
+        let OkeyMove::Turn(turn) = bot_move(&h.view(0), crate::BotLevel::Easy) else { panic!("the starter discards") };
         h.play(0, turn).unwrap();
-        assert_eq!(bot_move(&h.view(1)), OkeyMove::Draw);
+        assert_eq!(bot_move(&h.view(1), crate::BotLevel::Easy), OkeyMove::Draw);
         h.draw(1).unwrap();
-        let OkeyMove::Turn(turn) = bot_move(&h.view(1)) else { panic!("then discards") };
+        let OkeyMove::Turn(turn) = bot_move(&h.view(1), crate::BotLevel::Easy) else { panic!("then discards") };
         assert_eq!(turn.discard, n(Red, 9));
         h.play(1, turn).unwrap();
     }

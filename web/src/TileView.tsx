@@ -16,6 +16,8 @@ const sizes = {
   ledge: 'h-14 w-10 text-[1.4rem] rounded-md sm:h-[4.75rem] sm:w-[3.25rem] sm:rounded-lg sm:text-[1.9rem] short:h-12 short:w-9 short:text-xl',
   /** Others' racks when they're open (a debugging aid). */
   mini: 'h-7 w-5 text-[0.8rem] rounded-[3px]',
+  /** The pictures in the rules (Rules.tsx). */
+  guide: 'h-10 w-7 text-base rounded-[5px] sm:h-12 sm:w-9 sm:text-xl',
 }
 
 export type TileSize = keyof typeof sizes

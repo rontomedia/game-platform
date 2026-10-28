@@ -87,7 +87,11 @@ only builds it on start.
   solver on its rack (okey as its joker) for the best opening or the most
   tiles, pairs if it can't open with sets, single tiles onto the table's
   ends, the discard taken only when it opens or plays more with it, and
-  the least linked tile that costs nothing discarded. One level for now.
+  the least linked tile that costs nothing discarded (Easy, Medium). Hard
+  and Extra Hard also keep pairs on a pair-heavy rack and, between tiles
+  equally linked, discard the one of least use to the next player
+  (`Care`); they win 60.5% of matches against Easy. `okey_strength`
+  (ignored test, `--release`; `OKEY_GAMES`, `OKEY_CARE`) measures them.
   Its `wasm` feature derives
   `tsify::Tsify` on the types that cross into JS; serde attributes define the
   TS shape (e.g. `Tile` is `{ kind: "number", color, value } | { kind:

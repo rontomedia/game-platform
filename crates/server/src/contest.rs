@@ -103,7 +103,7 @@ impl Contest {
         let seat = self.current();
         match self {
             Contest::Classic(game) => BotChoice::Classic(bot_move_with(&game.view(seat), level, lookahead, spent)),
-            Contest::Okey(game) => BotChoice::Okey(okey101::bot_move(&game.hand().view(seat))),
+            Contest::Okey(game) => BotChoice::Okey(okey101::bot_move(&game.hand().view(seat), level)),
         }
     }
 
