@@ -255,6 +255,11 @@ only builds it on start.
   - `settings.ts` / `SettingsMenu.tsx`: device preferences (rack style: flat
     tray or two-row rack; watching live turns; language) behind the gear in
     the top bar.
+  - `Rules.tsx`: "How to play" under the home and lobby box, for rule sets
+    listed in `RULES` (classic so far): short sections, most with a scene of
+    real tiles gliding between frames (Motion `layoutId`; fine here, nothing
+    is draggable), the board's outlines, the last frame for reduced motion.
+    Texts under `rules` in the catalogues.
   - Languages: react-i18next, every visible text through `t('key')` (no
     text in components). `src/locales/en.json` is the source and types the
     keys and their `{{values}}` (`i18next.d.ts`), so a wrong key fails the

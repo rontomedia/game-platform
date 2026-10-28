@@ -65,6 +65,17 @@ body {
     inset 0 2px 30px rgb(0 0 0 / 0.45);
 }
 
+/* A row of the rules' pictures (Rules.tsx): a `guide` tile and its set's padding. */
+:root {
+  --scene-row: 3rem;
+}
+
+@media (min-width: 40rem) {
+  :root {
+    --scene-row: 3.5rem;
+  }
+}
+
 /* The rack: a dark wooden tray. */
 .tray {
   background: linear-gradient(180deg, #3a2516 0%, #2a1a10 100%);

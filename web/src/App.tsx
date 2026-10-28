@@ -8,6 +8,7 @@ import { Board } from './Board.tsx'
 import { LanguagePicker } from './LanguagePicker.tsx'
 import { OkeyBoard } from './OkeyBoard.tsx'
 import { PlainOkeyBoard } from './PlainOkeyBoard.tsx'
+import { HowToPlay } from './Rules.tsx'
 
 import {
   asWatcher,
@@ -436,6 +437,7 @@ function Home({ send, problem, ready }: { send: (m: ClientMessage) => void; prob
           </div>
         )}
       </Panel>
+      <HowToPlay kind={options.rules.kind} />
     </div>
   )
 }
@@ -701,6 +703,7 @@ function Lobby({
           </div>
         )}
       </Panel>
+      <HowToPlay kind={room.options.rules?.kind ?? 'classic'} />
     </div>
   )
 }
