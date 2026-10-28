@@ -82,8 +82,9 @@ only builds it on start.
   discard, melds, one discard), the table's sets only added to at their
   ends (an okey can be taken back by swapping in its tile), opening with
   101 points or five pairs (`progressive` raises the bar); `Hand` is one
-  hand, `Match` several, scored in penalty points, lowest wins. Not yet
-  in the protocol, server, bots or web.
+  hand, `Match` several, scored in penalty points, lowest wins.
+  `okey101::bot_move` is a placeholder (draw, discard safely); the board
+  doesn't play it yet.
   Its `wasm` feature derives
   `tsify::Tsify` on the types that cross into JS; serde attributes define the
   TS shape (e.g. `Tile` is `{ kind: "number", color, value } | { kind:
@@ -121,8 +122,15 @@ only builds it on start.
     valid turn, only the amount above the best so far this turn, sent as
     `Clock`; time given for tiles then taken back counts against the
     player: a `Notice` at 1 min, none for the rest of the game at 2), live
-    turns, and the stand-in bot (`stand_in`, default Medium, never Extra
-    Hard). Leaving for good (`Leave`, the board's door button; not a lost
+    turns, the stand-in bot (`stand_in`, default Medium, never Extra
+    Hard), and the rule set (`rules`: classic, or Okey 101 with its hands,
+    rising bar and penalties; no extra time for tiles there). The room
+    plays a `Contest` (`contest.rs`): the classic `Game` or an Okey
+    `Match`. In Okey 101 `Draw` doesn't end the turn, `Discard` does;
+    states are `OkeyState`, errors `OkeyRejected`; when time runs out the
+    player draws if they hadn't, their draft is played if valid and a
+    tile that costs nothing discarded (`Hand::timeout_turn`); between
+    hands the scores show for `Timing::between_hands`. Leaving for good (`Leave`, the board's door button; not a lost
     connection, `Command::Disconnect`): in the lobby, or watching, the
     member is gone; during a game the stand-in takes over the seat, under
     the player's name, and a turn of theirs starts afresh for it.

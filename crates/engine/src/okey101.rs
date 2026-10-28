@@ -27,10 +27,10 @@ use crate::rng::Rng;
 use crate::set::{classify, points, SetKind};
 use crate::tile::{full_set, Counts, Tile, MAX_VALUE};
 
-/// The settings of an Okey 101 match.
+/// The settings of an Okey 101 match; any left out take their defaults.
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[cfg_attr(feature = "wasm", derive(Tsify))]
-#[serde(rename_all = "camelCase")]
+#[serde(default, rename_all = "camelCase")]
 pub struct Okey101Rules {
     /// Hands in a match (Wikipedia: 3 to 11; okey.gg: 7 to 21).
     pub hands: u32,
@@ -600,52 +600,40 @@ impl Hand {
         })
     }
 
-    /// The tiles as classic sets read them: the okey wild (a joker), a
-    /// false okey the okey's own number.
-    fn plain(&self, tiles: &[Tile]) -> Vec<Tile> {
-        tiles
-            .iter()
-            .map(|&t| match t {
-                t if t == self.okey => Tile::Joker,
-                Tile::Joker => self.okey,
-                t => t,
-            })
-            .collect()
-    }
-
     fn kind(&self, set: &[Tile]) -> Option<Kind> {
-        let plain = self.plain(set);
-        if let [a, b] = plain[..] {
-            return (a == b || a == Tile::Joker || b == Tile::Joker).then_some(Kind::Pair);
-        }
-        classify(&plain).map(|kind| match kind {
-            SetKind::Run => Kind::Run,
-            SetKind::Group => Kind::Group,
-        })
+        kind(self.okey, set)
     }
 
     fn points(&self, set: &[Tile]) -> u32 {
-        points(&self.plain(set)).unwrap_or(0)
+        set_points(self.okey, set)
     }
 
-    /// Whether `tile` could be added to an end of a run or group on the
-    /// table. The okey fits anywhere and has a penalty of its own.
     fn fits_table(&self, tile: Tile) -> bool {
-        tile != self.okey
-            && self.table.iter().filter(|set| set.len() > 2).any(|set| {
-                [0, set.len()].into_iter().any(|at| {
-                    let mut longer = set.clone();
-                    longer.insert(at, tile);
-                    matches!(self.kind(&longer), Some(Kind::Run | Kind::Group))
-                })
-            })
+        fits(self.okey, &self.table, tile)
     }
 
-    /// A tile's number; a false okey's is the okey's.
     fn face(&self, tile: Tile) -> i32 {
-        match (tile, self.okey) {
-            (Tile::Number { value, .. }, _) | (Tile::Joker, Tile::Number { value, .. }) => value as i32,
-            (Tile::Joker, Tile::Joker) => unreachable!("the okey is a number"),
+        face(self.okey, tile)
+    }
+
+    /// The turn played for `player` when their time runs out, once they
+    /// have drawn: their `draft` (their table so far) if it makes a valid
+    /// turn with some discard, else the table as it was; the discard as
+    /// `safe_discard` picks it from what's left.
+    pub fn timeout_turn(&self, player: usize, draft: Option<&[Vec<Tile>]>) -> Turn {
+        let fallback = || {
+            let discard = safe_discard(self.okey, &self.table, &self.racks[player]);
+            Turn { take_discard: false, table: self.table.clone(), discard }
+        };
+        let Some(draft) = draft else { return fallback() };
+        let played = Counts::of(draft.iter().flatten()).minus(&Counts::of(self.table.iter().flatten()));
+        let left = played.and_then(|played| Counts::of(&self.racks[player]).minus(&played));
+        let Some(left) = left.filter(|left| !left.is_empty()) else { return fallback() };
+        let turn = Turn { take_discard: false, table: draft.to_vec(), discard: safe_discard(self.okey, draft, &left.tiles()) };
+        if self.check_turn(player, &turn).is_ok() {
+            turn
+        } else {
+            fallback()
         }
     }
 
@@ -720,6 +708,92 @@ fn okey_for(indicator: Tile) -> Tile {
     match indicator {
         Tile::Number { color, value } => Tile::Number { color, value: value % MAX_VALUE + 1 },
         Tile::Joker => panic!("a joker can't be the indicator"),
+    }
+}
+
+/// The tiles as classic sets read them: the okey wild (a joker), a false
+/// okey the okey's own number.
+fn plain(okey: Tile, tiles: &[Tile]) -> Vec<Tile> {
+    tiles
+        .iter()
+        .map(|&t| match t {
+            t if t == okey => Tile::Joker,
+            Tile::Joker => okey,
+            t => t,
+        })
+        .collect()
+}
+
+fn kind(okey: Tile, set: &[Tile]) -> Option<Kind> {
+    let plain = plain(okey, set);
+    if let [a, b] = plain[..] {
+        return (a == b || a == Tile::Joker || b == Tile::Joker).then_some(Kind::Pair);
+    }
+    classify(&plain).map(|kind| match kind {
+        SetKind::Run => Kind::Run,
+        SetKind::Group => Kind::Group,
+    })
+}
+
+/// What a valid run or group counts towards an opening, the okey as the
+/// tile it stands for; 0 for anything else.
+fn set_points(okey: Tile, set: &[Tile]) -> u32 {
+    points(&plain(okey, set)).unwrap_or(0)
+}
+
+/// Whether `tile` could be added to an end of a run or group on `table`.
+/// The okey fits anywhere and has a penalty of its own.
+fn fits(okey: Tile, table: &[Vec<Tile>], tile: Tile) -> bool {
+    tile != okey
+        && table.iter().filter(|set| set.len() > 2).any(|set| {
+            [0, set.len()].into_iter().any(|at| {
+                let mut longer = set.clone();
+                longer.insert(at, tile);
+                matches!(kind(okey, &longer), Some(Kind::Run | Kind::Group))
+            })
+        })
+}
+
+/// A tile's number; a false okey's is the okey's.
+fn face(okey: Tile, tile: Tile) -> i32 {
+    match (tile, okey) {
+        (Tile::Number { value, .. }, _) | (Tile::Joker, Tile::Number { value, .. }) => value as i32,
+        (Tile::Joker, Tile::Joker) => unreachable!("the okey is a number"),
+    }
+}
+
+/// The tile to discard from `rack` (not empty) that costs nothing: not
+/// the okey, nor a tile that fits `table` (the table after the turn), the
+/// highest of those, as it would cost most left on the rack. If every
+/// tile costs a penalty, any but the okey.
+pub fn safe_discard(okey: Tile, table: &[Vec<Tile>], rack: &[Tile]) -> Tile {
+    let free = |&&t: &&Tile| t != okey && !fits(okey, table, t);
+    let highest = |tiles: Vec<&Tile>| tiles.into_iter().max_by_key(|&&t| face(okey, t)).copied();
+    highest(rack.iter().filter(free).collect())
+        .or_else(|| highest(rack.iter().filter(|&&t| t != okey).collect()))
+        .unwrap_or(rack[0])
+}
+
+/// A computer player's move in Okey 101.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub enum OkeyMove {
+    /// Draw from the pool; the turn goes on.
+    Draw,
+    /// End the turn.
+    Turn(Turn),
+}
+
+/// A computer player's move, from what its player sees, on its turn.
+/// For now it only draws and discards safely: a placeholder until the
+/// bots that meld.
+pub fn bot_move(view: &HandView) -> OkeyMove {
+    match view.phase {
+        Phase::Draw => OkeyMove::Draw,
+        Phase::Play => OkeyMove::Turn(Turn {
+            take_discard: false,
+            table: view.table.clone(),
+            discard: safe_discard(view.okey, &view.table, &view.rack),
+        }),
     }
 }
 
@@ -1304,6 +1378,42 @@ mod tests {
             assert!(m.winners().is_some_and(|w| !w.is_empty()));
         }
         assert!(went_out > 0, "someone goes out now and then");
+    }
+
+    #[test]
+    fn a_safe_discard() {
+        let table = vec![vec![n(Blue, 7), n(Blue, 8), n(Blue, 9)]];
+        // Blue 10 fits, the okey costs 101: black 4 it is (the highest left).
+        assert_eq!(safe_discard(OKEY, &table, &[OKEY, n(Blue, 10), n(Black, 4), n(Black, 2)]), n(Black, 4));
+        assert_eq!(safe_discard(OKEY, &table, &[OKEY, n(Blue, 10)]), n(Blue, 10), "a penalty, but not the okey");
+        assert_eq!(safe_discard(OKEY, &table, &[OKEY]), OKEY);
+    }
+
+    #[test]
+    fn when_time_runs_out_a_valid_draft_is_played() {
+        let mut rack: Vec<Tile> = opening().concat();
+        rack.extend([n(Red, 1), n(Black, 2)]);
+        let h = hand(vec![rack, vec![]], vec![]);
+        let turn = h.timeout_turn(0, Some(&opening()));
+        assert_eq!(turn.table, opening());
+        assert_eq!(turn.discard, n(Black, 2));
+        assert!(h.check_turn(0, &turn).is_ok());
+        // Too little to open: the table stays as it was.
+        let low = vec![vec![n(Black, 11), n(Black, 12), n(Black, 13)]];
+        assert_eq!(h.timeout_turn(0, Some(&low)).table, Vec::<Vec<Tile>>::new());
+        assert!(h.check_turn(0, &h.timeout_turn(0, None)).is_ok());
+    }
+
+    #[test]
+    fn the_placeholder_bot_draws_then_discards() {
+        let mut h = hand(vec![vec![n(Black, 2), n(Black, 3)], vec![OKEY, n(Blue, 3)]], vec![n(Red, 9)]);
+        let OkeyMove::Turn(turn) = bot_move(&h.view(0)) else { panic!("the starter discards") };
+        h.play(0, turn).unwrap();
+        assert_eq!(bot_move(&h.view(1)), OkeyMove::Draw);
+        h.draw(1).unwrap();
+        let OkeyMove::Turn(turn) = bot_move(&h.view(1)) else { panic!("then discards") };
+        assert_eq!(turn.discard, n(Red, 9));
+        h.play(1, turn).unwrap();
     }
 
     #[test]

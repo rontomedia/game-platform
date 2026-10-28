@@ -28,6 +28,7 @@ const SLOW: Timing = Timing {
     bonus: Bonus { per_tile: Duration::from_secs(15), per_set: Duration::from_secs(20) },
     unearned_warning: Duration::from_secs(60),
     unearned_limit: Duration::from_secs(120),
+    between_hands: Duration::from_millis(50),
 };
 
 async fn start_server(timing: Timing) -> SocketAddr {
@@ -883,4 +884,129 @@ async fn an_extra_hard_bot_moves_within_its_time() {
             since = std::time::Instant::now();
         }
     }
+}
+
+
+/// An Okey 101 room's options: `hands` hands, the rest as given.
+fn okey_room(hands: u32) -> RoomOptions {
+    let rules = engine::okey101::Okey101Rules { hands, ..Default::default() };
+    RoomOptions { rules: protocol::RuleSet::Okey101(rules), ..RoomOptions::default() }
+}
+
+/// The next `OkeyState`: the view, the turn's time and the time to the
+/// next hand.
+async fn okey_state(client: &mut Client) -> (engine::okey101::MatchView, Option<u32>, Option<u32>) {
+    next(client, |m| match m {
+        ServerMessage::OkeyState { view, turn_ms, next_hand_ms, .. } => Some((view, turn_ms, next_hand_ms)),
+        _ => None,
+    })
+    .await
+}
+
+/// Ann's turn in Okey 101, as the placeholder bots play it: draw, then
+/// discard a tile that costs nothing.
+async fn okey_draw_and_discard(ann: &mut Client, view: &engine::okey101::MatchView) {
+    use engine::okey101::{safe_discard, Phase};
+    let hand = &view.hand;
+    if hand.phase == Phase::Draw {
+        ann.send(ClientMessage::Draw).await;
+    } else {
+        let discard = safe_discard(hand.okey, &hand.table, &hand.rack);
+        ann.send(ClientMessage::Discard { take_discard: false, table: hand.table.clone(), discard }).await;
+    }
+}
+
+#[tokio::test]
+async fn an_okey_match_against_bots() {
+    let server = start_server(SLOW).await;
+    let mut ann = Client::connect(server).await;
+    ann.create_with("Ann", okey_room(3)).await;
+    for _ in 0..2 {
+        ann.send(ClientMessage::AddBot { level: BotLevel::Medium }).await;
+        ann.room().await;
+    }
+    ann.send(ClientMessage::Start).await;
+    let (mut hands_seen, mut between) = (0, 0);
+    let last = loop {
+        let (view, turn_ms, next_hand_ms) = okey_state(&mut ann).await;
+        if view.winners.is_some() {
+            break view;
+        }
+        if let Some(end) = &view.hand.end {
+            assert!(turn_ms.is_none() && next_hand_ms.is_some(), "the scores are shown, then the next deal");
+            assert_eq!(end.scores.len(), 3);
+            between += 1;
+            continue;
+        }
+        if view.hand.rack_sizes.iter().sum::<usize>() == 22 + 21 * 2 && view.hand.discards.iter().all(Vec::is_empty) {
+            hands_seen += 1;
+            assert_eq!(view.hand.current, (hands_seen - 1) % 3, "the start moves on each hand");
+        }
+        if view.hand.current == 0 {
+            okey_draw_and_discard(&mut ann, &view).await;
+        }
+    };
+    assert_eq!(last.played, 3);
+    assert_eq!((hands_seen, between), (3, 2));
+    assert!(last.totals.iter().all(|&t| t >= 0), "nobody went out, so nobody earned -101");
+}
+
+#[tokio::test]
+async fn okey_moves_that_arent_allowed() {
+    let server = start_server(SLOW).await;
+    let mut ann = Client::connect(server).await;
+    ann.create_with("Ann", okey_room(1)).await;
+    ann.send(ClientMessage::AddBot { level: BotLevel::Easy }).await;
+    ann.room().await;
+    ann.send(ClientMessage::Start).await;
+    let (view, _, _) = okey_state(&mut ann).await;
+    assert_eq!(view.hand.rack.len(), 22, "Ann starts");
+    // A classic play in an Okey room.
+    ann.send(ClientMessage::Play { table: vec![] }).await;
+    assert_eq!(ann.error().await, "not a move of this room's game");
+    // Drawing: the starter only discards.
+    ann.send(ClientMessage::Draw).await;
+    let rejected = next(&mut ann, |m| match m {
+        ServerMessage::OkeyRejected { error } => Some(error),
+        _ => None,
+    })
+    .await;
+    assert_eq!(rejected, engine::okey101::OkeyError::AlreadyDrawn);
+    // A tile she doesn't hold.
+    let missing = engine::full_set().into_iter().find(|t| !view.hand.rack.contains(t)).unwrap();
+    ann.send(ClientMessage::Discard { take_discard: false, table: vec![], discard: missing }).await;
+    let rejected = next(&mut ann, |m| match m {
+        ServerMessage::OkeyRejected { error } => Some(error),
+        _ => None,
+    })
+    .await;
+    assert_eq!(rejected, engine::okey101::OkeyError::TileNotOnRack);
+}
+
+#[tokio::test]
+async fn an_okey_turn_that_runs_out_discards() {
+    let timing = Timing { turn: Duration::from_millis(400), ..SLOW };
+    let server = start_server(timing).await;
+    let mut ann = Client::connect(server).await;
+    ann.create_with("Ann", okey_room(1)).await;
+    ann.send(ClientMessage::AddBot { level: BotLevel::Easy }).await;
+    ann.room().await;
+    ann.send(ClientMessage::Start).await;
+    let (view, _, _) = okey_state(&mut ann).await;
+    assert_eq!(view.hand.current, 0);
+    // She does nothing: a tile is discarded for her, and the bot's turn begins.
+    let (view, _, _) = okey_state(&mut ann).await;
+    assert_eq!(view.hand.current, 1);
+    assert_eq!(view.hand.rack.len(), 21);
+    assert_eq!(view.hand.discards[0].len(), 1);
+    assert_eq!(view.hand.written[0], 0, "a discard that costs nothing");
+    // On her next turn she draws and discards, both by the clock.
+    loop {
+        let (view, _, _) = okey_state(&mut ann).await;
+        if view.hand.current == 0 {
+            break;
+        }
+    }
+    let (view, _, _) = okey_state(&mut ann).await;
+    assert_eq!((view.hand.current, view.hand.rack.len()), (1, 21));
 }

@@ -6,6 +6,7 @@
 //! `ServerMessage`) from the engine's WASM build. Fields are never `null`:
 //! an absent value is left out, which is what those types expect.
 
+use engine::okey101::{MatchView, Okey101Rules, OkeyError};
 use engine::{BotLevel, PlayerView, Tile, TurnError};
 use serde::{Deserialize, Serialize};
 
@@ -14,7 +15,7 @@ use tsify::Tsify;
 
 /// Bumped when a message changes in a way an older client can't read; the
 /// server says which it speaks in `Welcome`.
-pub const PROTOCOL_VERSION: u32 = 8;
+pub const PROTOCOL_VERSION: u32 = 9;
 
 /// How a room plays, chosen by whoever opens it. Options left out take
 /// their defaults.
@@ -36,23 +37,56 @@ pub struct RoomOptions {
     /// The bot that takes over the seat of a player who leaves the game:
     /// any level but Extra Hard.
     pub stand_in: BotLevel,
+    /// The game played: the classic one, or Okey 101 with its settings.
+    #[cfg_attr(feature = "wasm", tsify(optional))]
+    pub rules: RuleSet,
+}
+
+/// The rule sets a room can play.
+#[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "wasm", derive(Tsify))]
+#[serde(tag = "kind", rename_all = "camelCase")]
+pub enum RuleSet {
+    /// Rearranging a shared table, 30 to open (`engine::Game`).
+    #[default]
+    Classic,
+    /// Draw, meld, discard; 101 to open (`engine::okey101`).
+    Okey101(Okey101Rules),
 }
 
 impl Default for RoomOptions {
     fn default() -> RoomOptions {
-        RoomOptions { turn_seconds: 60, live_turns: true, time_bank: false, tile_bonus: false, stand_in: BotLevel::Medium }
+        RoomOptions {
+            turn_seconds: 60,
+            live_turns: true,
+            time_bank: false,
+            tile_bonus: false,
+            stand_in: BotLevel::Medium,
+            rules: RuleSet::Classic,
+        }
     }
 }
 
 /// The turn lengths a room may choose, in seconds.
 pub const TURN_SECONDS: [u32; 5] = [30, 60, 90, 120, 180];
 
+/// The match lengths an Okey 101 room may choose, in hands.
+pub const OKEY_HANDS: [u32; 6] = [1, 3, 5, 7, 9, 11];
+
 impl RoomOptions {
-    /// The options with anything out of range back at its default.
+    /// The options with anything out of range back at its default. Extra
+    /// time for tiles is the classic game's only.
     pub fn checked(self) -> RoomOptions {
         let turn_seconds = if TURN_SECONDS.contains(&self.turn_seconds) { self.turn_seconds } else { 60 };
         let stand_in = if self.stand_in == BotLevel::ExtraHard { BotLevel::Medium } else { self.stand_in };
-        RoomOptions { turn_seconds, stand_in, ..self }
+        let (rules, tile_bonus) = match self.rules {
+            RuleSet::Classic => (RuleSet::Classic, self.tile_bonus),
+            RuleSet::Okey101(rules) => {
+                let hands = if OKEY_HANDS.contains(&rules.hands) { rules.hands } else { Okey101Rules::default().hands };
+                (RuleSet::Okey101(Okey101Rules { hands, ..rules }), false)
+            }
+        };
+        RoomOptions { turn_seconds, stand_in, rules, tile_bonus, ..self }
     }
 }
 
@@ -103,8 +137,19 @@ pub enum ClientMessage {
     /// End the turn with the table rearranged to this (see
     /// `engine::check_turn`).
     Play { table: Vec<Vec<Tile>> },
-    /// End the turn by drawing a tile instead.
+    /// Classic: end the turn by drawing a tile instead. Okey 101: draw
+    /// from the pool, and the turn goes on.
     Draw,
+    /// Okey 101: end the turn with the table as it now is and this tile
+    /// discarded, having taken the previous player's discard instead of
+    /// drawing if `take_discard` (see `engine::okey101::Turn`).
+    Discard {
+        #[serde(default)]
+        #[cfg_attr(feature = "wasm", tsify(optional))]
+        take_discard: bool,
+        table: Vec<Vec<Tile>>,
+        discard: Tile,
+    },
     /// The table as the current player is rearranging it: played for them
     /// if their time runs out and it's a valid turn, and passed on for the
     /// others to watch in rooms with `live_turns`. Not a move: sets may be
@@ -185,6 +230,26 @@ pub enum ServerMessage {
         #[cfg_attr(feature = "wasm", tsify(optional))]
         racks: Option<Vec<Vec<Tile>>>,
     },
+    /// An Okey 101 match as this player may see it, after every change: as
+    /// `State`, for rooms playing Okey 101.
+    OkeyState {
+        view: MatchView,
+        /// Milliseconds left in the current turn; absent between hands and
+        /// once the match is over.
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        #[cfg_attr(feature = "wasm", tsify(optional))]
+        turn_ms: Option<u32>,
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        #[cfg_attr(feature = "wasm", tsify(optional))]
+        banks: Option<Vec<u32>>,
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        #[cfg_attr(feature = "wasm", tsify(optional))]
+        racks: Option<Vec<Vec<Tile>>>,
+        /// Between hands: milliseconds until the next is dealt.
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        #[cfg_attr(feature = "wasm", tsify(optional))]
+        next_hand_ms: Option<u32>,
+    },
     /// The current player's table so far this turn (see `ClientMessage::Draft`).
     /// Gone with the next `State`.
     Draft { by: usize, table: Vec<Vec<Tile>> },
@@ -195,6 +260,8 @@ pub enum ServerMessage {
     Notice { notice: Notice },
     /// This player's move wasn't allowed; if it was their turn, it still is.
     Rejected { error: TurnError },
+    /// As `Rejected`, in an Okey 101 room.
+    OkeyRejected { error: OkeyError },
     /// A request the server won't do now (join a full room, start as
     /// someone other than the host, ...).
     Refused { refusal: Refusal },
@@ -311,6 +378,17 @@ mod tests {
         assert_eq!(RoomOptions { stand_in: BotLevel::ExtraHard, ..RoomOptions::default() }.checked().stand_in, BotLevel::Medium);
         assert_eq!(RoomOptions { stand_in: BotLevel::Hard, ..RoomOptions::default() }.checked().stand_in, BotLevel::Hard);
         assert_eq!(ClientMessage::from_json(r#"{"type":"leave"}"#).unwrap(), ClientMessage::Leave);
+        let okey = r#"{"type":"createRoom","name":"Ann","options":{"rules":{"kind":"okey101","hands":3,"progressive":true,"penalties":false}}}"#;
+        let ClientMessage::CreateRoom { options, .. } = ClientMessage::from_json(okey).unwrap() else { panic!() };
+        assert_eq!(options.rules, RuleSet::Okey101(Okey101Rules { hands: 3, progressive: true, penalties: false }));
+        let odd = RoomOptions { tile_bonus: true, rules: RuleSet::Okey101(Okey101Rules { hands: 4, ..Okey101Rules::default() }), ..RoomOptions::default() };
+        assert_eq!(odd.clone().checked().rules, RuleSet::Okey101(Okey101Rules::default()), "4 hands isn't offered");
+        assert!(!odd.checked().tile_bonus, "classic only");
+        let discard = r#"{"type":"discard","table":[],"discard":{"kind":"joker"}}"#;
+        assert_eq!(
+            ClientMessage::from_json(discard).unwrap(),
+            ClientMessage::Discard { take_discard: false, table: vec![], discard: Tile::Joker }
+        );
         assert!(ClientMessage::from_json(r#"{"type":"cheat"}"#).is_err());
         assert!(ClientMessage::from_json("hello").is_err());
     }

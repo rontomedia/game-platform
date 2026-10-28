@@ -296,6 +296,7 @@ const defaultOptions: Required<RoomOptions> = {
   timeBank: false,
   tileBonus: false,
   standIn: 'medium',
+  rules: { kind: 'classic' },
 }
 /** The bots that may take over a seat: not Extra Hard (the server's `checked`). */
 const STAND_INS = ['easy', 'medium', 'hard'] as const

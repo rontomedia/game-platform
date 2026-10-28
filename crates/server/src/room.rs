@@ -11,16 +11,22 @@
 //! Others may watch without a seat: they see the table and live turns, and
 //! in a game only bots play, every rack too. The host of such a game, who
 //! may be watching it, can pause it and step through it a turn at a time.
+//!
+//! A room plays the classic game or an Okey 101 match (`Contest`). In
+//! Okey 101 drawing doesn't end a turn (`Discard` does), and between hands
+//! the scores are shown for `Timing::between_hands` before the next deal.
 
 use std::sync::Arc;
 use std::time::Duration;
 
-use engine::{bot_move_with, salvage, within_reach, BotLevel, Game, Lookahead, Move, Rules, Tile};
+use engine::okey101::{OkeyMove, Phase, Turn};
+use engine::{salvage, BotLevel, Lookahead, Move, Tile};
 use protocol::{Notice, Refusal, RoomInfo, RoomOptions, Seat, ServerMessage};
 use tokio::sync::{mpsc, oneshot, Semaphore};
 use tokio::time::{sleep_until, Instant};
 
 use crate::clock::Bonus;
+use crate::contest::{BotChoice, Contest, StateExtras};
 use crate::rooms::Rooms;
 
 pub const MAX_PLAYERS: usize = 4;
@@ -58,6 +64,8 @@ pub struct Timing {
     /// they're warned, and before they get no more for the game.
     pub unearned_warning: Duration,
     pub unearned_limit: Duration,
+    /// Okey 101: how long a hand's scores are shown before the next deal.
+    pub between_hands: Duration,
 }
 
 impl Default for Timing {
@@ -75,6 +83,7 @@ impl Default for Timing {
             bonus: Bonus { per_tile: Duration::from_secs(15), per_set: Duration::from_secs(20) },
             unearned_warning: Duration::from_secs(60),
             unearned_limit: Duration::from_secs(120),
+            between_hands: Duration::from_secs(12),
         }
     }
 }
@@ -108,9 +117,18 @@ pub enum Command {
     Step { player: PlayerId },
     Play { player: PlayerId, table: Vec<Vec<Tile>> },
     Draw { player: PlayerId },
+    /// Okey 101: the end of a turn.
+    Discard { player: PlayerId, turn: Turn },
     Draft { player: PlayerId, table: Vec<Vec<Tile>> },
     /// A bot's move, worked out for turn number `turn`.
-    BotMove { turn: u64, choice: Move },
+    BotMove { turn: u64, choice: BotChoice },
+}
+
+/// A player's move, in either game.
+enum Action {
+    Play(Vec<Vec<Tile>>),
+    Draw,
+    Discard(Turn),
 }
 
 /// A player in a room, or someone watching (the time fields unused).
@@ -146,7 +164,7 @@ enum BotTurn {
     Choosing,
     /// Making this move, once its play has been shown (in rooms with live
     /// turns).
-    Ready(Move),
+    Ready(BotChoice),
 }
 
 /// How the server's rooms are set up.
@@ -177,7 +195,9 @@ pub struct Room {
     /// Those watching, in the order they came.
     watchers: Vec<Player>,
     next_id: PlayerId,
-    game: Option<Game>,
+    game: Option<Contest>,
+    /// Okey 101, between hands: when the next is dealt.
+    next_hand_at: Option<Instant>,
     /// Counts turns, so a bot's move that arrives late is known for one.
     turn: u64,
     /// When the current player's turn runs out.
@@ -217,6 +237,7 @@ pub fn spawn(code: String, config: Config, options: RoomOptions, rooms: Arc<Room
         watchers: Vec::new(),
         next_id: 0,
         game: None,
+        next_hand_at: None,
         turn: 0,
         turn_ends: None,
         full_turn_ends: None,
@@ -246,6 +267,7 @@ impl Room {
                 .as_ref()
                 .filter(|(turn, _)| running && !matches!(turn, BotTurn::Choosing))
                 .map(|(_, at)| *at);
+            let next_hand = self.next_hand_at.filter(|_| running);
             tokio::select! {
                 command = commands.recv() => match command {
                     Some(command) => self.handle(command),
@@ -253,6 +275,7 @@ impl Room {
                 },
                 _ = sleep_until(turn_ends.unwrap_or(never)), if turn_ends.is_some() => self.time_out(),
                 _ = sleep_until(bot_step.unwrap_or(never)), if bot_step.is_some() => self.bot_step(),
+                _ = sleep_until(next_hand.unwrap_or(never)), if next_hand.is_some() => self.next_hand(),
                 _ = sleep_until(closes.unwrap_or(never)), if closes.is_some() => break,
             }
         }
@@ -276,8 +299,9 @@ impl Room {
             Command::Start { player } => self.start(player),
             Command::Pause { player, paused } => self.pause(player, paused),
             Command::Step { player } => self.step(player),
-            Command::Play { player, table } => self.make_move(player, Some(table)),
-            Command::Draw { player } => self.make_move(player, None),
+            Command::Play { player, table } => self.make_move(player, Action::Play(table)),
+            Command::Draw { player } => self.make_move(player, Action::Draw),
+            Command::Discard { player, turn } => self.make_move(player, Action::Discard(turn)),
             Command::Draft { player, table } => self.share_draft(player, table),
             Command::BotMove { turn, choice } => self.bot_chose(turn, choice),
         }
@@ -360,7 +384,7 @@ impl Room {
     /// rooms with live turns (not for the current player: it's theirs).
     fn send_draft_to(&self, player: PlayerId) {
         let Some(table) = self.draft.as_ref().filter(|_| self.options.live_turns) else { return };
-        let by = self.game.as_ref().map_or(0, Game::current);
+        let by = self.game.as_ref().map_or(0, Contest::current);
         if self.seat(player) != Some(by) {
             self.send_to(player, ServerMessage::Draft { by, table: table.clone() });
         }
@@ -405,8 +429,8 @@ impl Room {
             None => {
                 self.players.remove(seat);
             }
-            Some(game) if game.outcome().is_none() => {
-                let current = game.current() == seat;
+            Some(game) if !game.over() => {
+                let current = game.current() == seat && game.in_turn();
                 let stand_in = &mut self.players[seat];
                 stand_in.connection = None;
                 stand_in.bot = Some(self.options.stand_in);
@@ -492,7 +516,7 @@ impl Room {
         }
         // Those who left before the start don't get a seat.
         self.players.retain(Player::present);
-        self.game = Some(Game::new(self.players.len(), Rules::default(), rand::random()));
+        self.game = Some(Contest::new(&self.options.rules, self.players.len(), rand::random()));
         println!("room {}: game started with {} players", self.code, self.players.len());
         self.start_turn();
         self.broadcast_room();
@@ -502,7 +526,7 @@ impl Room {
     /// Why `player` can't pause or step the game, if they can't: only the
     /// host, in a game only bots play.
     fn pause_refusal(&self, player: PlayerId) -> Option<Refusal> {
-        if self.game.as_ref().is_none_or(|g| g.outcome().is_some()) {
+        if self.game.as_ref().is_none_or(Contest::over) {
             Some(Refusal::NoGame)
         } else if self.host() != Some(player) {
             Some(Refusal::OnlyHost)
@@ -549,15 +573,15 @@ impl Room {
         let Some(since) = self.paused.take() else { return };
         let stopped = since.elapsed();
         self.turn_ends = self.turn_ends.map(|t| t + stopped);
+        self.next_hand_at = self.next_hand_at.map(|t| t + stopped);
         self.full_turn_ends = self.full_turn_ends.map(|t| t + stopped);
         if let Some((_, at)) = &mut self.bot_turn {
             *at += stopped;
         }
     }
 
-    /// A play (the new table) or a draw (`None`) by `player`: applied, or
-    /// rejected to them.
-    fn make_move(&mut self, player: PlayerId, table: Option<Vec<Vec<Tile>>>) {
+    /// A move by `player`: applied, or rejected to them.
+    fn make_move(&mut self, player: PlayerId, action: Action) {
         let Some(seat) = self.seat(player) else {
             return self.refuse(player, Refusal::Watching);
         };
@@ -567,21 +591,49 @@ impl Room {
         if self.players[seat].bot.is_some() {
             return; // only the room moves for bots
         }
-        let kept = table.as_ref().map_or(Duration::ZERO, |table| self.worth(seat, table));
+        let kept = match &action {
+            Action::Play(table) => self.worth(seat, table),
+            _ => Duration::ZERO,
+        };
         // Their turn's time left, should this end it.
         let left = self.turn_ends.map_or(Duration::ZERO, |t| t.saturating_duration_since(Instant::now()));
-        if self.game.as_ref().is_some_and(|g| g.current() == seat) {
+        // Drawing in Okey 101 doesn't end the turn.
+        let ends_turn = !matches!((&self.game, &action), (Some(Contest::Okey(_)), Action::Draw));
+        if ends_turn && self.game.as_ref().is_some_and(|g| g.current() == seat) {
             self.settle_bank();
         }
-        let game = self.game.as_mut().expect("checked above");
-        let result = match table {
-            Some(table) => game.play(seat, table).map(|_| ()),
-            None => game.draw(seat).map(|_| ()),
-        };
-        match result {
-            Ok(()) => self.end_turn(seat, kept, left),
-            Err(error) => self.send(seat, ServerMessage::Rejected { error }),
+        let wrong_game = || ServerMessage::Error { message: "not a move of this room's game".into() };
+        match (self.game.as_mut().expect("checked above"), action) {
+            (Contest::Classic(game), Action::Play(table)) => match game.play(seat, table) {
+                Ok(()) => self.end_turn(seat, kept, left),
+                Err(error) => self.send(seat, ServerMessage::Rejected { error }),
+            },
+            (Contest::Classic(game), Action::Draw) => match game.draw(seat) {
+                Ok(_) => self.end_turn(seat, kept, left),
+                Err(error) => self.send(seat, ServerMessage::Rejected { error }),
+            },
+            (Contest::Okey(game), Action::Draw) => match game.draw(seat) {
+                Ok(_) => self.drawn(seat, left),
+                Err(error) => self.send(seat, ServerMessage::OkeyRejected { error }),
+            },
+            (Contest::Okey(game), Action::Discard(turn)) => match game.play(seat, turn) {
+                Ok(()) => self.end_turn(seat, kept, left),
+                Err(error) => self.send(seat, ServerMessage::OkeyRejected { error }),
+            },
+            (Contest::Classic(_), Action::Discard(_)) | (Contest::Okey(_), Action::Play(_)) => {
+                self.send(seat, wrong_game())
+            }
+        }
+    }
 
+    /// `seat` has drawn in Okey 101: their turn goes on, unless the pool
+    /// was empty and the hand has ended.
+    fn drawn(&mut self, seat: usize, left: Duration) {
+        if self.game.as_ref().is_some_and(Contest::in_turn) {
+            self.broadcast_state();
+        } else {
+            self.settle_bank();
+            self.end_turn(seat, Duration::ZERO, left);
         }
     }
 
@@ -607,7 +659,9 @@ impl Room {
     /// What `table` would earn `seat` in extra time as their turn (rooms
     /// with `tile_bonus`).
     fn worth(&self, seat: usize, table: &[Vec<Tile>]) -> Duration {
-        let Some(game) = self.game.as_ref().filter(|_| self.options.tile_bonus) else { return Duration::ZERO };
+        let Some(Contest::Classic(game)) = self.game.as_ref().filter(|_| self.options.tile_bonus) else {
+            return Duration::ZERO;
+        };
         self.config.timing.bonus.worth(game.table(), table, game.rack(seat), game.melded(seat), game.rules())
     }
 
@@ -684,10 +738,10 @@ impl Room {
     fn share_draft(&mut self, player: PlayerId, table: Vec<Vec<Tile>>) {
         let Some(seat) = self.seat(player) else { return };
         let Some(game) = &self.game else { return };
-        if game.current() != seat || game.outcome().is_some() {
+        if game.current() != seat || !game.in_turn() {
             return;
         }
-        if !within_reach(game.table(), game.rack(seat), &table) {
+        if !game.draft_within_reach(&table) {
             return self.refuse(player, Refusal::NotYourTiles);
         }
         self.give_bonus(seat, &table);
@@ -715,7 +769,7 @@ impl Room {
         match step {
             BotTurn::Thinking => {
                 let Some(level) = self.players[seat].bot else { return };
-                let (view, turn) = (game.view(seat), self.turn);
+                let (game, turn) = (game.clone(), self.turn);
                 let Some(commands) = self.commands.upgrade() else { return };
                 self.bot_turn = Some((BotTurn::Choosing, Instant::now()));
                 let (lookahead, limit, thinking) = (self.config.lookahead, self.config.timing.bot_time, self.thinking.clone());
@@ -723,7 +777,7 @@ impl Room {
                     let Ok(_permit) = thinking.acquire_owned().await else { return };
                     let choose = move || {
                         let start = std::time::Instant::now();
-                        bot_move_with(&view, level, lookahead, &|| start.elapsed().as_secs_f64() / limit.as_secs_f64())
+                        game.bot_move(level, lookahead, &|| start.elapsed().as_secs_f64() / limit.as_secs_f64())
                     };
                     if let Ok(choice) = tokio::task::spawn_blocking(choose).await {
                         let _ = commands.send(Command::BotMove { turn, choice }).await;
@@ -737,15 +791,25 @@ impl Room {
 
     /// A bot's move has been worked out: shown first in rooms with live
     /// turns, then made (once the game isn't paused).
-    fn bot_chose(&mut self, turn: u64, choice: Move) {
+    fn bot_chose(&mut self, turn: u64, choice: BotChoice) {
         if turn != self.turn || !matches!(self.bot_turn, Some((BotTurn::Choosing, _))) {
             return; // its turn has passed
         }
         // While paused, from when the pause began: that's shifted on resuming.
         let now = self.paused.unwrap_or_else(Instant::now);
-        let at = match &choice {
-            Move::Play(table) if self.options.live_turns => {
-                let seat = self.game.as_ref().map_or(0, Game::current);
+        let shown = match &choice {
+            BotChoice::Classic(Move::Play(table)) => Some(table),
+            // Only when it put tiles down.
+            BotChoice::Okey(OkeyMove::Turn(turn))
+                if self.game.as_ref().is_some_and(|g| g.table() != turn.table.as_slice()) =>
+            {
+                Some(&turn.table)
+            }
+            _ => None,
+        };
+        let at = match shown {
+            Some(table) if self.options.live_turns => {
+                let seat = self.game.as_ref().map_or(0, Contest::current);
                 self.pass_on_draft(seat, table.clone());
                 now + self.config.timing.bot_show
             }
@@ -755,18 +819,47 @@ impl Room {
     }
 
     /// The current player, a bot, makes this move (or draws, should the
-    /// game refuse it).
-    fn bot_moves(&mut self, choice: Move) {
-        self.settle_bank();
+    /// game refuse it; in Okey 101 discards safely).
+    fn bot_moves(&mut self, choice: BotChoice) {
         let Some(game) = self.game.as_mut() else { return };
         let seat = game.current();
-        let played = match choice {
-            Move::Play(table) => game.play(seat, table).map_err(|e| eprintln!("room {}: a bot's play: {e}", self.code)),
-            Move::Draw => Err(()),
-        };
-        if played.is_err() {
-            let _ = game.draw(seat);
+        match (game, choice) {
+            (Contest::Okey(game), BotChoice::Okey(OkeyMove::Draw)) => {
+                if game.draw(seat).is_err() || game.hand().end().is_some() {
+                    self.settle_bank();
+                    return self.end_turn(seat, Duration::ZERO, Duration::ZERO);
+                }
+                // It thinks again, about its discard.
+                self.bot_turn = Some((BotTurn::Thinking, Instant::now() + self.config.timing.bot_think));
+                self.broadcast_state();
+                return;
+            }
+            (Contest::Okey(game), BotChoice::Okey(OkeyMove::Turn(turn))) => {
+                if let Err(e) = game.play(seat, turn) {
+                    eprintln!("room {}: a bot's turn: {e}", self.code);
+                    if game.hand().phase() == Phase::Draw {
+                        let _ = game.draw(seat);
+                    }
+                    if game.hand().end().is_none() {
+                        let fallback = game.hand().timeout_turn(seat, None);
+                        let _ = game.play(seat, fallback);
+                    }
+                }
+            }
+            (Contest::Classic(game), BotChoice::Classic(choice)) => {
+                let played = match choice {
+                    Move::Play(table) => {
+                        game.play(seat, table).map_err(|e| eprintln!("room {}: a bot's play: {e}", self.code))
+                    }
+                    Move::Draw => Err(()),
+                };
+                if played.is_err() {
+                    let _ = game.draw(seat);
+                }
+            }
+            _ => eprintln!("room {}: a bot's move for another game", self.code),
         }
+        self.settle_bank();
         self.end_turn(seat, Duration::ZERO, Duration::ZERO);
     }
 
@@ -775,7 +868,10 @@ impl Room {
     /// their tiles going back to their rack; if nothing can be, they draw.
     fn time_out(&mut self) {
         self.settle_bank();
-        let Some(game) = self.game.as_ref() else { return };
+        if matches!(self.game, Some(Contest::Okey(_))) {
+            return self.okey_time_out();
+        }
+        let Some(Contest::Classic(game)) = self.game.as_ref() else { return };
         let seat = game.current();
         let draft = self.draft.take();
         let table = draft
@@ -786,7 +882,7 @@ impl Room {
         let put_down = draft.as_ref().map_or(0, |d| size(d).saturating_sub(size(game.table())));
         let played = table.as_ref().map_or(0, |t| size(t) - size(game.table()));
         let kept = table.as_ref().map_or(Duration::ZERO, |table| self.worth(seat, table));
-        let game = self.game.as_mut().expect("checked above");
+        let Some(Contest::Classic(game)) = self.game.as_mut() else { return };
         let played = if table.is_some_and(|table| game.play(seat, table).is_ok()) {
             played
         } else {
@@ -800,8 +896,48 @@ impl Room {
         }
     }
 
+    /// Okey 101: the current player's time ran out. They draw if they
+    /// hadn't (which may end the hand), then their table so far is played
+    /// if it's a valid turn, and a tile that costs no penalty discarded.
+    fn okey_time_out(&mut self) {
+        let Some(Contest::Okey(game)) = self.game.as_mut() else { return };
+        let seat = game.hand().current();
+        if game.hand().phase() == Phase::Draw {
+            let _ = game.draw(seat);
+            if game.hand().end().is_some() {
+                return self.end_turn(seat, Duration::ZERO, Duration::ZERO);
+            }
+        }
+        let draft = self.draft.take();
+        let turn = game.hand().timeout_turn(seat, draft.as_deref());
+        let size = |table: &[Vec<Tile>]| table.iter().map(Vec::len).sum::<usize>();
+        let before = size(game.hand().table());
+        let put_down = draft.as_ref().map_or(0, |d| size(d).saturating_sub(before));
+        let played = size(&turn.table) - before;
+        if let Err(e) = game.play(seat, turn) {
+            eprintln!("room {}: a turn played when time ran out: {e}", self.code);
+        }
+        self.end_turn(seat, Duration::ZERO, Duration::ZERO);
+        if put_down > 0 {
+            let notice = Notice::TimeRanOut { played: played as u32, back: put_down.saturating_sub(played) as u32 };
+            self.send(seat, ServerMessage::Notice { notice });
+        }
+    }
+
+    /// Okey 101: deals the next hand once the scores have been shown.
+    fn next_hand(&mut self) {
+        self.next_hand_at = None;
+        if let Some(Contest::Okey(game)) = self.game.as_mut() {
+            if game.next_hand() {
+                self.start_turn();
+                self.broadcast_state();
+            }
+        }
+    }
+
     /// Sets the timer for the turn now beginning (none once the game is
-    /// over), and a bot's first step if it's a bot's turn.
+    /// over, or an Okey 101 hand), and a bot's first step if it's a bot's
+    /// turn. After an Okey 101 hand, when the next is dealt.
     fn start_turn(&mut self) {
         let Some(game) = &self.game else { return };
         self.turn += 1;
@@ -812,12 +948,13 @@ impl Room {
         let player = &self.players[game.current()];
         let timing = self.config.timing;
         let turn = timing.turn * self.options.turn_seconds / 60;
-        self.turn_ends =
-            game.outcome().is_none().then(|| Instant::now() + if player.present() { turn } else { timing.absent_turn });
-        if game.outcome().is_none() && player.bot.is_some() {
+        let in_turn = game.in_turn();
+        self.turn_ends = in_turn.then(|| Instant::now() + if player.present() { turn } else { timing.absent_turn });
+        self.next_hand_at = (!in_turn && !game.over()).then(|| Instant::now() + timing.between_hands);
+        if in_turn && player.bot.is_some() {
             self.bot_turn = Some((BotTurn::Thinking, Instant::now() + timing.bot_think));
         }
-        if std::mem::take(&mut self.step) && game.outcome().is_none() {
+        if in_turn && std::mem::take(&mut self.step) {
             self.paused = Some(Instant::now());
             self.broadcast_room();
         }
@@ -927,6 +1064,7 @@ impl Room {
         // The clock stands still while the game is paused.
         let now = self.paused.unwrap_or_else(Instant::now);
         let turn_ms = self.turn_ends.map(|t| t.saturating_duration_since(now).as_millis() as u32);
+        let next_hand_ms = self.next_hand_at.map(|t| t.saturating_duration_since(now).as_millis() as u32);
         // Watching a game only bots play, there's nobody to give a rack away to.
         let open = self.config.open_racks || (seat.is_none() && self.players.iter().all(|p| p.bot.is_some()));
         let racks = open.then(|| (0..game.players()).map(|p| game.rack(p).to_vec()).collect());
@@ -943,8 +1081,7 @@ impl Room {
                 })
                 .collect()
         });
-        let view = seat.map_or_else(|| game.watcher_view(), |seat| game.view(seat));
-        Some(ServerMessage::State { view, turn_ms, banks, racks })
+        Some(game.state(seat, StateExtras { turn_ms, banks, racks, next_hand_ms }))
     }
 
     fn broadcast_state(&self) {
