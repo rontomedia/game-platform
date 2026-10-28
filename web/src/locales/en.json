@@ -201,5 +201,38 @@
     "initialMeldTooLow_other": "Your first meld is worth {{count}} points; it needs {{needed}}.",
     "notYourTurn": "It isn’t your turn.",
     "gameOver": "The game is over."
+  },
+  "refusal": {
+    "noSuchRoom": "There’s no room with the code {{code}}.",
+    "roomClosed": "That room has closed.",
+    "roomFull_one": "The room is full ({{count}} player).",
+    "roomFull_other": "The room is full ({{count}} players).",
+    "watchersFull_one": "Enough are watching already ({{count}}).",
+    "watchersFull_other": "Enough are watching already ({{count}}).",
+    "gameStarted": "The game in this room has started.",
+    "noSuchSeat": "Your seat in that room is gone.",
+    "onlyHost": "Only the host can do that.",
+    "notABot": "That seat isn’t a bot’s.",
+    "tooFewPlayers_one": "A game needs at least {{count}} player.",
+    "tooFewPlayers_other": "A game needs at least {{count}} players.",
+    "noGame": "There’s no game going on.",
+    "notBotsOnly": "Only a game the bots play alone can be paused.",
+    "watching": "You’re watching this game, not playing.",
+    "notStarted": "The game hasn’t started.",
+    "notYourTiles": "That table has tiles you don’t have.",
+    "alreadyInRoom": "You’re in a room already.",
+    "notInRoom": "You’re not in a room."
+  },
+  "notice": {
+    "timeRanOutDrew": "Time ran out and the table wasn’t a valid turn, so you drew a tile.",
+    "timeRanOutAll_one": "Time ran out: your {{count}} tile was played.",
+    "timeRanOutAll_other": "Time ran out: your {{count}} tiles were played.",
+    "timeRanOutSome": "Time ran out: {{played}}, the valid part of your turn; {{back}}.",
+    "tilesPlayed_one": "{{count}} tile played",
+    "tilesPlayed_other": "{{count}} tiles played",
+    "tilesBack_one": "{{count}} tile went back to your rack",
+    "tilesBack_other": "{{count}} tiles went back to your rack",
+    "unearnedWarning": "Extra time for tiles you then take back counts against you: {{soFar}} so far. At {{limit}} you get no more this game.",
+    "noMoreBonus": "You took back tiles you’d been given {{time}} of extra time for. No more extra time for tiles this game."
   }
 }

@@ -5,7 +5,7 @@ use std::net::SocketAddr;
 use std::sync::Arc;
 
 use axum::extract::ws::{Message, WebSocket};
-use protocol::{ClientMessage, ServerMessage, PROTOCOL_VERSION};
+use protocol::{ClientMessage, Refusal, ServerMessage, PROTOCOL_VERSION};
 use tokio::sync::{mpsc, oneshot};
 
 use crate::room::{Command, Connection, Outbox, PlayerId};
@@ -56,13 +56,17 @@ fn error(outbox: &Outbox, message: impl Into<String>) {
     let _ = outbox.send(ServerMessage::Error { message: message.into() });
 }
 
+fn refuse(outbox: &Outbox, refusal: Refusal) {
+    let _ = outbox.send(ServerMessage::Refused { refusal });
+}
+
 async fn handle(message: ClientMessage, rooms: &Arc<Rooms>, membership: &mut Option<Membership>, id: u64, outbox: &Outbox) {
     let connection = || Connection { id, outbox: outbox.clone() };
     match message {
         ClientMessage::CreateRoom { .. } | ClientMessage::JoinRoom { .. } | ClientMessage::Rejoin { .. }
             if membership.is_some() =>
         {
-            error(outbox, "already in a room")
+            refuse(outbox, Refusal::AlreadyInRoom)
         }
         ClientMessage::CreateRoom { name, options } => {
             let room = rooms.create(options.checked());
@@ -74,11 +78,11 @@ async fn handle(message: ClientMessage, rooms: &Arc<Rooms>, membership: &mut Opt
                 let join = |reply| Command::Join { name: clean(&name), watch, connection: connection(), reply };
                 *membership = enter(room, outbox, join).await
             }
-            None => error(outbox, format!("no room with code {}", code.trim().to_uppercase())),
+            None => refuse(outbox, Refusal::NoSuchRoom { code: code.trim().to_uppercase() }),
         },
         ClientMessage::Rejoin { code, token } => match rooms.get(&code) {
             Some(room) => *membership = enter(room, outbox, |reply| Command::Rejoin { token, connection: connection(), reply }).await,
-            None => error(outbox, "that room has closed"),
+            None => refuse(outbox, Refusal::RoomClosed),
         },
         ClientMessage::Leave => {
             // Free to create or join another room.
@@ -104,21 +108,21 @@ async fn handle(message: ClientMessage, rooms: &Arc<Rooms>, membership: &mut Opt
 async fn enter(
     room: mpsc::Sender<Command>,
     outbox: &Outbox,
-    command: impl FnOnce(oneshot::Sender<Result<PlayerId, String>>) -> Command,
+    command: impl FnOnce(oneshot::Sender<Result<PlayerId, Refusal>>) -> Command,
 ) -> Option<Membership> {
     let (reply, answer) = oneshot::channel();
     if room.send(command(reply)).await.is_err() {
-        error(outbox, "that room has closed");
+        refuse(outbox, Refusal::RoomClosed);
         return None;
     }
     match answer.await {
         Ok(Ok(player)) => Some(Membership { room, player }),
-        Ok(Err(message)) => {
-            error(outbox, message);
+        Ok(Err(refusal)) => {
+            refuse(outbox, refusal);
             None
         }
         Err(_) => {
-            error(outbox, "that room has closed");
+            refuse(outbox, Refusal::RoomClosed);
             None
         }
     }
@@ -127,12 +131,13 @@ async fn enter(
 /// Passes a move to this connection's room.
 async fn forward(membership: &mut Option<Membership>, outbox: &Outbox, command: impl FnOnce(PlayerId) -> Command) {
     let Some(Membership { room, player }) = membership else {
-        return error(outbox, "not in a room");
+        return refuse(outbox, Refusal::NotInRoom);
     };
     if room.send(command(*player)).await.is_err() {
         *membership = None;
-        error(outbox, "the room has closed");
+        refuse(outbox, Refusal::RoomClosed);
     }
+
 }
 
 /// A player name as shown to others: trimmed, not too long, never empty.

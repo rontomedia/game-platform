@@ -48,13 +48,13 @@ import { footprint, gridWithout, resolve, type Cell } from './grid.ts'
 import type { Settings } from './settings.ts'
 import { centre, flyAway, flyIn, glide, pace, reducedMotion } from './flights.ts'
 import { LeaveMenu } from './LeaveMenu.tsx'
-import { problemText, turnError, type Problem } from './messages.ts'
+import { noticeText, problemText, turnError, type Problem } from './messages.ts'
 import { SettingsMenu } from './SettingsMenu.tsx'
 import { remember, remembered } from './storage.ts'
 import { TileFace, type TileSize } from './TileView.tsx'
 import { Button } from './ui.tsx'
 import type { Draft, GameState, Status, TurnRecord } from './useGame.ts'
-import { checkTurn, classifySet, type ClientMessage, type RoomInfo, type Tile } from './wasm/engine.js'
+import { checkTurn, classifySet, type ClientMessage, type Notice, type RoomInfo, type Tile } from './wasm/engine.js'
 
 /**
  * The game screen: players along the top, the table in the middle, the rack
@@ -271,7 +271,7 @@ export function Board({
   status: Status
   problem: Problem | null
   /** A warning from the server, for a while. */
-  notice: string | null
+  notice: Notice | null
   settings: Settings
   onSettings: (change: Partial<Settings>) => void
   arrangement: Arrangement
@@ -752,7 +752,7 @@ export function Board({
   const name = (seat: number) => room.seats[seat]?.name ?? t('board.player', { n: seat + 1 })
   const note = ((): { tone: 'neutral' | 'good' | 'bad'; text: string } => {
     if (problem) return { tone: 'bad', text: problemText(t, problem) }
-    if (notice) return { tone: 'bad', text: notice }
+    if (notice) return { tone: 'bad', text: noticeText(t, notice) }
     if (view.outcome) return { tone: 'neutral', text: t('board.over') }
     if (room.paused) return { tone: 'neutral', text: t('board.paused', { name: name(view.current) }) }
     if (!myTurn) {

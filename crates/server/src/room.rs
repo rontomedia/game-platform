@@ -16,7 +16,7 @@ use std::sync::Arc;
 use std::time::Duration;
 
 use engine::{bot_move_with, salvage, within_reach, BotLevel, Game, Lookahead, Move, Rules, Tile};
-use protocol::{RoomInfo, RoomOptions, Seat, ServerMessage};
+use protocol::{Notice, Refusal, RoomInfo, RoomOptions, Seat, ServerMessage};
 use tokio::sync::{mpsc, oneshot, Semaphore};
 use tokio::time::{sleep_until, Instant};
 
@@ -94,8 +94,8 @@ pub struct Connection {
 }
 
 pub enum Command {
-    Join { name: String, watch: bool, connection: Connection, reply: oneshot::Sender<Result<PlayerId, String>> },
-    Rejoin { token: String, connection: Connection, reply: oneshot::Sender<Result<PlayerId, String>> },
+    Join { name: String, watch: bool, connection: Connection, reply: oneshot::Sender<Result<PlayerId, Refusal>> },
+    Rejoin { token: String, connection: Connection, reply: oneshot::Sender<Result<PlayerId, Refusal>> },
     /// A connection has gone; its player may come back.
     Disconnect { player: PlayerId, connection: u64 },
     /// A player leaves for good.
@@ -283,7 +283,7 @@ impl Room {
         }
     }
 
-    fn join(&mut self, name: String, watch: bool, connection: Connection) -> Result<PlayerId, String> {
+    fn join(&mut self, name: String, watch: bool, connection: Connection) -> Result<PlayerId, Refusal> {
         if watch {
             self.check_watcher_room()?;
         } else {
@@ -304,19 +304,19 @@ impl Room {
         Ok(id)
     }
 
-    fn check_watcher_room(&self) -> Result<(), String> {
+    fn check_watcher_room(&self) -> Result<(), Refusal> {
         if self.watchers.len() >= MAX_WATCHERS {
-            return Err(format!("enough are watching already ({MAX_WATCHERS})"));
+            return Err(Refusal::WatchersFull { max: MAX_WATCHERS as u32 });
         }
         Ok(())
     }
 
-    fn check_seat_free(&self) -> Result<(), String> {
+    fn check_seat_free(&self) -> Result<(), Refusal> {
         if self.game.is_some() {
-            return Err("the game in this room has started".into());
+            return Err(Refusal::GameStarted);
         }
         if self.players.len() >= MAX_PLAYERS {
-            return Err(format!("the room is full ({MAX_PLAYERS} players)"));
+            return Err(Refusal::RoomFull { max: MAX_PLAYERS as u32 });
         }
         Ok(())
     }
@@ -329,7 +329,7 @@ impl Room {
         id
     }
 
-    fn rejoin(&mut self, token: &str, connection: Connection) -> Result<PlayerId, String> {
+    fn rejoin(&mut self, token: &str, connection: Connection) -> Result<PlayerId, Refusal> {
         if let Some(watcher) = self.watchers.iter_mut().find(|w| w.token == token) {
             let _ = connection.outbox.send(ServerMessage::Joined { code: self.code.clone(), token: watcher.token.clone() });
             watcher.connection = Some(connection);
@@ -339,7 +339,7 @@ impl Room {
             self.send_draft_to(id);
             return Ok(id);
         }
-        let seat = self.players.iter().position(|p| p.bot.is_none() && p.token == token).ok_or("no such seat in this room")?;
+        let seat = self.players.iter().position(|p| p.bot.is_none() && p.token == token).ok_or(Refusal::NoSuchSeat)?;
         let player = &mut self.players[seat];
         let _ = connection.outbox.send(ServerMessage::Joined { code: self.code.clone(), token: player.token.clone() });
         // Replaces any connection the player still had.
@@ -424,13 +424,13 @@ impl Room {
     /// Watch instead of playing, or take a seat again: before the start.
     fn watch(&mut self, player: PlayerId, watching: bool) {
         if self.game.is_some() {
-            return self.send_to(player, ServerMessage::Error { message: "the game has already started".into() });
+            return self.refuse(player, Refusal::GameStarted);
         }
         let from = if watching { &self.players } else { &self.watchers };
         let Some(at) = from.iter().position(|p| p.id == player) else { return };
         let room = if watching { self.check_watcher_room() } else { self.check_seat_free() };
-        if let Err(message) = room {
-            return self.send_to(player, ServerMessage::Error { message });
+        if let Err(refusal) = room {
+            return self.refuse(player, refusal);
         }
         if watching {
             let moved = self.players.remove(at);
@@ -443,22 +443,22 @@ impl Room {
     }
 
     /// Why the host's lobby request from `player` can't be done, if it can't.
-    fn host_refusal(&self, player: PlayerId) -> Option<&'static str> {
+    fn host_refusal(&self, player: PlayerId) -> Option<Refusal> {
         if self.game.is_some() {
-            Some("the game has already started")
+            Some(Refusal::GameStarted)
         } else if self.host() != Some(player) {
-            Some("only the host can do that")
+            Some(Refusal::OnlyHost)
         } else {
             None
         }
     }
 
     fn add_bot(&mut self, player: PlayerId, level: BotLevel) {
-        if let Some(message) = self.host_refusal(player) {
-            return self.send_to(player, ServerMessage::Error { message: message.into() });
+        if let Some(refusal) = self.host_refusal(player) {
+            return self.refuse(player, refusal);
         }
-        if let Err(message) = self.check_seat_free() {
-            return self.send_to(player, ServerMessage::Error { message });
+        if let Err(refusal) = self.check_seat_free() {
+            return self.refuse(player, refusal);
         }
         let taken = |name: &&str| self.players.iter().any(|p| p.name == **name);
         let name = BOT_NAMES.iter().find(|name| !taken(name)).unwrap_or(&"Bot").to_string();
@@ -467,11 +467,11 @@ impl Room {
     }
 
     fn remove_bot(&mut self, player: PlayerId, bot: usize) {
-        if let Some(message) = self.host_refusal(player) {
-            return self.send_to(player, ServerMessage::Error { message: message.into() });
+        if let Some(refusal) = self.host_refusal(player) {
+            return self.refuse(player, refusal);
         }
         if self.players.get(bot).is_none_or(|p| p.bot.is_none()) {
-            return self.send_to(player, ServerMessage::Error { message: "that seat isn't a bot's".into() });
+            return self.refuse(player, Refusal::NotABot);
         }
         self.players.remove(bot);
         self.broadcast_room();
@@ -479,16 +479,16 @@ impl Room {
 
     fn start(&mut self, player: PlayerId) {
         let refusal = if self.game.is_some() {
-            Some("the game has already started")
+            Some(Refusal::GameStarted)
         } else if self.host() != Some(player) {
-            Some("only the host can start the game")
+            Some(Refusal::OnlyHost)
         } else if self.players.iter().filter(|p| p.present()).count() < 2 {
-            Some("a game needs at least 2 players")
+            Some(Refusal::TooFewPlayers { min: 2 })
         } else {
             None
         };
-        if let Some(message) = refusal {
-            return self.send_to(player, ServerMessage::Error { message: message.into() });
+        if let Some(refusal) = refusal {
+            return self.refuse(player, refusal);
         }
         // Those who left before the start don't get a seat.
         self.players.retain(Player::present);
@@ -501,21 +501,21 @@ impl Room {
 
     /// Why `player` can't pause or step the game, if they can't: only the
     /// host, in a game only bots play.
-    fn pause_refusal(&self, player: PlayerId) -> Option<&'static str> {
+    fn pause_refusal(&self, player: PlayerId) -> Option<Refusal> {
         if self.game.as_ref().is_none_or(|g| g.outcome().is_some()) {
-            Some("there's no game going on")
+            Some(Refusal::NoGame)
         } else if self.host() != Some(player) {
-            Some("only the host can do that")
+            Some(Refusal::OnlyHost)
         } else if self.players.iter().any(|p| p.bot.is_none()) {
-            Some("only a game the bots play alone can be paused")
+            Some(Refusal::NotBotsOnly)
         } else {
             None
         }
     }
 
     fn pause(&mut self, player: PlayerId, paused: bool) {
-        if let Some(message) = self.pause_refusal(player) {
-            return self.send_to(player, ServerMessage::Error { message: message.into() });
+        if let Some(refusal) = self.pause_refusal(player) {
+            return self.refuse(player, refusal);
         }
         self.step = false;
         if paused {
@@ -529,8 +529,8 @@ impl Room {
 
     /// Plays the next turn of a paused game, then pauses again.
     fn step(&mut self, player: PlayerId) {
-        if let Some(message) = self.pause_refusal(player) {
-            return self.send_to(player, ServerMessage::Error { message: message.into() });
+        if let Some(refusal) = self.pause_refusal(player) {
+            return self.refuse(player, refusal);
         }
         if self.paused.is_none() {
             return;
@@ -559,10 +559,10 @@ impl Room {
     /// rejected to them.
     fn make_move(&mut self, player: PlayerId, table: Option<Vec<Vec<Tile>>>) {
         let Some(seat) = self.seat(player) else {
-            return self.send_to(player, ServerMessage::Error { message: "you're watching this game, not playing".into() });
+            return self.refuse(player, Refusal::Watching);
         };
         if self.game.is_none() {
-            return self.send(seat, ServerMessage::Error { message: "the game hasn't started".into() });
+            return self.refuse(player, Refusal::NotStarted);
         }
         if self.players[seat].bot.is_some() {
             return; // only the room moves for bots
@@ -580,7 +580,8 @@ impl Room {
         };
         match result {
             Ok(()) => self.end_turn(seat, kept, left),
-            Err(error) => self.send(seat, ServerMessage::Rejected { message: error.to_string(), error }),
+            Err(error) => self.send(seat, ServerMessage::Rejected { error }),
+
         }
     }
 
@@ -598,8 +599,8 @@ impl Room {
         let notice = self.count_unearned(seat, kept);
         self.start_turn();
         self.broadcast_state();
-        if let Some(message) = notice {
-            self.send(seat, ServerMessage::Notice { message });
+        if let Some(notice) = notice {
+            self.send(seat, ServerMessage::Notice { notice });
         }
     }
 
@@ -632,7 +633,7 @@ impl Room {
 
     /// Extra time `seat` was given this turn beyond what their play kept
     /// (`kept`) counts against them: a warning, then no more for the game.
-    fn count_unearned(&mut self, seat: usize, kept: Duration) -> Option<String> {
+    fn count_unearned(&mut self, seat: usize, kept: Duration) -> Option<Notice> {
         let granted = std::mem::take(&mut self.granted);
         let timing = self.config.timing;
         let player = &mut self.players[seat];
@@ -642,18 +643,14 @@ impl Room {
         player.unearned += granted - kept;
         if player.unearned >= timing.unearned_limit {
             player.no_bonus = true;
-            return Some(format!(
-                "You took back tiles you'd been given {} of extra time for. No more extra time for tiles this game.",
-                minutes(player.unearned)
-            ));
+            return Some(Notice::NoMoreBonus { taken_back_ms: player.unearned.as_millis() as u32 });
         }
         if player.unearned >= timing.unearned_warning && !player.warned {
             player.warned = true;
-            return Some(format!(
-                "Extra time for tiles you then take back counts against you: {} so far. At {} you get no more this game.",
-                minutes(player.unearned),
-                minutes(timing.unearned_limit)
-            ));
+            return Some(Notice::UnearnedWarning {
+                so_far_ms: player.unearned.as_millis() as u32,
+                limit_ms: timing.unearned_limit.as_millis() as u32,
+            });
         }
         None
     }
@@ -691,7 +688,7 @@ impl Room {
             return;
         }
         if !within_reach(game.table(), game.rack(seat), &table) {
-            return self.send(seat, ServerMessage::Error { message: "that table has tiles you don't have".into() });
+            return self.refuse(player, Refusal::NotYourTiles);
         }
         self.give_bonus(seat, &table);
         self.pass_on_draft(seat, table);
@@ -797,18 +794,9 @@ impl Room {
             0
         };
         self.end_turn(seat, kept, Duration::ZERO);
-        let message = match (played, put_down.saturating_sub(played)) {
-            (0, 0) => None,
-            (0, _) => Some("Time ran out and the table wasn't a valid turn, so you drew a tile.".to_string()),
-            (played, 0) => Some(format!("Time ran out: your {} played.", tiles(played, "tile was", "tiles were"))),
-            (played, back) => Some(format!(
-                "Time ran out: {} played, the valid part of your turn; {} back to your rack.",
-                tiles(played, "tile", "tiles"),
-                tiles(back, "tile went", "tiles went")
-            )),
-        };
-        if let Some(message) = message {
-            self.send(seat, ServerMessage::Notice { message });
+        if put_down > 0 {
+            let notice = Notice::TimeRanOut { played: played as u32, back: put_down.saturating_sub(played) as u32 };
+            self.send(seat, ServerMessage::Notice { notice });
         }
     }
 
@@ -868,6 +856,10 @@ impl Room {
     }
 
     /// To a member, seated or watching.
+    fn refuse(&self, player: PlayerId, refusal: Refusal) {
+        self.send_to(player, ServerMessage::Refused { refusal });
+    }
+
     fn send_to(&self, player: PlayerId, message: ServerMessage) {
         if let Some(connection) = self.members().find(|p| p.id == player).and_then(|p| p.connection.as_ref()) {
             let _ = connection.outbox.send(message);
@@ -963,15 +955,4 @@ impl Room {
             self.send_watchers(state);
         }
     }
-}
-
-/// A duration as minutes and seconds: "1:05".
-fn minutes(d: Duration) -> String {
-    let secs = d.as_secs();
-    format!("{}:{:02}", secs / 60, secs % 60)
-}
-
-/// "1 tile", "3 tiles", with words for one and for more.
-fn tiles(count: usize, one: &str, more: &str) -> String {
-    format!("{count} {}", if count == 1 { one } else { more })
 }

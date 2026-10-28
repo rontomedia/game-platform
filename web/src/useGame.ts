@@ -6,6 +6,7 @@ import type { Problem } from './messages.ts'
 import {
   protocolVersion,
   type ClientMessage,
+  type Notice,
   type PlayerView,
   type RoomInfo,
   type ServerMessage,
@@ -183,7 +184,7 @@ export function useGame() {
   /** The last refusal or error from the server, until the next change. */
   const [problem, setProblem] = useState<Problem | null>(null)
   /** The last notice from the server, for a while (`NOTICE_MS`). */
-  const [notice, setNotice] = useState<string | null>(null)
+  const [notice, setNotice] = useState<Notice | null>(null)
   useEffect(() => {
     if (notice === null) return
     const timer = setTimeout(() => setNotice(null), NOTICE_MS)
@@ -275,7 +276,7 @@ export function useGame() {
           break
         }
         case 'notice':
-          setNotice(message.message)
+          setNotice(message.notice)
           break
         case 'draft':
           setDraft({ by: message.by, table: message.table, version: version.current })
@@ -283,14 +284,20 @@ export function useGame() {
         case 'rejected':
           setProblem({ kind: 'turn', error: message.error })
           break
+        case 'refused':
         case 'error':
           if (rejoining.current) {
             // The seat is gone (the room closed); start over.
             rejoining.current = false
             saveSeat(null)
           }
-          setProblem({ kind: 'text', message: message.message })
+          setProblem(
+            message.type === 'refused'
+              ? { kind: 'refused', refusal: message.refusal }
+              : { kind: 'text', message: message.message },
+          )
           break
+
       }
     }
     return () => {

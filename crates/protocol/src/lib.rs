@@ -14,7 +14,7 @@ use tsify::Tsify;
 
 /// Bumped when a message changes in a way an older client can't read; the
 /// server says which it speaks in `Welcome`.
-pub const PROTOCOL_VERSION: u32 = 7;
+pub const PROTOCOL_VERSION: u32 = 8;
 
 /// How a room plays, chosen by whoever opens it. Options left out take
 /// their defaults.
@@ -192,11 +192,72 @@ pub enum ServerMessage {
     /// their turn now has `turn_ms` left.
     Clock { by: usize, added_ms: u32, turn_ms: u32 },
     /// Something this player should know, such as a warning.
-    Notice { message: String },
+    Notice { notice: Notice },
     /// This player's move wasn't allowed; if it was their turn, it still is.
-    Rejected { error: TurnError, message: String },
-    /// A message the server couldn't act on: malformed, or not possible now.
+    Rejected { error: TurnError },
+    /// A request the server won't do now (join a full room, start as
+    /// someone other than the host, ...).
+    Refused { refusal: Refusal },
+    /// A message the server couldn't read: a bug in the client, so in
+    /// English, not for players.
     Error { message: String },
+}
+
+/// What the server tells a player. Like every message, it says what
+/// happened, not a sentence: the client words it in the player's language.
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "wasm", derive(Tsify))]
+#[serde(tag = "kind", rename_all = "camelCase", rename_all_fields = "camelCase")]
+pub enum Notice {
+    /// The player's time ran out: of the tiles they had put down, `played`
+    /// were played (the valid part of their table) and `back` went back to
+    /// their rack. None played: they drew a tile.
+    TimeRanOut { played: u32, back: u32 },
+    /// Extra time given for tiles they then took back counts against the
+    /// player: `so_far_ms` so far, and at `limit_ms` they get no more.
+    UnearnedWarning { so_far_ms: u32, limit_ms: u32 },
+    /// They took back tiles they had been given `taken_back_ms` of extra
+    /// time for: no more extra time for tiles this game.
+    NoMoreBonus { taken_back_ms: u32 },
+}
+
+/// Why the server won't do what a client asked.
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "wasm", derive(Tsify))]
+#[serde(tag = "kind", rename_all = "camelCase", rename_all_fields = "camelCase")]
+pub enum Refusal {
+    /// No open room has this code.
+    NoSuchRoom { code: String },
+    /// The room has closed.
+    RoomClosed,
+    /// Every seat is taken.
+    RoomFull { max: u32 },
+    /// As many are watching as may.
+    WatchersFull { max: u32 },
+    /// The game has started: seats and bots are as they are.
+    GameStarted,
+    /// A rejoin for a seat this room doesn't have (any more).
+    NoSuchSeat,
+    /// Only the host may do that.
+    OnlyHost,
+    /// Removing a seat that isn't a bot's.
+    NotABot,
+    /// Starting with fewer players than a game needs.
+    TooFewPlayers { min: u32 },
+    /// Pausing or stepping with no game going on.
+    NoGame,
+    /// Pausing or stepping a game a person plays in.
+    NotBotsOnly,
+    /// A move from someone watching.
+    Watching,
+    /// A move before the game has started.
+    NotStarted,
+    /// A draft with tiles neither on the table nor on the player's rack.
+    NotYourTiles,
+    /// Creating or joining a room while in one.
+    AlreadyInRoom,
+    /// A request for a room from a connection in none.
+    NotInRoom,
 }
 
 impl ClientMessage {
@@ -257,11 +318,12 @@ mod tests {
     #[test]
     fn server_messages_as_json() {
         assert_eq!(ServerMessage::Welcome { protocol: 1 }.to_json(), r#"{"type":"welcome","protocol":1}"#);
-        let rejected = ServerMessage::Rejected { error: TurnError::InvalidSet { index: 2 }, message: "set 3".into() };
-        assert_eq!(
-            rejected.to_json(),
-            r#"{"type":"rejected","error":{"kind":"invalidSet","index":2},"message":"set 3"}"#
-        );
+        let rejected = ServerMessage::Rejected { error: TurnError::InvalidSet { index: 2 } };
+        assert_eq!(rejected.to_json(), r#"{"type":"rejected","error":{"kind":"invalidSet","index":2}}"#);
+        let refused = ServerMessage::Refused { refusal: Refusal::RoomFull { max: 4 } };
+        assert_eq!(refused.to_json(), r#"{"type":"refused","refusal":{"kind":"roomFull","max":4}}"#);
+        let notice = ServerMessage::Notice { notice: Notice::UnearnedWarning { so_far_ms: 1000, limit_ms: 2000 } };
+        assert_eq!(notice.to_json(), r#"{"type":"notice","notice":{"kind":"unearnedWarning","soFarMs":1000,"limitMs":2000}}"#);
         let view = Game::new(2, Rules::default(), 1).view(0);
         let state = ServerMessage::State { view: view.clone(), turn_ms: Some(1500), banks: None, racks: None }.to_json();
         assert!(state.starts_with(r#"{"type":"state","view":{"you":0,"rules":{"#), "{state}");
