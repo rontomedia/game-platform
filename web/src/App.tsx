@@ -1,5 +1,7 @@
 import { AnimatePresence, motion } from 'motion/react'
+import type { TFunction } from 'i18next'
 import { useCallback, useEffect, useState, type FormEvent, type ReactNode } from 'react'
+import { useTranslation } from 'react-i18next'
 
 import { emptyArrangement, type Arrangement, type RackSort } from './arrange.ts'
 import { Board } from './Board.tsx'
@@ -8,12 +10,12 @@ import { useSettings } from './settings.ts'
 import { remember, remembered } from './storage.ts'
 import { Button, inputClass, Note, Panel, Switch } from './ui.tsx'
 import { SERVER_URL, useGame, type Draft, type Status } from './useGame.ts'
-import { protocolVersion, type BotLevel, type ClientMessage, type RoomInfo, type RoomOptions } from './wasm/engine.js'
+import { protocolVersion, type ClientMessage, type RoomInfo, type RoomOptions } from './wasm/engine.js'
 
-const statusLook: Record<Status, { label: string; dot: string }> = {
-  connecting: { label: 'Connecting', dot: 'bg-amber-400 animate-pulse' },
-  open: { label: 'Connected', dot: 'bg-emerald-400' },
-  closed: { label: 'Disconnected', dot: 'bg-rose-500' },
+const statusDot: Record<Status, string> = {
+  connecting: 'bg-amber-400 animate-pulse',
+  open: 'bg-emerald-400',
+  closed: 'bg-rose-500',
 }
 
 /** `?demo`: the board with a made-up game and no server, for working on its look. */
@@ -101,7 +103,7 @@ function Online() {
   const { status, room, game, draft, problem, notice, mismatch, send, reconnect, leave } = useGame()
   const [settings, changeSettings] = useSettings()
   const [arrangement, setArrangement] = useArrangement(room?.code)
-  const look = statusLook[status]
+  const { t } = useTranslation()
 
   if (room?.started && game) {
     return (
@@ -126,20 +128,20 @@ function Online() {
   return (
     <div className="mx-auto flex max-w-5xl flex-col gap-6 px-4 py-6 sm:px-6 lg:py-10">
       <header className="flex items-center justify-between gap-4">
-        <h1 className="text-3xl font-bold tracking-tight">Rummy</h1>
+        <h1 className="text-3xl font-bold tracking-tight">{t('app.title')}</h1>
         <span className="flex items-center gap-2 text-sm text-slate-300" title={SERVER_URL}>
-          <span className={`size-2.5 rounded-full ${look.dot}`} />
-          {look.label}
+          <span className={`size-2.5 rounded-full ${statusDot[status]}`} />
+          {t(`app.status.${status}`)}
           {status === 'closed' && (
             <Button look="quiet" className="px-2 py-1 text-sm" onClick={reconnect}>
-              Reconnect
+              {t('app.reconnect')}
             </Button>
           )}
         </span>
       </header>
       {mismatch !== null && (
         <p className="rounded-xl bg-rose-500/15 px-3 py-2 text-sm text-rose-200">
-          The server speaks protocol {mismatch}, this page {protocolVersion()}. Reload to get the current version.
+          {t('app.mismatch', { server: mismatch, page: protocolVersion() })}
         </p>
       )}
       {!room ? (
@@ -155,6 +157,7 @@ function Online() {
 const NAME_KEY = 'rummy.name'
 
 function Home({ send, problem, ready }: { send: (m: ClientMessage) => void; problem: string | null; ready: boolean }) {
+  const { t } = useTranslation()
   const [name, setName] = useState(() => remembered<string>(NAME_KEY) ?? '')
   const [code, setCode] = useState('')
 
@@ -181,54 +184,60 @@ function Home({ send, problem, ready }: { send: (m: ClientMessage) => void; prob
     <div className="mx-auto w-full max-w-md">
       <Panel>
         <label className="flex flex-col gap-2">
-          <span className="text-sm font-medium text-slate-300">Your name</span>
-          <input value={name} onChange={(e) => setName(e.target.value)} maxLength={20} placeholder="Name" className={inputClass} />
+          <span className="text-sm font-medium text-slate-300">{t('home.yourName')}</span>
+          <input
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            maxLength={20}
+            placeholder={t('home.name')}
+            className={inputClass}
+          />
         </label>
         <div className="mt-5">
-          <span className="block text-sm font-medium text-slate-300">Time for a turn</span>
+          <span className="block text-sm font-medium text-slate-300">{t('home.turnTime')}</span>
           <Choice
-            label="Time for a turn"
-            choices={TURN_LENGTHS}
+            label={t('home.turnTime')}
+            choices={TURN_SECONDS.map((seconds) => [seconds, turnLength(t, seconds)] as const)}
             value={options.turnSeconds}
             onChange={(turnSeconds) => change({ turnSeconds })}
           />
         </div>
         <Advanced changed={changedOptions(options)}>
           <Option
-            title="Time bank"
-            detail="Each player also has 2 minutes for the whole game, used once a turn’s time runs out. Time left over from a turn is added, up to 3 minutes."
+            title={t('home.timeBank')}
+            detail={t('home.timeBankDetail')}
             checked={options.timeBank}
             onChange={(timeBank) => change({ timeBank })}
           />
           <Option
-            title="Extra time for tiles"
-            detail="15 s for each tile put down and 20 s for each set it makes or changes, once the table is a valid turn."
+            title={t('home.tileBonus')}
+            detail={t('home.tileBonusDetail')}
             checked={options.tileBonus}
             onChange={(tileBonus) => change({ tileBonus })}
           />
           <Option
-            title="Show turns live"
-            detail="Everyone sees the current player’s moves as they make them, as at a real table."
+            title={t('home.liveTurns')}
+            detail={t('home.liveTurnsDetail')}
             checked={options.liveTurns}
             onChange={(liveTurns) => change({ liveTurns })}
           />
           <div className="mt-5">
-            <span className="block text-sm font-medium text-slate-300">When a player leaves</span>
-            <span className="mt-0.5 block text-xs text-slate-500">A computer player takes over their seat for the rest of the game.</span>
+            <span className="block text-sm font-medium text-slate-300">{t('home.standIn')}</span>
+            <span className="mt-0.5 block text-xs text-slate-500">{t('home.standInDetail')}</span>
             <Choice
-              label="Bot for a player who leaves"
-              choices={STAND_INS.map((level) => [level, botLabel[level].replace(' bot', '')])}
+              label={t('home.standInLabel')}
+              choices={STAND_INS.map((level) => [level, t(`bots.level.${level}`)] as const)}
               value={options.standIn}
               onChange={(standIn) => change({ standIn })}
             />
           </div>
         </Advanced>
         <Button look="primary" className="mt-4 w-full" disabled={!ready} onClick={create}>
-          Create a room
+          {t('home.create')}
         </Button>
         <div className="my-5 flex items-center gap-3 text-sm text-slate-500">
           <span className="h-px flex-1 bg-white/10" />
-          or join one
+          {t('home.orJoin')}
           <span className="h-px flex-1 bg-white/10" />
         </div>
         <form
@@ -242,15 +251,15 @@ function Home({ send, problem, ready }: { send: (m: ClientMessage) => void; prob
             value={code}
             onChange={(e) => setCode(e.target.value.toUpperCase())}
             maxLength={4}
-            placeholder="CODE"
-            aria-label="Room code"
+            placeholder={t('home.codePlaceholder')}
+            aria-label={t('home.code')}
             autoCapitalize="characters"
             autoComplete="off"
             className={`${inputClass} flex-1 text-center font-mono text-lg tracking-[0.3em]`}
           />
-          <Button disabled={!ready || code.trim().length !== 4}>Join</Button>
+          <Button disabled={!ready || code.trim().length !== 4}>{t('home.join')}</Button>
           <Button type="button" look="quiet" disabled={!ready || code.trim().length !== 4} onClick={() => join(true)}>
-            Watch
+            {t('home.watch')}
           </Button>
         </form>
         {problem && (
@@ -282,23 +291,21 @@ function changedOptions(options: Required<RoomOptions>): number {
 /** Remembered across visits: the options the player last created a room with. */
 const OPTIONS_KEY = 'rummy.roomOptions'
 /** The turn lengths a room may have (the server's `TURN_SECONDS`). */
-const TURN_LENGTHS: [number, string][] = [
-  [30, '30 s'],
-  [60, '1 min'],
-  [90, '90 s'],
-  [120, '2 min'],
-  [180, '3 min'],
-]
+const TURN_SECONDS = [30, 60, 90, 120, 180]
+
+/** A turn's length, short: in minutes when it's whole ones. */
+function turnLength(t: TFunction, seconds: number): string {
+  return seconds % 60 === 0 ? t('units.minutes', { n: seconds / 60 }) : t('units.seconds', { n: seconds })
+}
 
 /** The room's rules in a sentence, for the lobby. */
-function describe(options: RoomOptions): string {
-  const turn = TURN_LENGTHS.find(([seconds]) => seconds === (options.turnSeconds ?? 60))?.[1] ?? '1 min'
-  const parts = [`${turn} a turn`]
-  if (options.timeBank) parts.push('a 2-minute time bank')
-  if (options.tileBonus) parts.push('extra time for tiles')
-  parts.push(options.liveTurns ? 'turns shown live' : 'only finished turns shown')
-  parts.push(`${botLabel[options.standIn ?? 'medium'].toLowerCase()} for anyone who leaves`)
-  return `${parts.join(', ')}.`.replace(/^./, (c) => c.toUpperCase())
+function describe(t: TFunction, options: RoomOptions): string {
+  const parts = [t('room.turn', { time: turnLength(t, options.turnSeconds ?? 60) })]
+  if (options.timeBank) parts.push(t('room.timeBank'))
+  if (options.tileBonus) parts.push(t('room.tileBonus'))
+  parts.push(options.liveTurns ? t('room.liveTurns') : t('room.finishedTurns'))
+  parts.push(t(`room.standIn.${options.standIn ?? 'medium'}`))
+  return t('room.summary', { parts: parts.join(t('room.separator')) })
 }
 
 /**
@@ -306,6 +313,7 @@ function describe(options: RoomOptions): string {
  * option, put it here unless most players would want to choose it.
  */
 function Advanced({ changed, children }: { changed: number; children: ReactNode }) {
+  const { t } = useTranslation()
   const [open, setOpen] = useState(false)
   return (
     <div className="mt-5 border-t border-white/10 pt-3">
@@ -324,8 +332,8 @@ function Advanced({ changed, children }: { changed: number; children: ReactNode 
         >
           <path d="m6 3 5 5-5 5" />
         </svg>
-        <span className="flex-1 text-left">Advanced settings</span>
-        {changed > 0 && <span className="text-xs font-normal text-teal-300">{changed} changed</span>}
+        <span className="flex-1 text-left">{t('home.advanced')}</span>
+        {changed > 0 && <span className="text-xs font-normal text-teal-300">{t('home.changed', { count: changed })}</span>}
       </button>
       <AnimatePresence initial={false}>
         {open && (
@@ -399,8 +407,6 @@ function Option({
 /** Seats in a room (the server's limit too). */
 const MAX_PLAYERS = 4
 
-const botLabel: Record<BotLevel, string> = { easy: 'Easy bot', medium: 'Medium bot', hard: 'Hard bot', extraHard: 'Extra hard bot' }
-
 function Lobby({
   room,
   problem,
@@ -412,6 +418,7 @@ function Lobby({
   send: (m: ClientMessage) => void
   leave: () => void
 }) {
+  const { t } = useTranslation()
   const present = room.seats.filter((s) => s.connected).length
   const watching = room.watching !== undefined
   const isHost = (watching ? room.watchers[room.watching!] : room.seats[room.you ?? -1])?.host ?? false
@@ -419,44 +426,44 @@ function Lobby({
   return (
     <div className="mx-auto w-full max-w-md">
       <Panel>
-        <p className="text-sm text-slate-400">Room code: share it with the other players</p>
+        <p className="text-sm text-slate-400">{t('lobby.code')}</p>
         <p className="mt-1 font-mono text-5xl font-bold tracking-[0.2em] text-teal-300">{room.code}</p>
-        <p className="mt-3 text-sm text-slate-400">{describe(room.options)}</p>
+        <p className="mt-3 text-sm text-slate-400">{describe(t, room.options)}</p>
         <ul className="mt-6 space-y-2">
           {room.seats.map((seat, i) => (
             <li key={i} className="flex items-center gap-3 rounded-xl bg-white/5 px-3 py-2">
               <span className={`size-2 rounded-full ${seat.connected ? 'bg-emerald-400' : 'bg-slate-500'}`} />
               <span className="flex-1">
                 {seat.name}
-                {i === room.you && <span className="text-slate-400"> (you)</span>}
+                {i === room.you && <span className="text-slate-400"> {t('lobby.you')}</span>}
               </span>
-              {seat.bot && <span className="text-xs uppercase tracking-wide text-violet-300">{botLabel[seat.bot]}</span>}
+              {seat.bot && <span className="text-xs uppercase tracking-wide text-violet-300">{t(`bots.bot.${seat.bot}`)}</span>}
               {seat.bot && isHost && (
                 <button
                   className="-my-1 -mr-1 grid size-7 cursor-pointer place-items-center rounded-lg text-slate-400 hover:bg-white/10 hover:text-slate-100"
-                  aria-label={`Remove ${seat.name}`}
-                  title="Remove"
+                  aria-label={t('lobby.removeBot', { name: seat.name })}
+                  title={t('lobby.remove')}
                   onClick={() => send({ type: 'removeBot', seat: i })}
                 >
                   ×
                 </button>
               )}
-              {seat.host && <span className="text-xs uppercase tracking-wide text-teal-300">host</span>}
+              {seat.host && <span className="text-xs uppercase tracking-wide text-teal-300">{t('lobby.host')}</span>}
             </li>
           ))}
         </ul>
         {room.watchers.length > 0 && (
           <>
-            <p className="mt-5 text-sm text-slate-400">Watching</p>
+            <p className="mt-5 text-sm text-slate-400">{t('lobby.watching')}</p>
             <ul className="mt-2 space-y-2">
               {room.watchers.map((watcher, i) => (
                 <li key={i} className="flex items-center gap-3 rounded-xl bg-white/[0.03] px-3 py-2 text-slate-300">
                   <span className={`size-2 rounded-full ${watcher.connected ? 'bg-emerald-400' : 'bg-slate-500'}`} />
                   <span className="flex-1">
                     {watcher.name}
-                    {i === room.watching && <span className="text-slate-400"> (you)</span>}
+                    {i === room.watching && <span className="text-slate-400"> {t('lobby.you')}</span>}
                   </span>
-                  {watcher.host && <span className="text-xs uppercase tracking-wide text-teal-300">host</span>}
+                  {watcher.host && <span className="text-xs uppercase tracking-wide text-teal-300">{t('lobby.host')}</span>}
                 </li>
               ))}
             </ul>
@@ -467,28 +474,29 @@ function Lobby({
           disabled={watching && full}
           onClick={() => send({ type: 'watch', watching: !watching })}
         >
-          {watching ? 'Take a seat instead' : 'Watch instead of playing'}
+          {watching ? t('lobby.takeSeat') : t('lobby.watchInstead')}
         </button>
         {isHost && !full && (
           <div className="mt-3 text-sm text-slate-400">
-            <span>Add a computer player:</span>
+            <span>{t('lobby.addBot')}</span>
             <div className="mt-1.5 grid grid-cols-2 gap-1 sm:grid-cols-4">
               {(['easy', 'medium', 'hard', 'extraHard'] as const).map((level) => (
                 <Button key={level} look="quiet" className="px-2 py-1.5 text-sm" onClick={() => send({ type: 'addBot', level })}>
-                  + {botLabel[level].replace(' bot', '')}
+                  + {t(`bots.level.${level}`)}
                 </Button>
               ))}
             </div>
           </div>
         )}
         <div className="mt-6 flex gap-2">
-          <Button onClick={leave}>Leave</Button>
+          <Button onClick={leave}>{t('lobby.leave')}</Button>
           {isHost ? (
             <Button look="primary" className="flex-1" disabled={present < 2} onClick={() => send({ type: 'start' })}>
-              {present < 2 ? 'Waiting for players…' : `Start with ${present} players`}
+              {present < 2 ? t('lobby.waitingForPlayers') : t('lobby.start', { count: present })}
             </Button>
           ) : (
-            <p className="flex-1 self-center text-center text-sm text-slate-400">Waiting for the host to start…</p>
+            <p className="flex-1 self-center text-center text-sm text-slate-400">{t('lobby.waitingForHost')}</p>
+
           )}
         </div>
         {problem && (

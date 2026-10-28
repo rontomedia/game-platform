@@ -1,10 +1,9 @@
 import { AnimatePresence, motion } from 'motion/react'
 import { useEffect, useRef, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 
 import { Button } from './ui.tsx'
 import type { BotLevel } from './wasm/engine.js'
-
-const standInLabel: Record<BotLevel, string> = { easy: 'An Easy', medium: 'A Medium', hard: 'A Hard', extraHard: 'An Extra Hard' }
 
 /**
  * A door to leave the room by. A player in a game going on is asked first,
@@ -12,6 +11,7 @@ const standInLabel: Record<BotLevel, string> = { easy: 'An Easy', medium: 'A Med
  * once the game is over, just go.
  */
 export function LeaveMenu({ standIn, ask, leave }: { standIn: BotLevel; ask: boolean; leave: () => void }) {
+  const { t } = useTranslation()
   const [open, setOpen] = useState(false)
   const menu = useRef<HTMLDivElement>(null)
 
@@ -32,8 +32,8 @@ export function LeaveMenu({ standIn, ask, leave }: { standIn: BotLevel; ask: boo
     <div ref={menu} className="relative shrink-0">
       <button
         onClick={() => (ask ? setOpen((open) => !open) : leave())}
-        aria-label="Leave the room"
-        title="Leave the room"
+        aria-label={t('leave.open')}
+        title={t('leave.open')}
         aria-expanded={ask ? open : undefined}
         className="grid size-9 cursor-pointer place-items-center rounded-xl text-slate-300 transition hover:bg-white/10 hover:text-white"
       >
@@ -51,16 +51,15 @@ export function LeaveMenu({ standIn, ask, leave }: { standIn: BotLevel; ask: boo
             transition={{ duration: 0.15 }}
             className="absolute right-0 top-full z-50 mt-2 w-72 rounded-2xl bg-slate-900/95 p-4 shadow-2xl ring-1 ring-white/10 backdrop-blur-xl"
           >
-            <h2 className="text-sm font-semibold">Leave the game?</h2>
-            <p className="mt-1.5 text-xs text-slate-400">
-              {standInLabel[standIn]} bot plays your seat for the rest of the game. You can’t come back to it.
-            </p>
+            <h2 className="text-sm font-semibold">{t('leave.title')}</h2>
+            <p className="mt-1.5 text-xs text-slate-400">{t(`leave.detail.${standIn}`)}</p>
             <div className="mt-4 flex gap-2">
               <Button look="quiet" className="flex-1 py-1.5 text-sm" onClick={() => setOpen(false)}>
-                Stay
+                {t('leave.stay')}
               </Button>
               <Button className="flex-1 py-1.5 text-sm" onClick={leave}>
-                Leave
+                {t('leave.leave')}
+
               </Button>
             </div>
           </motion.div>

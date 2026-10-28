@@ -1,4 +1,186 @@
 {
+  "app": {
+    "title": "Rummy",
+    "status": {
+      "connecting": "Connecting",
+      "open": "Connected",
+      "closed": "Disconnected"
+    },
+    "reconnect": "Reconnect",
+    "mismatch": "The server speaks protocol {{server}}, this page {{page}}. Reload to get the current version."
+  },
+  "units": {
+    "seconds": "{{n}} s",
+    "minutes": "{{n}} min"
+  },
+  "bots": {
+    "level": {
+      "easy": "Easy",
+      "medium": "Medium",
+      "hard": "Hard",
+      "extraHard": "Extra hard"
+    },
+    "bot": {
+      "easy": "Easy bot",
+      "medium": "Medium bot",
+      "hard": "Hard bot",
+      "extraHard": "Extra hard bot"
+    }
+  },
+  "home": {
+    "yourName": "Your name",
+    "name": "Name",
+    "turnTime": "Time for a turn",
+    "advanced": "Advanced settings",
+    "changed_one": "{{count}} changed",
+    "changed_other": "{{count}} changed",
+    "timeBank": "Time bank",
+    "timeBankDetail": "Each player also has 2 minutes for the whole game, used once a turn’s time runs out. Time left over from a turn is added, up to 3 minutes.",
+    "tileBonus": "Extra time for tiles",
+    "tileBonusDetail": "15 s for each tile put down and 20 s for each set it makes or changes, once the table is a valid turn.",
+    "liveTurns": "Show turns live",
+    "liveTurnsDetail": "Everyone sees the current player’s moves as they make them, as at a real table.",
+    "standIn": "When a player leaves",
+    "standInDetail": "A computer player takes over their seat for the rest of the game.",
+    "standInLabel": "Bot for a player who leaves",
+    "create": "Create a room",
+    "orJoin": "or join one",
+    "code": "Room code",
+    "codePlaceholder": "CODE",
+    "join": "Join",
+    "watch": "Watch"
+  },
+  "room": {
+    "summary": "{{parts}}.",
+    "separator": ", ",
+    "turn": "{{time}} a turn",
+    "timeBank": "a 2-minute time bank",
+    "tileBonus": "extra time for tiles",
+    "liveTurns": "turns shown live",
+    "finishedTurns": "only finished turns shown",
+    "standIn": {
+      "easy": "an easy bot for anyone who leaves",
+      "medium": "a medium bot for anyone who leaves",
+      "hard": "a hard bot for anyone who leaves",
+      "extraHard": "an extra hard bot for anyone who leaves"
+    }
+  },
+  "lobby": {
+    "code": "Room code: share it with the other players",
+    "you": "(you)",
+    "host": "host",
+    "remove": "Remove",
+    "removeBot": "Remove {{name}}",
+    "watching": "Watching",
+    "takeSeat": "Take a seat instead",
+    "watchInstead": "Watch instead of playing",
+    "addBot": "Add a computer player:",
+    "leave": "Leave",
+    "waitingForPlayers": "Waiting for players…",
+    "start_one": "Start with {{count}} player",
+    "start_other": "Start with {{count}} players",
+    "waitingForHost": "Waiting for the host to start…"
+  },
+  "tile": {
+    "number": "{{color}} {{value}}",
+    "joker": "Joker",
+    "color": {
+      "black": "black",
+      "blue": "blue",
+      "orange": "orange",
+      "red": "red"
+    },
+    "drawn": "You drew this tile"
+  },
+  "board": {
+    "tabYourTurn": "Your turn · Rummy",
+    "player": "Player {{n}}",
+    "over": "The game is over.",
+    "paused": "Paused on {{name}}’s turn.",
+    "youreWatching": "You’re watching.",
+    "playing": "{{name}} is playing.",
+    "playingSoFar_one": "{{name}} is playing: {{count}} tile from their rack so far.",
+    "playingSoFar_other": "{{name}} is playing: {{count}} tiles from their rack so far.",
+    "ready_one": "Ready: {{count}} tile from your rack.",
+    "ready_other": "Ready: {{count}} tiles from your rack.",
+    "lastPlayed_one": "{{name}} played {{count}} tile.",
+    "lastPlayed_other": "{{name}} played {{count}} tiles.",
+    "yourTurn": "Your turn: drag tiles onto the table (or double-click them), or draw.",
+    "yourTurnFirst": "Your turn. Your first sets must be worth {{points}}, from your rack alone.",
+    "dropToStart": "Drop tiles anywhere on the table to start a set.",
+    "emptyTable": "The table is empty. The first meld opens it.",
+    "reset": "Reset",
+    "draw": "Draw",
+    "endTurn": "End turn",
+    "timeLeft_one": "{{count}} s left",
+    "timeLeft_other": "{{count}} s left",
+    "turnBanner": "Your turn",
+    "tileRole": "tile",
+    "setRole": "set",
+    "moveSet": "Move this set",
+    "changingSet": "{{name}} is changing this",
+    "lastTurnSet": "{{name}}’s last turn",
+    "plansHint": "Plan sets here: drag tiles in, or double-click them when it isn’t your turn.",
+    "planValid": "A valid set",
+    "planInvalid": "Not a set yet",
+    "playPlan": "Put it on the table",
+    "sort": "Sort the rack",
+    "sortNumber": "1 2 3",
+    "sortColor": "Colour",
+    "pool_one": "{{count}} tile left to draw",
+    "pool_other": "{{count}} tiles left to draw",
+    "chip_one": "{{name}}: {{count}} tile",
+    "chip_other": "{{name}}: {{count}} tiles",
+    "chipBank": "{{time}} in the bank",
+    "away": "away",
+    "you": "you",
+    "bot": "bot",
+    "bank": "bank {{time}}",
+    "seconds": "{{n}}s",
+    "bonus": "+{{n}}s",
+    "tiles_one": "{{count}} tile",
+    "tiles_other": "{{count}} tiles"
+  },
+  "openRacks": {
+    "title": "Open racks",
+    "watchingHint": "Watching the bots: every rack is shown. Sort or drag them to think their moves through.",
+    "debugHint": "Debugging: every rack is shown. Sort or drag them to think their moves through.",
+    "show": "Show",
+    "hide": "Hide",
+    "noTurns": "Turns appear here as they’re played.",
+    "drawnLastTurn": "Drawn last turn",
+    "drew": "drew",
+    "passed": "passed (the pool is empty)",
+    "played_one": "played {{count}}",
+    "played_other": "played {{count}}",
+    "sets_one": "{{count}} set new or changed",
+    "sets_other": "{{count}} sets new or changed"
+  },
+  "watch": {
+    "badge": "Watching",
+    "step": "Step",
+    "stepHint": "Play the next turn, then pause",
+    "pause": "Pause",
+    "resume": "Resume"
+  },
+  "results": {
+    "youWon": "You won!",
+    "won_one": "{{names}} won",
+    "won_other": "{{names}} won",
+    "leave": "Leave the room"
+  },
+  "leave": {
+    "open": "Leave the room",
+    "title": "Leave the game?",
+    "detail": {
+      "easy": "An Easy bot plays your seat for the rest of the game. You can’t come back to it.",
+      "medium": "A Medium bot plays your seat for the rest of the game. You can’t come back to it.",
+      "hard": "A Hard bot plays your seat for the rest of the game. You can’t come back to it.",
+      "extraHard": "An Extra Hard bot plays your seat for the rest of the game. You can’t come back to it."
+    },
+    "stay": "Stay",
+    "leave": "Leave"
+  },
   "settings": {
     "open": "Settings",
     "title": "Settings",

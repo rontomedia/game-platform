@@ -27,6 +27,7 @@ import {
 import { CSS } from '@dnd-kit/utilities'
 import { AnimatePresence, motion } from 'motion/react'
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode, type RefObject } from 'react'
+import { useTranslation } from 'react-i18next'
 
 import {
   arrangeRack,
@@ -37,6 +38,7 @@ import {
   newOrChanged,
   sortTiles,
   splitRows,
+  tileLabel,
   tileName,
   without,
   type Arrangement,
@@ -278,6 +280,7 @@ export function Board({
   send: (message: ClientMessage) => void
   leave: () => void
 }) {
+  const { t } = useTranslation()
   const { view } = game
   const myTurn = view.current === view.you && !view.outcome
   // Someone watching has no seat, so no rack and no turns.
@@ -432,8 +435,8 @@ export function Board({
     return () => clearTimeout(timer)
   }, [turnCue])
   useEffect(() => {
-    document.title = myTurn ? 'Your turn · Rummy' : 'Rummy'
-  }, [myTurn])
+    document.title = myTurn ? t('board.tabYourTurn') : t('app.title')
+  }, [myTurn, t])
 
   // The sets they've made or changed so far.
   const liveSets = useMemo(
@@ -484,7 +487,7 @@ export function Board({
   }, [game.lastPlay, start, startTiles])
   const recentBy = game.lastPlay && {
     seat: game.lastPlay.by,
-    name: room.seats[game.lastPlay.by]?.name ?? `Player ${game.lastPlay.by + 1}`,
+    name: room.seats[game.lastPlay.by]?.name ?? t('board.player', { n: game.lastPlay.by + 1 }),
     // Flash when it's news; afterwards a quiet outline until the table changes.
     fresh: game.lastPlay.version === game.version,
   }
@@ -745,38 +748,26 @@ export function Board({
     onSettings(change)
   }
 
-  const name = (seat: number) => room.seats[seat]?.name ?? `Player ${seat + 1}`
+  const name = (seat: number) => room.seats[seat]?.name ?? t('board.player', { n: seat + 1 })
   const note = ((): { tone: 'neutral' | 'good' | 'bad'; text: string } => {
     if (problem) return { tone: 'bad', text: problem }
     if (notice) return { tone: 'bad', text: notice }
-    if (view.outcome) return { tone: 'neutral', text: 'The game is over.' }
-    if (room.paused) return { tone: 'neutral', text: `Paused on ${name(view.current)}’s turn.` }
+    if (view.outcome) return { tone: 'neutral', text: t('board.over') }
+    if (room.paused) return { tone: 'neutral', text: t('board.paused', { name: name(view.current) }) }
     if (!myTurn) {
       const placed = liveTable ? liveTable.flat().length - view.table.flat().length : 0
-      const watcher = watching ? 'You’re watching. ' : ''
-      return {
-        tone: 'neutral',
-        text:
-          liveTable && (placed > 0 || liveSets.size > 0)
-            ? `${watcher}${name(view.current)} is playing: ${placed} tile${placed === 1 ? '' : 's'} from their rack so far.`
-          : `${watcher}${name(view.current)} is playing.`,
-      }
+      const playing =
+        liveTable && (placed > 0 || liveSets.size > 0)
+          ? t('board.playingSoFar', { name: name(view.current), count: placed })
+          : t('board.playing', { name: name(view.current) })
+      return { tone: 'neutral', text: watching ? `${t('board.youreWatching')} ${playing}` : playing }
     }
     if (verdict?.verdict === 'rejected') return { tone: 'bad', text: verdict.message }
-    if (verdict?.verdict === 'allowed') {
-      const n = verdict.played.length
-      return { tone: 'good', text: `Ready: ${n} tile${n === 1 ? '' : 's'} from your rack.` }
-    }
+    if (verdict?.verdict === 'allowed') return { tone: 'good', text: t('board.ready', { count: verdict.played.length }) }
+    const turn = melded ? t('board.yourTurn') : t('board.yourTurnFirst', { points: view.rules.initialMeld })
     // What the last player did, if it's news.
-    const news =
-      recentBy?.fresh && game.lastPlay
-        ? `${recentBy.name} played ${game.lastPlay.played} tile${game.lastPlay.played === 1 ? '' : 's'}. `
-        : ''
-    if (melded) return { tone: 'neutral', text: `${news}Your turn: drag tiles onto the table (or double-click them), or draw.` }
-    return {
-      tone: 'neutral',
-      text: `${news}Your turn. Your first sets must be worth ${view.rules.initialMeld}, from your rack alone.`,
-    }
+    const news = recentBy?.fresh && game.lastPlay ? t('board.lastPlayed', { name: recentBy.name, count: game.lastPlay.played }) : ''
+    return { tone: 'neutral', text: news ? `${news} ${turn}` : turn }
   })()
   const noteColor = { neutral: 'text-slate-300', good: 'text-emerald-300', bad: 'text-amber-300' }[note.tone]
 
@@ -821,7 +812,7 @@ export function Board({
           <TableGrid gridRef={tableGrid} droppable={myTurn} height={metrics ? rows * metrics.cellH : undefined}>
             {layout.sets.length === 0 && (
               <p className="pointer-events-none absolute inset-0 grid place-items-center text-center text-emerald-100/40">
-                {myTurn ? 'Drop tiles anywhere on the table to start a set.' : 'The table is empty. The first meld opens it.'}
+                {myTurn ? t('board.dropToStart') : t('board.emptyTable')}
               </p>
             )}
             {target && metrics && (
@@ -873,13 +864,13 @@ export function Board({
             {/* Always there, hidden off turn, so the tray keeps its size and the tiles stay put. */}
             <div className={`flex gap-2 ${myTurn ? '' : 'invisible'}`} aria-hidden={!myTurn}>
               <Button look="quiet" onClick={() => setLayout(start)} disabled={!myTurn || !changed}>
-                Reset
+                {t('board.reset')}
               </Button>
               <Button onClick={() => send({ type: 'draw' })} disabled={!myTurn}>
-                Draw
+                {t('board.draw')}
               </Button>
               <Button look="primary" disabled={!myTurn || verdict?.verdict !== 'allowed'} onClick={() => send({ type: 'play', table })}>
-                End turn
+                {t('board.endTurn')}
               </Button>
             </div>
           </div>
@@ -922,6 +913,7 @@ export function Board({
 
 /** Over the top of the table: "Your turn" as it begins, and a warning when its time is nearly up. */
 function TableBanner({ turnCue, lowTime }: { turnCue: boolean; lowTime?: number }) {
+  const { t } = useTranslation()
   return (
     <div className="pointer-events-none absolute inset-x-0 top-3 z-30 flex justify-center short:top-2" aria-live="polite">
       <AnimatePresence mode="wait">
@@ -933,7 +925,7 @@ function TableBanner({ turnCue, lowTime }: { turnCue: boolean; lowTime?: number 
             exit={{ opacity: 0 }}
             className="low-time-pill rounded-full bg-amber-400 px-3.5 py-1 text-sm font-bold tabular-nums text-amber-950 shadow-lg"
           >
-            {lowTime} s left
+            {t('board.timeLeft', { count: lowTime })}
           </motion.span>
         ) : turnCue ? (
           <motion.span
@@ -944,7 +936,7 @@ function TableBanner({ turnCue, lowTime }: { turnCue: boolean; lowTime?: number 
             transition={{ type: 'spring', stiffness: 400, damping: 24 }}
             className="rounded-full bg-teal-400 px-4 py-1.5 text-sm font-bold text-teal-950 shadow-[0_8px_30px_rgb(45_212_191/0.45)]"
           >
-            Your turn
+            {t('board.turnBanner')}
           </motion.span>
         ) : null}
       </AnimatePresence>
@@ -966,6 +958,7 @@ function SortableTile({
   /** The tile this player last drew: marked. */
   drawn?: boolean
 }) {
+  const { t } = useTranslation()
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: placed.id,
     disabled: { draggable: !draggable, droppable: false },
@@ -977,8 +970,8 @@ function SortableTile({
       {...attributes}
       {...listeners}
       onDoubleClick={onDoubleClick}
-      aria-label={tileName(placed.tile)}
-      aria-roledescription="tile"
+      aria-label={tileLabel(t, placed.tile)}
+      aria-roledescription={t('board.tileRole')}
       data-tile-id={placed.id}
       data-tile={tileName(placed.tile)}
       className={`touch-manipulation rounded-md outline-offset-2 focus-visible:outline-2 focus-visible:outline-teal-300 ${
@@ -1047,6 +1040,7 @@ function TableSet({
   /** Who is changing it right now, on their turn (live turns). */
   liveBy?: { seat: number; name: string }
 }) {
+  const { t } = useTranslation()
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({ id: setItem(setKey) })
   const { setNodeRef: setHolderRef } = useDroppable({ id: setHolder(setKey) })
   // Another player's set in the making (it may be invalid for now); else
@@ -1080,7 +1074,7 @@ function TableSet({
     >
       {(state === 'recent' || state === 'live') && by && (
         <span
-          title={state === 'live' ? `${by.name} is changing this` : `${by.name}'s last turn`}
+          title={state === 'live' ? t('board.changingSet', { name: by.name }) : t('board.lastTurnSet', { name: by.name })}
           className={`pointer-events-none absolute -left-2 -top-2 z-10 grid size-5 place-items-center rounded-full bg-linear-to-br text-[0.65rem] font-bold text-slate-950 ring-2 ring-felt ${seatColors[by.seat % seatColors.length]}`}
         >
           {by.name.slice(0, 1).toUpperCase()}
@@ -1089,8 +1083,8 @@ function TableSet({
       <button
         {...attributes}
         {...listeners}
-        aria-label="Move this set"
-        aria-roledescription="set"
+        aria-label={t('board.moveSet')}
+        aria-roledescription={t('board.setRole')}
         className="grid w-4 cursor-grab touch-manipulation place-items-center rounded-l-lg text-emerald-100/25 transition hover:bg-white/5 hover:text-emerald-100/70 active:cursor-grabbing"
       >
         <svg viewBox="0 0 6 16" className="h-4 w-1.5" fill="currentColor" aria-hidden>
@@ -1167,6 +1161,7 @@ function Plans({
   onQuick: (tile: Placed) => void
   onPlay: (holder: string) => void
 }) {
+  const { t } = useTranslation()
   const { setNodeRef, isOver } = useDroppable({ id: NEW_PLAN })
   return (
     <div
@@ -1176,9 +1171,7 @@ function Plans({
       }`}
     >
       {plans.length === 0 && (
-        <p className="pointer-events-none px-1 text-xs text-amber-100/40">
-          Plan sets here: drag tiles in, or double-click them when it isn’t your turn.
-        </p>
+        <p className="pointer-events-none px-1 text-xs text-amber-100/40">{t('board.plansHint')}</p>
       )}
       {plans.map((plan) => (
         <Plan key={plan.holder} {...plan} myTurn={myTurn} onQuick={onQuick} onPlay={onPlay} />
@@ -1200,13 +1193,14 @@ function Plan({
   onQuick: (tile: Placed) => void
   onPlay: (holder: string) => void
 }) {
+  const { t } = useTranslation()
   const { setNodeRef } = useDroppable({ id: holder })
   const valid = classifySet(tilesOf(tiles)) !== undefined
   return (
     <SortableContext items={tiles.map((p) => p.id)} strategy={horizontalListSortingStrategy}>
       <div
         ref={setNodeRef}
-        title={valid ? 'A valid set' : 'Not a set yet'}
+        title={valid ? t('board.planValid') : t('board.planInvalid')}
         className={`flex items-center gap-1 rounded-xl p-1 ring-1 ${valid ? 'bg-emerald-300/10 ring-emerald-300/50' : 'ring-amber-100/20'}`}
       >
         {tiles.map((p) => (
@@ -1215,8 +1209,8 @@ function Plan({
         {myTurn && (
           <button
             className="ml-0.5 grid size-7 cursor-pointer place-items-center rounded-lg text-amber-100/70 hover:bg-white/10 hover:text-amber-50"
-            title="Put it on the table"
-            aria-label="Put it on the table"
+            title={t('board.playPlan')}
+            aria-label={t('board.playPlan')}
             onClick={() => onPlay(holder)}
           >
             ↑
@@ -1228,12 +1222,13 @@ function Plan({
 }
 
 function SortButtons({ sort, onSort }: { sort: RackSort; onSort: (by: 'number' | 'color') => void }) {
+  const { t } = useTranslation()
   const options: ['number' | 'color', string][] = [
-    ['number', '1 2 3'],
-    ['color', 'Colour'],
+    ['number', t('board.sortNumber')],
+    ['color', t('board.sortColor')],
   ]
   return (
-    <div className="flex rounded-xl bg-black/30 p-0.5 text-xs font-semibold" role="group" aria-label="Sort the rack">
+    <div className="flex rounded-xl bg-black/30 p-0.5 text-xs font-semibold" role="group" aria-label={t('board.sort')}>
       {options.map(([by, label]) => (
         <button
           key={by}
@@ -1270,10 +1265,11 @@ function TopBar({
   onSettings: (change: Partial<Settings>) => void
   leave: () => void
 }) {
+  const { t } = useTranslation()
   return (
     <header className="flex items-center gap-3">
       <div className="hidden shrink-0 items-baseline gap-2 md:flex short:hidden">
-        <span className="text-lg font-bold tracking-tight">Rummy</span>
+        <span className="text-lg font-bold tracking-tight">{t('app.title')}</span>
         <span className="font-mono text-xs tracking-widest text-slate-500">{room.code}</span>
       </div>
       <div className="flex min-w-0 flex-1 gap-2 overflow-x-auto [scrollbar-width:none] md:justify-center">
@@ -1281,7 +1277,7 @@ function TopBar({
           <PlayerChip
             key={seat}
             seat={seat}
-            name={room.seats[seat]?.name ?? `Player ${seat + 1}`}
+            name={room.seats[seat]?.name ?? t('board.player', { n: seat + 1 })}
             you={seat === view.you}
             connected={room.seats[seat]?.connected ?? false}
             bot={room.seats[seat]?.bot !== undefined}
@@ -1294,7 +1290,7 @@ function TopBar({
       </div>
       <span
         className="flex shrink-0 items-center gap-1.5 text-sm font-medium tabular-nums text-slate-300"
-        title={`${view.pool} tiles left to draw`}
+        title={t('board.pool', { count: view.pool })}
         data-pool
       >
         <span className="h-4 w-3 rounded-[3px] bg-linear-to-b from-stone-100 to-stone-300 shadow-sm" aria-hidden />
@@ -1302,7 +1298,7 @@ function TopBar({
       </span>
       <span
         className={`size-2.5 shrink-0 rounded-full ${status === 'open' ? 'bg-emerald-400' : status === 'connecting' ? 'animate-pulse bg-amber-400' : 'bg-rose-500'}`}
-        title={status === 'open' ? 'Connected' : status === 'connecting' ? 'Connecting' : 'Disconnected'}
+        title={t(`app.status.${status}`)}
       />
       <SettingsMenu settings={settings} onChange={onSettings} />
       <LeaveMenu standIn={room.options.standIn ?? 'medium'} ask={view.you !== undefined && !view.outcome} leave={leave} />
@@ -1331,15 +1327,18 @@ function PlayerChip({
   clock: Clock
   turnSeconds: number
 }) {
+  const { t } = useTranslation()
   // Once the turn's own time is up, the bank runs.
   const banking = current && clock.turn === 0 && clock.bank !== undefined && clock.bank > 0
   const seconds = banking ? clock.bank : clock.turn
   const fraction = seconds === undefined ? 0 : Math.min(1, seconds / (banking ? BANK_SECONDS : turnSeconds))
   const urgent = seconds !== undefined && seconds <= 10
-  const bankText = clock.bank === undefined ? '' : `, ${minutes(clock.bank)} in the bank`
+  const about = [t('board.chip', { name, count: tiles })]
+  if (clock.bank !== undefined) about.push(t('board.chipBank', { time: minutes(clock.bank) }))
+  if (!connected) about.push(t('board.away'))
   return (
     <div
-      title={`${name}: ${tiles} tiles${bankText}${connected ? '' : ', away'}`}
+      title={about.join(', ')}
       data-seat={seat}
       className={`relative flex shrink-0 items-center gap-2.5 rounded-2xl p-1.5 ring-1 transition md:pr-3 short:pr-1.5 ${
         current ? 'bg-white/10 ring-teal-300/50' : 'bg-white/[0.04] ring-white/10'
@@ -1377,7 +1376,7 @@ function PlayerChip({
                 exit={{ opacity: 0 }}
                 className="block rounded-full bg-emerald-400 px-1.5 text-[0.7rem] font-bold leading-4 tabular-nums text-emerald-950 shadow"
               >
-                +{clock.bonus}s
+                {t('board.bonus', { n: clock.bonus })}
               </motion.span>
             </span>
           )}
@@ -1390,16 +1389,17 @@ function PlayerChip({
       <div className="leading-tight max-md:hidden short:hidden">
         <div className="max-w-28 truncate text-sm font-semibold">
           {name}
-          {you && <span className="font-normal text-slate-400"> · you</span>}
-          {bot && <span className="font-normal text-violet-300"> · bot</span>}
+          {you && <span className="font-normal text-slate-400"> · {t('board.you')}</span>}
+          {bot && <span className="font-normal text-violet-300"> · {t('board.bot')}</span>}
         </div>
         <div className="text-xs text-slate-400">
           {current && seconds !== undefined ? (
             <span className={`tabular-nums ${urgent ? 'text-amber-300' : banking ? 'text-violet-300' : 'text-teal-300'}`}>
-              {banking ? `bank ${minutes(seconds)}` : `${seconds}s`} ·{' '}
+              {banking ? t('board.bank', { time: minutes(seconds) }) : t('board.seconds', { n: seconds })} ·{' '}
             </span>
           ) : null}
-          {tiles} tiles{connected ? '' : ' · away'}
+          {t('board.tiles', { count: tiles })}
+          {connected ? '' : ` · ${t('board.away')}`}
         </div>
       </div>
     </div>
@@ -1451,6 +1451,7 @@ function OpenRacks({
   racks: Tile[][]
   name: (seat: number) => string
 }) {
+  const { t } = useTranslation()
   const [folded, setFolded] = useState(() => remembered<boolean>(OPEN_RACKS_KEY, 'session') ?? false)
   const fold = (folded: boolean) => {
     remember(OPEN_RACKS_KEY, folded, 'session')
@@ -1462,13 +1463,12 @@ function OpenRacks({
   return (
     <section className="shrink-0 rounded-2xl bg-white/[0.04] px-3 py-2 ring-1 ring-white/10">
       <div className="flex items-center gap-2 text-xs text-slate-400">
-        <span className="font-semibold uppercase tracking-wide text-violet-300">Open racks</span>
+        <span className="font-semibold uppercase tracking-wide text-violet-300">{t('openRacks.title')}</span>
         <span className="flex-1 max-sm:hidden">
-          {view.you === undefined ? 'Watching the bots: ' : 'Debugging: '}every rack is shown. Sort or drag them to think
-          their moves through.
+          {view.you === undefined ? t('openRacks.watchingHint') : t('openRacks.debugHint')}
         </span>
         <Button look="quiet" className="ml-auto px-2 py-0.5 text-xs" onClick={() => fold(!folded)}>
-          {folded ? 'Show' : 'Hide'}
+          {folded ? t('openRacks.show') : t('openRacks.hide')}
         </Button>
       </div>
       {!folded && (
@@ -1491,7 +1491,7 @@ function OpenRacks({
             })}
           </ul>
           <ol className="min-w-0 space-y-1 overflow-auto text-xs text-slate-300 lg:w-[28rem]">
-            {game.log.length === 0 && <li className="text-slate-500">Turns appear here as they're played.</li>}
+            {game.log.length === 0 && <li className="text-slate-500">{t('openRacks.noTurns')}</li>}
             {[...game.log].reverse().map((turn) => (
               <TurnLine key={turn.version} turn={turn} name={name(turn.by)} />
             ))}
@@ -1565,6 +1565,7 @@ function OpenRack({
 }
 
 function OpenTile({ id, tile, fresh }: { id: string; tile: Tile; fresh: boolean }) {
+  const { t } = useTranslation()
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id })
   return (
     <div
@@ -1572,9 +1573,9 @@ function OpenTile({ id, tile, fresh }: { id: string; tile: Tile; fresh: boolean 
       style={{ transform: CSS.Translate.toString(transform), transition }}
       {...attributes}
       {...listeners}
-      aria-label={tileName(tile)}
-      aria-roledescription="tile"
-      title={fresh ? 'Drawn last turn' : undefined}
+      aria-label={tileLabel(t, tile)}
+      aria-roledescription={t('board.tileRole')}
+      title={fresh ? t('openRacks.drawnLastTurn') : undefined}
       className={`cursor-grab touch-manipulation rounded-[4px] active:cursor-grabbing ${fresh ? 'ring-2 ring-teal-300' : ''} ${
         isDragging ? 'relative z-10 opacity-80' : ''
       }`}
@@ -1585,11 +1586,12 @@ function OpenTile({ id, tile, fresh }: { id: string; tile: Tile; fresh: boolean 
 }
 
 function TurnLine({ turn, name }: { turn: TurnRecord; name: string }) {
+  const { t } = useTranslation()
   if (turn.played.length === 0) {
     return (
       <li className="flex items-center gap-1.5 text-slate-400">
         <span className="font-semibold text-slate-300">{name}</span>
-        {turn.drew.length > 0 ? 'drew' : 'passed (the pool is empty)'}
+        {turn.drew.length > 0 ? t('openRacks.drew') : t('openRacks.passed')}
         {turn.drew.map((tile, i) => (
           <TileFace key={i} tile={tile} size="mini" />
         ))}
@@ -1599,14 +1601,14 @@ function TurnLine({ turn, name }: { turn: TurnRecord; name: string }) {
   return (
     <li className="flex flex-wrap items-center gap-1.5">
       <span className="font-semibold">{name}</span>
-      played {turn.played.length}
+      {t('openRacks.played', { count: turn.played.length })}
       <span className="flex gap-0.5">
         {sortTiles(turn.played, 'color').map((tile, i) => (
           <TileFace key={i} tile={tile} size="mini" />
         ))}
       </span>
       <span className="text-slate-400">
-        · {turn.sets} set{turn.sets === 1 ? '' : 's'} new or changed
+        · {t('openRacks.sets', { count: turn.sets })}
       </span>
     </li>
   )
@@ -1629,21 +1631,22 @@ function WatchBar({
   noteColor: string
   send: (message: ClientMessage) => void
 }) {
+  const { t } = useTranslation()
   const host = room.watching !== undefined && room.watchers[room.watching]?.host
   const botsOnly = room.seats.every((seat) => seat.bot !== undefined)
   return (
     <section className="tray flex flex-wrap items-center gap-x-4 gap-y-2 rounded-3xl p-3 sm:p-4 short:rounded-2xl short:p-2">
       <span className="rounded-full bg-violet-400/15 px-2.5 py-1 text-xs font-semibold uppercase tracking-wide text-violet-200">
-        Watching
+        {t('watch.badge')}
       </span>
       <p className={`min-w-0 flex-1 text-sm font-medium short:truncate ${noteColor}`}>{note}</p>
       {host && botsOnly && !over && (
         <div className="flex gap-2">
-          <Button look="quiet" disabled={!room.paused} onClick={() => send({ type: 'step' })} title="Play the next turn, then pause">
-            Step
+          <Button look="quiet" disabled={!room.paused} onClick={() => send({ type: 'step' })} title={t('watch.stepHint')}>
+            {t('watch.step')}
           </Button>
           <Button look="primary" className="min-w-24" onClick={() => send({ type: 'pause', paused: !room.paused })}>
-            {room.paused ? 'Resume' : 'Pause'}
+            {room.paused ? t('watch.resume') : t('watch.pause')}
           </Button>
         </div>
       )}
@@ -1652,6 +1655,7 @@ function WatchBar({
 }
 
 function Results({ view, name, leave }: { view: GameState['view']; name: (seat: number) => string; leave: () => void }) {
+  const { t, i18n } = useTranslation()
   const outcome = view.outcome!
   const order = view.rackSizes.map((_, seat) => seat).sort((a, b) => outcome.scores[b] - outcome.scores[a])
   const won = view.you !== undefined && outcome.winners.includes(view.you)
@@ -1666,7 +1670,14 @@ function Results({ view, name, leave }: { view: GameState['view']; name: (seat: 
         animate={{ scale: 1, y: 0 }}
         className="w-full max-w-sm rounded-3xl bg-slate-900/90 p-6 shadow-2xl ring-1 ring-white/10"
       >
-        <h2 className="text-2xl font-bold">{won ? 'You won!' : `${outcome.winners.map(name).join(' and ')} won`}</h2>
+        <h2 className="text-2xl font-bold">
+          {won
+            ? t('results.youWon')
+            : t('results.won', {
+                names: new Intl.ListFormat(i18n.language, { type: 'conjunction' }).format(outcome.winners.map(name)),
+                count: outcome.winners.length,
+              })}
+        </h2>
         <ol className="mt-4 space-y-2">
           {order.map((seat) => (
             <li key={seat} className="flex justify-between gap-4">
@@ -1679,7 +1690,8 @@ function Results({ view, name, leave }: { view: GameState['view']; name: (seat: 
           ))}
         </ol>
         <Button className="mt-6 w-full" onClick={leave}>
-          Leave the room
+          {t('results.leave')}
+
         </Button>
       </motion.div>
     </motion.div>

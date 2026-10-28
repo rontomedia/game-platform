@@ -1,3 +1,5 @@
+import { useTranslation } from 'react-i18next'
+
 import type { Color, Tile } from './wasm/engine.js'
 
 const numeralColor: Record<Color, string> = {
@@ -31,12 +33,13 @@ export function TileFace({
   /** The tile the player last drew: marked out. */
   drawn?: boolean
 }) {
+  const { t } = useTranslation()
   return (
     <div
       className={`tile relative flex shrink-0 select-none items-center justify-center font-extrabold tabular-nums tracking-tight ${sizes[size]} ${
         lifted ? 'tile-lifted' : ''
       } ${drawn ? 'tile-drawn' : ''}`}
-      title={drawn ? 'You drew this tile' : undefined}
+      title={drawn ? t('tile.drawn') : undefined}
     >
       {tile.kind === 'joker' ? <JokerFace /> : <span className={numeralColor[tile.color]}>{tile.value}</span>}
     </div>

@@ -1,3 +1,5 @@
+import type { TFunction } from 'i18next'
+
 import type { Cell } from './grid.ts'
 import type { Tile } from './wasm/engine.js'
 
@@ -28,9 +30,14 @@ export interface Arrangement {
 
 export const emptyArrangement: Arrangement = { rows: [[], []], sort: 'custom', table: [], plans: [] }
 
-/** How a tile is read out: "red 7", "Joker". */
+/** A tile's name in English, to match tiles by: "red 7", "Joker". */
 export function tileName(tile: Tile): string {
   return tile.kind === 'joker' ? 'Joker' : `${tile.color} ${tile.value}`
+}
+
+/** How a tile is read out to the player, in their language. */
+export function tileLabel(t: TFunction, tile: Tile): string {
+  return tile.kind === 'joker' ? t('tile.joker') : t('tile.number', { color: t(`tile.color.${tile.color}`), value: tile.value })
 }
 
 const keyOf = (tile: Tile) => (tile.kind === 'joker' ? 'joker' : `${tile.color} ${tile.value}`)
