@@ -3,8 +3,9 @@
 //! Every level makes the initial meld as soon as its rack allows and,
 //! once melded, plays as many tiles as it can find a place for. They
 //! differ in how much of the table they look at, as players do:
-//! - `Easy` doesn't rearrange the table: it puts down new sets from its
-//!   rack, then adds single tiles to the ends of runs and to groups.
+//! - `Easy` puts down new sets from its rack, then adds single tiles to
+//!   the ends of runs and to groups. Now and then (`EASY_SPOTS`) it also
+//!   spots a rearrangement of one of the table's sets, as Medium would.
 //! - `Medium` also makes small rearrangements, as a good player spots
 //!   them: it changes at most `MEDIUM_REACH` of the table's sets (splitting
 //!   a run, moving a tile from one set to another, freeing a joker).
@@ -47,6 +48,9 @@ const KEEP_JOKERS: Objective = Objective::Tiles { joker: -1 };
 const GO_OUT: Objective = Objective::Tiles { joker: 1000 };
 /// How many of the table's sets a Medium bot may change in a turn.
 const MEDIUM_REACH: usize = 2;
+/// On how many turns in `EASY_SPOTS.1` an Easy bot looks for a change to
+/// one of the table's sets.
+const EASY_SPOTS: (u64, u64) = (1, 2);
 
 /// The bot's move for the player whose view this is, on their turn.
 pub fn bot_move(view: &PlayerView, level: BotLevel) -> Move {
@@ -55,8 +59,9 @@ pub fn bot_move(view: &PlayerView, level: BotLevel) -> Move {
         initial_meld(view)
     } else {
         match level {
+            BotLevel::Easy if spots(view) => rearrange_a_little(view, 1),
             BotLevel::Easy => add_to_table(view),
-            BotLevel::Medium => rearrange_a_little(view),
+            BotLevel::Medium => rearrange_a_little(view, MEDIUM_REACH),
             BotLevel::Hard => rearrange(view).or_else(|| add_to_table(view)),
         }
     };
@@ -91,13 +96,32 @@ fn add_to_table(view: &PlayerView) -> Option<Vec<Vec<Tile>>> {
     (played(view, &table) > 0).then_some(table)
 }
 
-/// Medium, once melded: the best play that changes at most `MEDIUM_REACH`
-/// of the table's sets (the rest left as they are), then single tiles
-/// added; at least as good as Easy's. `None` if nothing fits.
-fn rearrange_a_little(view: &PlayerView) -> Option<Vec<Vec<Tile>>> {
+/// Whether Easy looks further this turn: on `EASY_SPOTS` of positions,
+/// chosen by a hash of what it sees, so the same position gets the same
+/// move (the engine has no randomness of its own).
+fn spots(view: &PlayerView) -> bool {
+    // FNV-1a, the same on every platform and Rust version.
+    let mut hash: u64 = 0xcbf2_9ce4_8422_2325;
+    let byte = |tile: &Tile| match *tile {
+        Tile::Number { color, value } => color as u8 * 16 + value,
+        Tile::Joker => 255,
+    };
+    let mut rack = view.rack.clone();
+    rack.sort_by_key(byte);
+    let table = view.table.iter().flatten().map(byte);
+    for b in rack.iter().map(byte).chain([254]).chain(table).chain([view.pool as u8]) {
+        hash = (hash ^ b as u64).wrapping_mul(0x0100_0000_01b3);
+    }
+    hash % EASY_SPOTS.1 < EASY_SPOTS.0
+}
+
+/// Medium, once melded (and Easy now and then): the best play that changes
+/// at most `reach` of the table's sets (the rest left as they are), then
+/// single tiles added; at least as good as Easy's. `None` if nothing fits.
+fn rearrange_a_little(view: &PlayerView, reach: usize) -> Option<Vec<Vec<Tile>>> {
     let mut best = add_to_table(view);
     let mut most = best.as_ref().map_or(0, |table| played(view, table));
-    for chosen in choices(view.table.len(), MEDIUM_REACH) {
+    for chosen in choices(view.table.len(), reach) {
         let loose: Vec<Tile> = chosen.iter().flat_map(|&i| view.table[i].iter().copied()).collect();
         let Some((_, solution)) = most_tiles(&loose, &view.rack) else { continue };
         let kept = view.table.iter().enumerate().filter(|(i, _)| !chosen.contains(i)).map(|(_, set)| set.clone());
@@ -284,9 +308,26 @@ mod tests {
     fn hard_rearranges_where_easy_cannot() {
         // A red 5 splits 3-4-5-6-7 into 3-4-5 and 5-6-7.
         let run: Vec<Tile> = (3..=7).map(|v| n(Red, v)).collect();
-        let v = view(vec![run], vec![n(Red, 5), n(Blue, 1)], true);
+        let v = view(vec![run], vec![n(Red, 5), n(Blue, 2)], true);
+        assert!(!spots(&v), "a position where Easy doesn't look further");
         assert_eq!(bot_move(&v, BotLevel::Easy), Move::Draw);
         assert_eq!(played(&v.table, &bot_move(&v, BotLevel::Hard)), 1);
+    }
+
+    #[test]
+    fn easy_spots_a_split_now_and_then() {
+        // The same split, from racks differing in a tile that can't be
+        // played: Easy finds it on some of them, about `EASY_SPOTS`.
+        let run: Vec<Tile> = (3..=7).map(|v| n(Red, v)).collect();
+        let racks = [Black, Blue, Orange].into_iter().flat_map(|c| (1..=13).map(move |v| vec![n(Red, 5), n(c, v)]));
+        let mut found = 0;
+        for rack in racks {
+            let v = view(vec![run.clone()], rack.clone(), true);
+            let count = played(&v.table, &bot_move(&v, BotLevel::Easy));
+            assert_eq!(count, spots(&v) as usize, "{rack:?}");
+            found += count;
+        }
+        assert!((10..30).contains(&found), "{found} of 39");
     }
 
     #[test]

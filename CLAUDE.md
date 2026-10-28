@@ -52,9 +52,10 @@ only builds it on start.
   `view(player)` is what that player may see. `bot_move(view, level)` is a
   computer player's move: `solve.rs` finds the arrangement of table plus
   rack tiles that plays the most (dynamic programming over the numbers
-  1-13); Easy only adds to the table, Medium may change up to two of its
-  sets (`MEDIUM_REACH`), Hard rearranges it all but keeps the sets it
-  needn't change. `salvage` makes a valid turn of what a player left
+  1-13); Easy adds to the table and on about half its turns
+  (`EASY_SPOTS`, chosen by a hash of the position) may change one of its
+  sets, Medium may change up to two (`MEDIUM_REACH`), Hard rearranges it
+  all but keeps the sets it needn't change. `salvage` makes a valid turn of what a player left
   when their time ran out (their valid sets kept where it plays as many).
   Its `wasm` feature derives
   `tsify::Tsify` on the types that cross into JS; serde attributes define the
