@@ -97,6 +97,7 @@
   "board": {
     "tabYourTurn": "Tu turno · Rummy",
     "player": "Jugador {{n}}",
+    "sentences": "{{first}} {{then}}",
     "over": "La partida ha terminado.",
     "paused": "En pausa en el turno de {{name}}.",
     "youreWatching": "Estás mirando.",

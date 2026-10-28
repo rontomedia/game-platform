@@ -103,6 +103,7 @@
   "board": {
     "tabYourTurn": "دورك · Rummy",
     "player": "اللاعب {{n}}",
+    "sentences": "{{first}} {{then}}",
     "over": "انتهت اللعبة.",
     "paused": "متوقفة مؤقتًا في دور {{name}}.",
     "youreWatching": "أنت تشاهد.",

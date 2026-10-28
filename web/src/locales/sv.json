@@ -95,6 +95,7 @@
   "board": {
     "tabYourTurn": "Din tur · Rummy",
     "player": "Spelare {{n}}",
+    "sentences": "{{first}} {{then}}",
     "over": "Spelet är slut.",
     "paused": "Pausat under {{name}}s tur.",
     "youreWatching": "Du tittar.",

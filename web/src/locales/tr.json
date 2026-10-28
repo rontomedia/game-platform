@@ -95,6 +95,7 @@
   "board": {
     "tabYourTurn": "Sıra sizde · Rummy",
     "player": "Oyuncu {{n}}",
+    "sentences": "{{first}} {{then}}",
     "over": "Oyun bitti.",
     "paused": "{{name}} oynarken duraklatıldı.",
     "youreWatching": "İzliyorsunuz.",

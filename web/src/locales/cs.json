@@ -99,6 +99,7 @@
   "board": {
     "tabYourTurn": "Jste na tahu · Rummy",
     "player": "Hráč {{n}}",
+    "sentences": "{{first}} {{then}}",
     "over": "Hra skončila.",
     "paused": "Pozastaveno v tahu hráče {{name}}.",
     "youreWatching": "Sledujete.",

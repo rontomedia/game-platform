@@ -99,6 +99,7 @@
   "board": {
     "tabYourTurn": "Ваш хід · Rummy",
     "player": "Гравець {{n}}",
+    "sentences": "{{first}} {{then}}",
     "over": "Гру закінчено.",
     "paused": "Пауза на ході гравця {{name}}.",
     "youreWatching": "Ви дивитеся.",

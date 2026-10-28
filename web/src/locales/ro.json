@@ -97,6 +97,7 @@
   "board": {
     "tabYourTurn": "E rândul tău · Rummy",
     "player": "Jucătorul {{n}}",
+    "sentences": "{{first}} {{then}}",
     "over": "Jocul s-a terminat.",
     "paused": "Pauză în tura lui {{name}}.",
     "youreWatching": "Privești.",

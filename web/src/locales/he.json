@@ -97,6 +97,7 @@
   "board": {
     "tabYourTurn": "התור שלכם · Rummy",
     "player": "שחקן {{n}}",
+    "sentences": "{{first}} {{then}}",
     "over": "המשחק נגמר.",
     "paused": "מושהה בתור של {{name}}.",
     "youreWatching": "אתם צופים.",

@@ -15,9 +15,23 @@ export function currentLanguage(choice: LanguageChoice): string {
   return resolveLanguage(choice, navigator.languages, forced)
 }
 
-function load(language: string): Promise<object> {
-  if (language === PSEUDO) return Promise.resolve(pseudoCatalogue(en))
-  return catalogues[`./locales/${language}.json`]?.() ?? Promise.resolve({})
+/**
+ * Fonts for scripts Inter lacks whose CSS alone is large (a hundred
+ * slices of characters): loaded with their language, not with the page.
+ * Each language has its own, as Japanese and Chinese draw the same
+ * characters differently (`:lang()` in index.css picks it).
+ */
+const fonts: Record<string, () => Promise<unknown>> = {
+  ja: () => import('@fontsource-variable/noto-sans-jp'),
+  ko: () => import('@fontsource-variable/noto-sans-kr'),
+  'zh-CN': () => import('@fontsource-variable/noto-sans-sc'),
+  'zh-TW': () => import('@fontsource-variable/noto-sans-tc'),
+}
+
+async function load(language: string): Promise<object> {
+  if (language === PSEUDO) return pseudoCatalogue(en)
+  const [catalogue] = await Promise.all([catalogues[`./locales/${language}.json`]?.() ?? {}, fonts[language]?.()])
+  return catalogue
 }
 
 /**

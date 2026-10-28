@@ -243,7 +243,13 @@ only builds it on start.
     Adding a language: its code and own name in `LANGUAGES`, and its
     catalogue; a script Inter lacks also needs its Noto font (fontsource,
     imported in `main.tsx`, named in `--font-sans`; `unicode-range` means
-    only pages showing it download it). Right-to-left languages (Hebrew,
+    only pages showing it download it). Japanese, Korean and Chinese fonts
+    are loaded with their language instead (`fonts` in `i18n.ts`; their
+    CSS alone is 100 kB each), each set by `:lang()` in `index.css`, as
+    they draw shared characters differently. Chinese is `zh-CN` and
+    `zh-TW` (Hong Kong and `zh-Hant` get Traditional). Don't build
+    sentences by gluing texts with spaces (`board.sentences` joins two;
+    Chinese and Japanese put none). Right-to-left languages (Hebrew,
     Arabic) set `<html dir>`: use logical classes (`ms-`, `pe-`, `start-`,
     `end-`, `text-start`), and the playing surface (table, rack, plans,
     open racks' tiles) stays `dir="ltr"` so runs read 1 2 3.

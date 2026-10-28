@@ -99,6 +99,7 @@
   "board": {
     "tabYourTurn": "Twoja tura · Rummy",
     "player": "Gracz {{n}}",
+    "sentences": "{{first}} {{then}}",
     "over": "Gra skończona.",
     "paused": "Wstrzymano w turze gracza {{name}}.",
     "youreWatching": "Oglądasz.",

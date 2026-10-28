@@ -761,14 +761,14 @@ export function Board({
         liveTable && (placed > 0 || liveSets.size > 0)
           ? t('board.playingSoFar', { name: name(view.current), count: placed })
           : t('board.playing', { name: name(view.current) })
-      return { tone: 'neutral', text: watching ? `${t('board.youreWatching')} ${playing}` : playing }
+      return { tone: 'neutral', text: watching ? t('board.sentences', { first: t('board.youreWatching'), then: playing }) : playing }
     }
     if (verdict?.verdict === 'rejected') return { tone: 'bad', text: turnError(t, verdict.error) }
     if (verdict?.verdict === 'allowed') return { tone: 'good', text: t('board.ready', { count: verdict.played.length }) }
     const turn = melded ? t('board.yourTurn') : t('board.yourTurnFirst', { points: view.rules.initialMeld })
     // What the last player did, if it's news.
     const news = recentBy?.fresh && game.lastPlay ? t('board.lastPlayed', { name: recentBy.name, count: game.lastPlay.played }) : ''
-    return { tone: 'neutral', text: news ? `${news} ${turn}` : turn }
+    return { tone: 'neutral', text: news ? t('board.sentences', { first: news, then: turn }) : turn }
   })()
   const noteColor = { neutral: 'text-slate-300', good: 'text-emerald-300', bad: 'text-amber-300' }[note.tone]
 

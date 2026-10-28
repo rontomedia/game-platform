@@ -10,7 +10,7 @@ import { LANGUAGES, pickLanguage, pseudoText, resolveLanguage } from './language
 
 describe('pickLanguage', () => {
   it('takes the first preferred language the game has', () => {
-    expect(pickLanguage(['ja', 'de-AT', 'fr'])).toBe('de')
+    expect(pickLanguage(['fi', 'de-AT', 'fr'])).toBe('de')
     expect(pickLanguage(['pl-PL', 'en'])).toBe('pl')
   })
 
@@ -22,8 +22,17 @@ describe('pickLanguage', () => {
     expect(pickLanguage(['SV-se'])).toBe('sv')
   })
 
+  it('tells the two Chinese scripts apart', () => {
+    expect(pickLanguage(['zh-CN'])).toBe('zh-CN')
+    expect(pickLanguage(['zh'])).toBe('zh-CN')
+    expect(pickLanguage(['zh-SG'])).toBe('zh-CN')
+    expect(pickLanguage(['zh-TW'])).toBe('zh-TW')
+    expect(pickLanguage(['zh-HK'])).toBe('zh-TW')
+    expect(pickLanguage(['zh-Hant-HK'])).toBe('zh-TW')
+  })
+
   it('falls back to English', () => {
-    expect(pickLanguage(['ja', 'zh-CN'])).toBe('en')
+    expect(pickLanguage(['fi', 'th-TH'])).toBe('en')
     expect(pickLanguage([])).toBe('en')
   })
 })

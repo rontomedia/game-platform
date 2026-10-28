@@ -18,6 +18,10 @@ export const LANGUAGES = {
   hu: 'Magyar',
   he: 'עברית',
   ar: 'العربية',
+  ja: '日本語',
+  ko: '한국어',
+  'zh-CN': '简体中文',
+  'zh-TW': '繁體中文',
 } as const
 
 export type Language = keyof typeof LANGUAGES
@@ -29,16 +33,21 @@ export function isLanguage(code: string): code is Language {
   return Object.hasOwn(LANGUAGES, code)
 }
 
+/** Chinese is written in two scripts: these places read Traditional. */
+const TRADITIONAL = ['hant', 'tw', 'hk', 'mo']
+
 /**
  * The first of the browser's preferred languages (`navigator.languages`,
  * most wanted first) that the game has, matching by language alone when
- * the region differs (`pt-PT` gets `pt-BR`, `en-GB` gets `en`); else
- * English.
+ * the region differs (`pt-PT` gets `pt-BR`, `en-GB` gets `en`), and
+ * Chinese by script (`zh-HK` and `zh-Hant` get Traditional); else English.
  */
 export function pickLanguage(preferred: readonly string[]): Language {
   const codes = Object.keys(LANGUAGES) as Language[]
   const base = (code: string) => code.split('-')[0].toLowerCase()
   for (const wanted of preferred) {
+    const parts = wanted.toLowerCase().split('-')
+    if (parts[0] === 'zh') return parts.some((part) => TRADITIONAL.includes(part)) ? 'zh-TW' : 'zh-CN'
     const exact = codes.find((code) => code.toLowerCase() === wanted.toLowerCase())
     const close = exact ?? codes.find((code) => base(code) === base(wanted))
     if (close) return close

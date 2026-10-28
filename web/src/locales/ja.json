@@ -1,0 +1,222 @@
+{
+  "app": {
+    "title": "Rummy",
+    "status": {
+      "connecting": "接続中",
+      "open": "接続済み",
+      "closed": "切断"
+    },
+    "reconnect": "再接続",
+    "mismatch": "サーバーはプロトコル {{server}}、このページは {{page}} です。再読み込みして最新版にしてください。"
+  },
+  "units": {
+    "seconds": "{{n}}秒",
+    "minutes": "{{n}}分"
+  },
+  "bots": {
+    "level": {
+      "easy": "かんたん",
+      "medium": "ふつう",
+      "hard": "むずかしい",
+      "extraHard": "とてもむずかしい"
+    },
+    "bot": {
+      "easy": "かんたんなボット",
+      "medium": "ふつうのボット",
+      "hard": "むずかしいボット",
+      "extraHard": "とてもむずかしいボット"
+    }
+  },
+  "home": {
+    "yourName": "あなたの名前",
+    "name": "名前",
+    "turnTime": "1手の持ち時間",
+    "advanced": "詳細設定",
+    "changed_other": "{{count}}件変更",
+    "timeBank": "持ち時間バンク",
+    "timeBankDetail": "各プレイヤーはゲーム全体で2分を別に持ち、手番の時間が切れると使われます。手番で余った時間は3分まで加算されます。",
+    "tileBonus": "タイルの追加時間",
+    "tileBonusDetail": "テーブルが有効な手になった時点で、置いたタイル1枚につき15秒、作ったり変えたりしたセット1つにつき20秒。",
+    "liveTurns": "手番をライブで表示",
+    "liveTurnsDetail": "本物のテーブルのように、手番のプレイヤーの動きを全員がその場で見られます。",
+    "standIn": "プレイヤーが抜けたとき",
+    "standInDetail": "残りのゲームはボットが代わりに座ります。",
+    "standInLabel": "抜けたプレイヤーの代わりのボット",
+    "create": "ルームを作る",
+    "orJoin": "またはルームに参加",
+    "code": "ルームコード",
+    "codePlaceholder": "コード",
+    "join": "参加",
+    "watch": "観戦"
+  },
+  "room": {
+    "summary": "{{parts}}。",
+    "separator": "、",
+    "turn": "1手{{time}}",
+    "timeBank": "2分の持ち時間バンク",
+    "tileBonus": "タイルの追加時間",
+    "liveTurns": "手番はライブ表示",
+    "finishedTurns": "終わった手番だけを表示",
+    "standIn": {
+      "easy": "抜けた人の代わりにかんたんなボット",
+      "medium": "抜けた人の代わりにふつうのボット",
+      "hard": "抜けた人の代わりにむずかしいボット",
+      "extraHard": "抜けた人の代わりにとてもむずかしいボット"
+    }
+  },
+  "lobby": {
+    "code": "ルームコード：ほかのプレイヤーに知らせてください",
+    "you": "（あなた）",
+    "host": "ホスト",
+    "remove": "外す",
+    "removeBot": "{{name}}を外す",
+    "watching": "観戦中",
+    "takeSeat": "やっぱり参加する",
+    "watchInstead": "参加せずに観戦する",
+    "addBot": "ボットを追加：",
+    "leave": "退出",
+    "waitingForPlayers": "プレイヤーを待っています…",
+    "start_other": "{{count}}人で始める",
+    "waitingForHost": "ホストが始めるのを待っています…"
+  },
+  "tile": {
+    "number": "{{color}}の{{value}}",
+    "joker": "ジョーカー",
+    "color": {
+      "black": "黒",
+      "blue": "青",
+      "orange": "オレンジ",
+      "red": "赤"
+    },
+    "drawn": "あなたが引いたタイル"
+  },
+  "board": {
+    "tabYourTurn": "あなたの番 · Rummy",
+    "player": "プレイヤー{{n}}",
+    "sentences": "{{first}}{{then}}",
+    "over": "ゲーム終了。",
+    "paused": "{{name}}さんの手番で一時停止中。",
+    "youreWatching": "観戦中です。",
+    "playing": "{{name}}さんの番です。",
+    "playingSoFar_other": "{{name}}さんの番：ここまでラックから{{count}}枚。",
+    "ready_other": "OK：ラックから{{count}}枚。",
+    "lastPlayed_other": "{{name}}さんが{{count}}枚出しました。",
+    "yourTurn": "あなたの番：タイルをテーブルにドラッグ（またはダブルクリック）するか、1枚引いてください。",
+    "yourTurnFirst": "あなたの番。最初のセットは自分のラックだけで合計{{points}}点以上が必要です。",
+    "dropToStart": "テーブルの好きな場所にタイルを置くと、新しいセットが始まります。",
+    "emptyTable": "テーブルは空です。最初の出しで開きます。",
+    "reset": "戻す",
+    "draw": "1枚引く",
+    "endTurn": "手番を終える",
+    "timeLeft_other": "残り{{count}}秒",
+    "turnBanner": "あなたの番",
+    "tileRole": "タイル",
+    "setRole": "セット",
+    "moveSet": "このセットを動かす",
+    "changingSet": "{{name}}さんが変更中",
+    "lastTurnSet": "{{name}}さんの前の手番",
+    "plansHint": "ここでセットを準備：タイルをドラッグするか、自分の番でないときにダブルクリック。",
+    "planValid": "有効なセット",
+    "planInvalid": "まだセットではありません",
+    "playPlan": "テーブルに出す",
+    "sort": "ラックを並べ替え",
+    "sortNumber": "1 2 3",
+    "sortColor": "色",
+    "pool_other": "山札の残り{{count}}枚",
+    "chip_other": "{{name}}：{{count}}枚",
+    "chipBank": "バンク{{time}}",
+    "away": "不在",
+    "you": "あなた",
+    "bot": "ボット",
+    "bank": "バンク {{time}}",
+    "seconds": "{{n}}秒",
+    "bonus": "+{{n}}秒",
+    "tiles_other": "{{count}}枚"
+  },
+  "openRacks": {
+    "title": "公開ラック",
+    "watchingHint": "ボットを観戦中：全員のラックが見えます。並べ替えたりタイルを動かしたりして、手を考えられます。",
+    "debugHint": "デバッグ：全員のラックが見えます。並べ替えたりタイルを動かしたりして、手を考えられます。",
+    "show": "表示",
+    "hide": "隠す",
+    "noTurns": "手番はプレイされるたびにここに表示されます。",
+    "drawnLastTurn": "前の手番で引いたタイル",
+    "drew": "：引いた",
+    "passed": "：パス（山札がありません）",
+    "played_other": "：{{count}}枚出した",
+    "sets_other": "新しい・変わったセット{{count}}つ"
+  },
+  "watch": {
+    "badge": "観戦中",
+    "step": "1手進める",
+    "stepHint": "次の手番をプレイして、また一時停止",
+    "pause": "一時停止",
+    "resume": "再開"
+  },
+  "results": {
+    "youWon": "あなたの勝ち！",
+    "won_other": "{{names}}さんの勝ち",
+    "leave": "ルームを出る"
+  },
+  "leave": {
+    "open": "ルームを出る",
+    "title": "ゲームを抜けますか？",
+    "detail": {
+      "easy": "残りのゲームはかんたんなボットがあなたの席でプレイします。この席には戻れません。",
+      "medium": "残りのゲームはふつうのボットがあなたの席でプレイします。この席には戻れません。",
+      "hard": "残りのゲームはむずかしいボットがあなたの席でプレイします。この席には戻れません。",
+      "extraHard": "残りのゲームはとてもむずかしいボットがあなたの席でプレイします。この席には戻れません。"
+    },
+    "stay": "残る",
+    "leave": "抜ける"
+  },
+  "settings": {
+    "open": "設定",
+    "title": "設定",
+    "rack": "ラック",
+    "flat": "フラットなトレイ",
+    "classic": "2段のラック",
+    "watchLive": "手番をライブで見る",
+    "watchLiveHint": "ライブ表示のルームで、ほかのプレイヤーの動きをその場で見られます。",
+    "language": "言語",
+    "languageAuto": "自動（{{language}}）"
+  },
+  "turnError": {
+    "noSuchTile": "ゲームに存在しないタイルです。",
+    "invalidSet": "セット{{n}}はランでもグループでもありません。",
+    "tileTakenFromTable": "テーブルのタイルはテーブルに残す必要があります。",
+    "tileNotOnRack": "あなたのラックにないタイルです。",
+    "nothingPlayed": "ラックから1枚以上出すか、1枚引いてください。",
+    "initialMeldChangedTable": "最初の出しには自分のラックのタイルしか使えません。",
+    "initialMeldTooLow_other": "最初の出しは{{count}}点です。{{needed}}点必要です。",
+    "notYourTurn": "あなたの番ではありません。",
+    "gameOver": "ゲームは終了しました。"
+  },
+  "refusal": {
+    "noSuchRoom": "コード{{code}}のルームはありません。",
+    "roomClosed": "そのルームは閉じられました。",
+    "roomFull_other": "ルームは満員です（{{count}}人）。",
+    "watchersFull_other": "観戦者はもう十分います（{{count}}人）。",
+    "gameStarted": "このルームのゲームは始まっています。",
+    "noSuchSeat": "そのルームのあなたの席はもうありません。",
+    "onlyHost": "それができるのはホストだけです。",
+    "notABot": "その席はボットの席ではありません。",
+    "tooFewPlayers_other": "ゲームには{{count}}人以上必要です。",
+    "noGame": "進行中のゲームはありません。",
+    "notBotsOnly": "一時停止できるのはボットだけのゲームです。",
+    "watching": "このゲームは観戦中で、プレイしていません。",
+    "notStarted": "ゲームはまだ始まっていません。",
+    "notYourTiles": "そのテーブルにはあなたが持っていないタイルがあります。",
+    "alreadyInRoom": "すでにルームにいます。",
+    "notInRoom": "どのルームにもいません。"
+  },
+  "notice": {
+    "timeRanOutDrew": "時間切れで、テーブルが有効な手ではなかったため、1枚引きました。",
+    "timeRanOutAll_other": "時間切れ：あなたのタイル{{count}}枚が出されました。",
+    "timeRanOutSome": "時間切れ：手番の有効な部分として{{played}}。{{back}}。",
+    "tilesPlayed_other": "{{count}}枚を出しました",
+    "tilesBack_other": "{{count}}枚はラックに戻りました",
+    "unearnedWarning": "追加時間をもらったタイルを戻すと、その時間はあなたの不利に数えられます：ここまで{{soFar}}。{{limit}}に達すると、このゲームでは追加時間がなくなります。",
+    "noMoreBonus": "{{time}}の追加時間をもらったタイルを戻しました。このゲームではタイルの追加時間はもうありません。"
+  }
+}

@@ -97,6 +97,7 @@
   "board": {
     "tabYourTurn": "Sua vez · Rummy",
     "player": "Jogador {{n}}",
+    "sentences": "{{first}} {{then}}",
     "over": "A partida acabou.",
     "paused": "Pausado na vez de {{name}}.",
     "youreWatching": "Você está assistindo.",

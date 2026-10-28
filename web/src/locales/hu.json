@@ -95,6 +95,7 @@
   "board": {
     "tabYourTurn": "Te jössz · Rummy",
     "player": "{{n}}. játékos",
+    "sentences": "{{first}} {{then}}",
     "over": "A játéknak vége.",
     "paused": "Szüneteltetve, {{name}} köre közben.",
     "youreWatching": "Nézőként vagy itt.",

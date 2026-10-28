@@ -95,6 +95,7 @@
   "board": {
     "tabYourTurn": "Jij bent aan de beurt · Rummy",
     "player": "Speler {{n}}",
+    "sentences": "{{first}} {{then}}",
     "over": "Het spel is afgelopen.",
     "paused": "Gepauzeerd in de beurt van {{name}}.",
     "youreWatching": "Je kijkt mee.",

@@ -1,0 +1,222 @@
+{
+  "app": {
+    "title": "Rummy",
+    "status": {
+      "connecting": "正在连接",
+      "open": "已连接",
+      "closed": "已断开"
+    },
+    "reconnect": "重新连接",
+    "mismatch": "服务器使用协议 {{server}}，此页面使用 {{page}}。请刷新页面以获取最新版本。"
+  },
+  "units": {
+    "seconds": "{{n}} 秒",
+    "minutes": "{{n}} 分钟"
+  },
+  "bots": {
+    "level": {
+      "easy": "简单",
+      "medium": "中等",
+      "hard": "困难",
+      "extraHard": "极难"
+    },
+    "bot": {
+      "easy": "简单机器人",
+      "medium": "中等机器人",
+      "hard": "困难机器人",
+      "extraHard": "极难机器人"
+    }
+  },
+  "home": {
+    "yourName": "你的名字",
+    "name": "名字",
+    "turnTime": "每回合时间",
+    "advanced": "高级设置",
+    "changed_other": "已改 {{count}} 项",
+    "timeBank": "时间储备",
+    "timeBankDetail": "每位玩家另有整局 2 分钟，在回合时间用完后使用。回合剩余的时间会加进去，最多 3 分钟。",
+    "tileBonus": "出牌加时",
+    "tileBonusDetail": "桌面成为有效回合后，每放下一张牌加 15 秒，每组成或改动一组牌加 20 秒。",
+    "liveTurns": "实时显示回合",
+    "liveTurnsDetail": "像在真实牌桌上一样，所有人都能实时看到当前玩家的操作。",
+    "standIn": "玩家离开时",
+    "standInDetail": "由机器人接替他的座位，直到本局结束。",
+    "standInLabel": "代替离开玩家的机器人",
+    "create": "创建房间",
+    "orJoin": "或加入房间",
+    "code": "房间号",
+    "codePlaceholder": "房间号",
+    "join": "加入",
+    "watch": "观战"
+  },
+  "room": {
+    "summary": "{{parts}}。",
+    "separator": "，",
+    "turn": "每回合 {{time}}",
+    "timeBank": "2 分钟时间储备",
+    "tileBonus": "出牌加时",
+    "liveTurns": "实时显示回合",
+    "finishedTurns": "只显示已完成的回合",
+    "standIn": {
+      "easy": "离开的玩家由简单机器人接替",
+      "medium": "离开的玩家由中等机器人接替",
+      "hard": "离开的玩家由困难机器人接替",
+      "extraHard": "离开的玩家由极难机器人接替"
+    }
+  },
+  "lobby": {
+    "code": "房间号：分享给其他玩家",
+    "you": "（你）",
+    "host": "房主",
+    "remove": "移除",
+    "removeBot": "移除 {{name}}",
+    "watching": "观战中",
+    "takeSeat": "还是参加游戏",
+    "watchInstead": "观战而不参加",
+    "addBot": "添加机器人：",
+    "leave": "离开",
+    "waitingForPlayers": "正在等待玩家…",
+    "start_other": "{{count}} 人开始",
+    "waitingForHost": "正在等待房主开始…"
+  },
+  "tile": {
+    "number": "{{color}}{{value}}",
+    "joker": "万能牌",
+    "color": {
+      "black": "黑",
+      "blue": "蓝",
+      "orange": "橙",
+      "red": "红"
+    },
+    "drawn": "你摸到的牌"
+  },
+  "board": {
+    "tabYourTurn": "轮到你了 · Rummy",
+    "player": "玩家 {{n}}",
+    "sentences": "{{first}}{{then}}",
+    "over": "游戏结束。",
+    "paused": "在 {{name}} 的回合暂停。",
+    "youreWatching": "你正在观战。",
+    "playing": "轮到 {{name}}。",
+    "playingSoFar_other": "轮到 {{name}}：目前已从牌架出 {{count}} 张。",
+    "ready_other": "可以了：从你的牌架出 {{count}} 张。",
+    "lastPlayed_other": "{{name}} 出了 {{count}} 张牌。",
+    "yourTurn": "轮到你了：把牌拖到桌面（或双击牌），或者摸一张牌。",
+    "yourTurnFirst": "轮到你了。首次出牌（破冰）只能用你牌架上的牌，合计至少 {{points}} 分。",
+    "dropToStart": "把牌放到桌面任意位置，开始一组新牌。",
+    "emptyTable": "桌面是空的。首次出牌后开放。",
+    "reset": "重置",
+    "draw": "摸牌",
+    "endTurn": "结束回合",
+    "timeLeft_other": "还剩 {{count}} 秒",
+    "turnBanner": "轮到你了",
+    "tileRole": "牌",
+    "setRole": "牌组",
+    "moveSet": "移动这组牌",
+    "changingSet": "{{name}} 正在改动这组",
+    "lastTurnSet": "{{name}} 的上一回合",
+    "plansHint": "在这里预先组牌：把牌拖进来，或在不是你的回合时双击牌。",
+    "planValid": "有效的牌组",
+    "planInvalid": "还不是牌组",
+    "playPlan": "放到桌面",
+    "sort": "整理牌架",
+    "sortNumber": "1 2 3",
+    "sortColor": "颜色",
+    "pool_other": "还剩 {{count}} 张可摸",
+    "chip_other": "{{name}}：{{count}} 张牌",
+    "chipBank": "储备 {{time}}",
+    "away": "离开",
+    "you": "你",
+    "bot": "机器人",
+    "bank": "储备 {{time}}",
+    "seconds": "{{n}} 秒",
+    "bonus": "+{{n}} 秒",
+    "tiles_other": "{{count}} 张牌"
+  },
+  "openRacks": {
+    "title": "公开牌架",
+    "watchingHint": "正在观看机器人：所有牌架都可见。可以整理或拖动牌来推演它们的出牌。",
+    "debugHint": "调试：所有牌架都可见。可以整理或拖动牌来推演它们的出牌。",
+    "show": "显示",
+    "hide": "隐藏",
+    "noTurns": "每回合出完后会显示在这里。",
+    "drawnLastTurn": "上一回合摸到的牌",
+    "drew": "摸牌",
+    "passed": "过（没有牌可摸）",
+    "played_other": "出了 {{count}} 张",
+    "sets_other": "{{count}} 组新的或改动的牌"
+  },
+  "watch": {
+    "badge": "观战",
+    "step": "单步",
+    "stepHint": "进行下一回合，然后再次暂停",
+    "pause": "暂停",
+    "resume": "继续"
+  },
+  "results": {
+    "youWon": "你赢了！",
+    "won_other": "{{names}} 获胜",
+    "leave": "离开房间"
+  },
+  "leave": {
+    "open": "离开房间",
+    "title": "要离开游戏吗？",
+    "detail": {
+      "easy": "本局剩余部分由简单机器人替你出牌。你将无法回到这个座位。",
+      "medium": "本局剩余部分由中等机器人替你出牌。你将无法回到这个座位。",
+      "hard": "本局剩余部分由困难机器人替你出牌。你将无法回到这个座位。",
+      "extraHard": "本局剩余部分由极难机器人替你出牌。你将无法回到这个座位。"
+    },
+    "stay": "留下",
+    "leave": "离开"
+  },
+  "settings": {
+    "open": "设置",
+    "title": "设置",
+    "rack": "牌架",
+    "flat": "平铺托盘",
+    "classic": "双层牌架",
+    "watchLive": "实时观看回合",
+    "watchLiveHint": "在开启实时显示的房间里，实时看到其他玩家的操作。",
+    "language": "语言",
+    "languageAuto": "自动（{{language}}）"
+  },
+  "turnError": {
+    "noSuchTile": "游戏中没有这张牌。",
+    "invalidSet": "第 {{n}} 组既不是顺子也不是同数组。",
+    "tileTakenFromTable": "桌面上的牌必须留在桌面上。",
+    "tileNotOnRack": "这张牌不在你的牌架上。",
+    "nothingPlayed": "至少从牌架出一张牌，或者摸牌。",
+    "initialMeldChangedTable": "首次出牌只能用你牌架上的牌。",
+    "initialMeldTooLow_other": "你的首次出牌是 {{count}} 分，需要 {{needed}} 分。",
+    "notYourTurn": "还没轮到你。",
+    "gameOver": "游戏已结束。"
+  },
+  "refusal": {
+    "noSuchRoom": "没有房间号为 {{code}} 的房间。",
+    "roomClosed": "该房间已关闭。",
+    "roomFull_other": "房间已满（{{count}} 人）。",
+    "watchersFull_other": "观战人数已满（{{count}} 人）。",
+    "gameStarted": "这个房间的游戏已经开始。",
+    "noSuchSeat": "你在那个房间的座位已经不存在。",
+    "onlyHost": "只有房主可以这样做。",
+    "notABot": "那个座位不是机器人的。",
+    "tooFewPlayers_other": "游戏至少需要 {{count}} 名玩家。",
+    "noGame": "没有进行中的游戏。",
+    "notBotsOnly": "只有全由机器人进行的游戏才能暂停。",
+    "watching": "你在观战这局游戏，并没有参加。",
+    "notStarted": "游戏还没有开始。",
+    "notYourTiles": "那个桌面上有你没有的牌。",
+    "alreadyInRoom": "你已经在房间里了。",
+    "notInRoom": "你不在任何房间里。"
+  },
+  "notice": {
+    "timeRanOutDrew": "时间到了，桌面不是有效的回合，所以为你摸了一张牌。",
+    "timeRanOutAll_other": "时间到：你的 {{count}} 张牌已打出。",
+    "timeRanOutSome": "时间到：{{played}}，即你回合中有效的部分；{{back}}。",
+    "tilesPlayed_other": "打出 {{count}} 张牌",
+    "tilesBack_other": "{{count}} 张牌回到了你的牌架",
+    "unearnedWarning": "为之加过时的牌若再收回，加的时间会记在你头上：目前 {{soFar}}。达到 {{limit}} 后，本局不再给出牌加时。",
+    "noMoreBonus": "你收回了曾获得 {{time}} 加时的牌。本局不再有出牌加时。"
+  }
+}

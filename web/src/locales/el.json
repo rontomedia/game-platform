@@ -95,6 +95,7 @@
   "board": {
     "tabYourTurn": "Σειρά σας · Rummy",
     "player": "Παίκτης {{n}}",
+    "sentences": "{{first}} {{then}}",
     "over": "Το παιχνίδι τελείωσε.",
     "paused": "Σε παύση στη σειρά του/της {{name}}.",
     "youreWatching": "Παρακολουθείτε.",
