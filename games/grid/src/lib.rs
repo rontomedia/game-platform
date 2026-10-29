@@ -7,6 +7,9 @@
 //! Pure, as `tile_rummy`: no I/O, clock or randomness from outside, so the
 //! server, the bots and the browser get the same answers.
 
+mod board;
+mod bot;
 mod game;
 
+pub use bot::{bot_move, bot_move_with, BotLevel};
 pub use game::{check_place, outcome_of, Cell, Game, GridError, GridRules, GridView, Outcome, RuleSet, Square};
