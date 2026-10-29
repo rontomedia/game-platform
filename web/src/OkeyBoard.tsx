@@ -18,7 +18,7 @@ import { AnimatePresence, motion } from 'motion/react'
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 
-import { compareTiles, joinAt, keepPlans, without as withoutTiles, type RackSort } from './arrange.ts'
+import { compareTiles, type RackSort } from './arrange.ts'
 import { TableGrid, TopBar, WatchBar, type Clock } from './Board.tsx'
 import { footprint, gridWithout, resolve, type Cell } from './grid.ts'
 import { noticeText, okeyError, problemText, type Problem } from './messages.ts'
@@ -30,11 +30,13 @@ import {
   isPlanTarget,
   isSetItem,
   isSetTarget,
+  joinNew,
   NEW_PLAN,
   NEW_SET,
   OFFER,
-  orderedRack,
+  okeySet,
   planTarget,
+  rackAndPlans,
   RACK,
   same,
   sameTile,
@@ -124,16 +126,10 @@ export function OkeyBoard({
   const opened = !watching && hand.opened[you] !== 'no'
 
   const [sort, setSort] = useState<RackSort>(() => remembered<RackSort>('rummy.rackSort') ?? 'custom')
-  const [tiles, setTiles] = useState<Tiles>(() => {
-    const saved = remembered<{ code: string; plans?: Tile[][] }>(RACK_KEY, 'session')
-    const planned = keepPlans(saved?.code === room.code ? (saved.plans ?? []) : [], hand.rack)
-    let n = 0
-    return {
-      rack: orderedRack(RACK_KEY, room.code, withoutTiles(hand.rack, planned.flat()), sort),
-      plans: planned.map((plan) => plan.map((tile) => ({ id: `p${n++}`, tile }))),
-      sets: hand.table.map((set, s) => set.map((tile, i) => ({ id: `t${s}-${i}`, tile }))),
-    }
-  })
+  const [tiles, setTiles] = useState<Tiles>(() => ({
+    ...rackAndPlans(RACK_KEY, room.code, hand.rack, sort),
+    sets: hand.table.map((set, s) => set.map((tile, i) => ({ id: `t${s}-${i}`, tile }))),
+  }))
   const { rack, plans, sets } = tiles
   /** Where the player put each set, by its place on the table; unset, wherever it's shown. */
   const [at, setAt] = useState<(Cell | undefined)[]>(() => {
@@ -175,7 +171,15 @@ export function OkeyBoard({
   // What the valid plans would add up to if laid down now, before opening.
   const planned = watching || opened || plans.length === 0
     ? undefined
-    : okeyProgress({ view: hand, table: [...hand.table, ...plans.map(tilesOf).filter((plan) => okeyMeldKind(hand.okey, plan) !== undefined)] })
+    : okeyProgress({ view: hand, table: [...hand.table, ...plans.map(tilesOf).filter((plan) => okeySet(hand.okey, plan))] })
+  const plannedNote =
+    planned && (planned.points > 0 || planned.pairs > 0)
+      ? planned.pairs > planned.points
+        ? t('okey.plannedPairs', { pairs: planned.pairs, needed: hand.openingPairs })
+        : t('okey.plannedPoints', { points: planned.points, needed: hand.openingPoints })
+      : undefined
+  // The tile this player last drew, marked wherever they keep it.
+  const drawnId = okey.drawn && [...rack, ...plans.flat()].findLast((p) => sameTile(p.tile, okey.drawn!))?.id
 
   // Someone else's turn, shared live: their table so far. The table only
   // grows at its end, so a set keeps its place (and its index) throughout.
@@ -268,14 +272,6 @@ export function OkeyBoard({
   }
 
   const fits = (candidate: Placed[]) => okeyMeldKind(hand.okey, tilesOf(candidate)) !== undefined
-  /** A tile as the classic sets read it: the okey wild, a false okey the okey's own tile. */
-  const asClassic = (tile: Tile): Tile => (sameTile(tile, hand.okey) ? { kind: 'joker' } : tile.kind === 'joker' ? hand.okey : tile)
-  /** Where `tile` joins a set being built (`set`): as the classic board places it, or as a pair. */
-  const joinNew = (set: Placed[], tile: Placed): Placed[] | null => {
-    const pair = set.length === 1 && sameTile(set[0].tile, tile.tile)
-    const at = pair ? 1 : joinAt(set.map((p) => asClassic(p.tile)), asClassic(tile.tile))
-    return at === null ? null : [...set.slice(0, at), tile, ...set.slice(at)]
-  }
 
   /** A plan put on the table whole, as a new set, once the player may lay tiles down. */
   const playPlan = (plan: number) => {
@@ -309,7 +305,7 @@ export function OkeyBoard({
     if (!canTable) {
       if (placed.id === TAKEN) return
       const p = lastPlan.current
-      const joined = p !== null && plans[p] ? joinNew(plans[p], placed) : null
+      const joined = p !== null && plans[p] ? joinNew(hand.okey, plans[p], placed) : null
       if (joined) return setTiles({ ...left, plans: plans.map((plan, i) => (i === p ? joined : plan)) })
       lastPlan.current = left.plans.length
       return setTiles({ ...left, plans: [...left.plans, [placed]] })
@@ -317,7 +313,7 @@ export function OkeyBoard({
     const last = lastPlaced.current === null ? null : find(lastPlaced.current)
     const s = last?.in === 'set' ? last.set : -1
     const set = sets[s]
-    const joined = !set ? null : s < hand.table.length ? ([[...set, placed], [placed, ...set]].find(fits) ?? null) : joinNew(set, placed)
+    const joined = !set ? null : s < hand.table.length ? ([[...set, placed], [placed, ...set]].find(fits) ?? null) : joinNew(hand.okey, set, placed)
     lastPlaced.current = placed.id
     if (joined) return setTiles({ ...left, sets: left.sets.map((other, i) => (i === s ? joined : other)) })
     setTiles(withNewSet(left, [placed], freeCell(footprint(1))))
@@ -650,9 +646,18 @@ export function OkeyBoard({
                   </Button>
                 </div>
               </div>
-              <Plans plans={plans} okey={hand.okey} canTable={canTable} planned={planned} hand={hand} onQuick={quickMove} onPlay={playPlan} />
+              <Plans
+                plans={plans}
+                okey={hand.okey}
+                valid={okeySet}
+                canPlay={canTable}
+                note={plannedNote}
+                drawnId={drawnId}
+                onQuick={quickMove}
+                onPlay={playPlan}
+              />
               <div className="flex items-stretch gap-3">
-                <Rack tiles={rack} sortable={!watching} okey={hand.okey} onQuick={quickMove} />
+                <Rack tiles={rack} sortable={!watching} okey={hand.okey} drawnId={drawnId} onQuick={quickMove} />
                 <DiscardSpot id={DISCARD} label={t('okey.discardHere')} active={myTurn && (hand.phase === 'play' || taken)} />
               </div>
             </section>
@@ -827,11 +832,13 @@ function TableTile({
   placed,
   draggable,
   okey,
+  drawn = false,
   onDoubleClick,
 }: {
   placed: Placed
   draggable: boolean
   okey: Tile
+  drawn?: boolean
   onDoubleClick?: () => void
 }) {
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({ id: placed.id, disabled: !draggable })
@@ -843,33 +850,38 @@ function TableTile({
       onDoubleClick={onDoubleClick}
       className={`${draggable ? 'cursor-grab' : ''} ${isDragging ? 'opacity-30' : ''} ${isOkey ? 'rounded-md ring-2 ring-amber-300/70' : ''}`}
     >
-      <TileFace tile={placed.tile} size="table" />
+      <TileFace tile={placed.tile} size="table" drawn={drawn} />
     </div>
   )
 }
 
 /**
  * Sets the player plans from their rack, above it: built any time by
- * dragging, or by double-clicking when they can't lay tiles down; put on the
- * table whole once they can (its ↑ button, or a double-click). Before
- * opening, what the valid ones would count towards it.
+ * dragging or double-clicking. In Okey 101, put on the table whole once the
+ * player may lay tiles down (`canPlay`: its ↑ button, or a double-click),
+ * with what the valid ones would count towards opening (`note`). Plain
+ * Okey has no table: its plans only arrange the rack. `valid`: the rule
+ * set's sets, for the outline.
  */
-function Plans({
+export function Plans({
   plans,
   okey,
-  canTable,
-  planned,
-  hand,
+  valid,
+  canPlay,
+  note,
+  drawnId,
   onQuick,
   onPlay,
 }: {
   plans: Placed[][]
   okey: Tile
-  canTable: boolean
-  planned?: { points: number; pairs: number }
-  hand: { openingPoints: number; openingPairs: number }
+  valid: (okey: Tile, tiles: Tile[]) => boolean
+  canPlay: boolean
+  note?: string
+  /** The tile this player last drew, to mark. */
+  drawnId?: string
   onQuick: (placed: Placed) => void
-  onPlay: (plan: number) => void
+  onPlay?: (plan: number) => void
 }) {
   const { t } = useTranslation()
   const { setNodeRef, isOver } = useDroppable({ id: NEW_PLAN })
@@ -887,13 +899,21 @@ function Plans({
         </p>
       )}
       {plans.map((plan, p) => (
-        <Plan key={plan[0].id} index={p} tiles={plan} okey={okey} canTable={canTable} onQuick={onQuick} onPlay={onPlay} />
+        <Plan
+          key={plan[0].id}
+          index={p}
+          tiles={plan}
+          okey={okey}
+          valid={valid(okey, tilesOf(plan))}
+          canPlay={canPlay && onPlay !== undefined}
+          drawnId={drawnId}
+          onQuick={onQuick}
+          onPlay={() => onPlay?.(p)}
+        />
       ))}
-      {planned && (planned.points > 0 || planned.pairs > 0) && (
+      {note && (
         <p dir="auto" className="ms-auto px-1 text-xs font-medium tabular-nums text-amber-100/70">
-          {planned.pairs > planned.points
-            ? t('okey.plannedPairs', { pairs: planned.pairs, needed: hand.openingPairs })
-            : t('okey.plannedPoints', { points: planned.points, needed: hand.openingPoints })}
+          {note}
         </p>
       )}
     </div>
@@ -904,20 +924,23 @@ function Plan({
   index,
   tiles,
   okey,
-  canTable,
+  valid,
+  canPlay,
+  drawnId,
   onQuick,
   onPlay,
 }: {
   index: number
   tiles: Placed[]
   okey: Tile
-  canTable: boolean
+  valid: boolean
+  canPlay: boolean
+  drawnId?: string
   onQuick: (placed: Placed) => void
-  onPlay: (plan: number) => void
+  onPlay: () => void
 }) {
   const { t } = useTranslation()
   const { setNodeRef, isOver } = useDroppable({ id: planTarget(index) })
-  const valid = okeyMeldKind(okey, tilesOf(tiles)) !== undefined
   return (
     <div
       ref={setNodeRef}
@@ -927,14 +950,21 @@ function Plan({
       }`}
     >
       {tiles.map((placed) => (
-        <TableTile key={placed.id} placed={placed} draggable okey={okey} onDoubleClick={() => onQuick(placed)} />
+        <TableTile
+          key={placed.id}
+          placed={placed}
+          draggable
+          okey={okey}
+          drawn={placed.id === drawnId}
+          onDoubleClick={() => onQuick(placed)}
+        />
       ))}
-      {canTable && (
+      {canPlay && (
         <button
           className="ms-0.5 grid size-7 cursor-pointer place-items-center rounded-lg text-amber-100/70 hover:bg-white/10 hover:text-amber-50"
           title={t('board.playPlan')}
           aria-label={t('board.playPlan')}
-          onClick={() => onPlay(index)}
+          onClick={onPlay}
         >
           ↑
         </button>
@@ -948,11 +978,14 @@ export function Rack({
   tiles,
   sortable,
   okey,
+  drawnId,
   onQuick,
 }: {
   tiles: Placed[]
   sortable: boolean
   okey: Tile
+  /** The tile this player last drew, to mark. */
+  drawnId?: string
   onQuick?: (placed: Placed) => void
 }) {
   const { setNodeRef } = useDroppable({ id: RACK })
@@ -960,14 +993,30 @@ export function Rack({
     <SortableContext items={tiles.map((p) => p.id)} strategy={rectSortingStrategy} disabled={!sortable}>
       <div ref={setNodeRef} dir="ltr" className="flex min-h-16 min-w-0 flex-1 flex-wrap content-start gap-1.5 sm:min-h-[4.75rem] short:min-h-12">
         {tiles.map((placed) => (
-          <RackTile key={placed.id} placed={placed} okey={okey} onDoubleClick={onQuick && (() => onQuick(placed))} />
+          <RackTile
+            key={placed.id}
+            placed={placed}
+            okey={okey}
+            drawn={placed.id === drawnId}
+            onDoubleClick={onQuick && (() => onQuick(placed))}
+          />
         ))}
       </div>
     </SortableContext>
   )
 }
 
-function RackTile({ placed, okey, onDoubleClick }: { placed: Placed; okey: Tile; onDoubleClick?: () => void }) {
+function RackTile({
+  placed,
+  okey,
+  drawn,
+  onDoubleClick,
+}: {
+  placed: Placed
+  okey: Tile
+  drawn: boolean
+  onDoubleClick?: () => void
+}) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: placed.id })
   const { t } = useTranslation()
   const isOkey = sameTile(placed.tile, okey)
@@ -983,7 +1032,7 @@ function RackTile({ placed, okey, onDoubleClick }: { placed: Placed; okey: Tile;
       }`}
       title={placed.id === TAKEN ? t('okey.takenTile') : undefined}
     >
-      <TileFace tile={placed.tile} size="rack" />
+      <TileFace tile={placed.tile} size="rack" drawn={drawn} />
     </div>
   )
 }

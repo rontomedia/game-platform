@@ -11,14 +11,30 @@ import {
 } from '@dnd-kit/core'
 import { arrayMove, sortableKeyboardCoordinates } from '@dnd-kit/sortable'
 import { AnimatePresence } from 'motion/react'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import { compareTiles, type RackSort } from './arrange.ts'
 import { TopBar, WatchBar, type Clock } from './Board.tsx'
 import { noticeText, problemText, type Problem } from './messages.ts'
-import { DiscardPile, DiscardSpot, Middle, Overlay, Rack } from './OkeyBoard.tsx'
-import { collisions, DISCARD, FalseOkeyMark, FINISH, OFFER, orderedRack, RACK, TAKEN, tilesOf, type Placed } from './okeyParts.ts'
+import { DiscardPile, DiscardSpot, Middle, Overlay, Plans, Rack } from './OkeyBoard.tsx'
+import {
+  collisions,
+  DISCARD,
+  FalseOkeyMark,
+  FINISH,
+  isPlanTarget,
+  joinNew,
+  NEW_PLAN,
+  OFFER,
+  plainSet,
+  RACK,
+  rackAndPlans,
+  sameTile,
+  TAKEN,
+  tilesOf,
+  type Placed,
+} from './okeyParts.ts'
 import type { Settings } from './settings.ts'
 import { remember, remembered } from './storage.ts'
 import { TileFace } from './TileView.tsx'
@@ -32,10 +48,11 @@ import { okeyComplete, type ClientMessage, type Notice, type RoomInfo } from './
  * everyone's discards; the rack, a spot to discard on, and in the middle a
  * spot to finish on: dropping the 15th tile there shows the other 14 as a
  * winning hand (all in sets, or seven pairs). Draw (the button, or the
- * pool), or drag the previous player's discard in.
+ * pool), or drag the previous player's discard in. Plans above the rack
+ * group its tiles into the sets of a winning hand, any time.
  */
 
-/** Remembered for the tab: the player's rack order in their current room. */
+/** Remembered for the tab: the player's rack order and plans in their current room. */
 const RACK_KEY = 'rummy.plainOkeyRack'
 
 /** Give it `key={game.version}`: a new state starts the turn afresh. */
@@ -72,19 +89,32 @@ export function PlainOkeyBoard({
   const canTake = myTurn && view.phase === 'draw' && offer !== undefined
 
   const [sort, setSort] = useState<RackSort>(() => remembered<RackSort>('rummy.rackSort') ?? 'custom')
-  const [rack, setRack] = useState(() => orderedRack(RACK_KEY, room.code, view.rack, sort))
+  const [tiles, setTiles] = useState(() => rackAndPlans(RACK_KEY, room.code, view.rack, sort))
+  const { rack, plans } = tiles
   const [taken, setTaken] = useState(false)
   const [refused, setRefused] = useState<Problem | null>(null)
   const [dragging, setDragging] = useState<Placed | null>(null)
+  /** The plan last changed, which a double-clicked tile joins if it fits. */
+  const lastPlan = useRef<number | null>(null)
 
   useEffect(() => {
-    remember(RACK_KEY, { code: room.code, tiles: tilesOf(rack.filter((p) => p.id !== TAKEN)) }, 'session')
-  }, [rack, room.code])
+    remember(RACK_KEY, { code: room.code, tiles: tilesOf(rack.filter((p) => p.id !== TAKEN)), plans: plans.map(tilesOf) }, 'session')
+  }, [rack, plans, room.code])
 
+  // Every tile the player holds, planned or not.
+  const all = [...rack, ...plans.flat()]
   const canDiscard = myTurn && (view.phase === 'play' || taken)
   // Whether some tile, discarded, leaves a winning 14.
   const canFinish =
-    canDiscard && rack.some((placed) => okeyComplete(view.okey, tilesOf(rack.filter((p) => p.id !== placed.id))) !== undefined)
+    canDiscard && all.some((placed) => okeyComplete(view.okey, tilesOf(all.filter((p) => p.id !== placed.id))) !== undefined)
+  // The tile this player last drew, marked wherever they keep it.
+  const drawnId = game.drawn && all.findLast((p) => sameTile(p.tile, game.drawn!))?.id
+
+  /** The rack and plans without tile `id` (a plan left empty goes). */
+  const without = (id: string) => ({
+    rack: rack.filter((p) => p.id !== id),
+    plans: plans.map((plan) => plan.filter((p) => p.id !== id)).filter((plan) => plan.length > 0),
+  })
 
   const sensors = useSensors(
     useSensor(MouseSensor, { activationConstraint: { distance: 4 } }),
@@ -94,18 +124,36 @@ export function PlainOkeyBoard({
   )
 
   const end = (placed: Placed, finish: boolean) => {
-    const rest = rack.filter((p) => p.id !== placed.id)
+    const rest = all.filter((p) => p.id !== placed.id)
     if (finish && okeyComplete(view.okey, tilesOf(rest)) === undefined) {
       return setRefused({ kind: 'okey', error: { kind: 'notComplete' } })
     }
-    setRack(rest)
+    setTiles(without(placed.id))
     send({ type: 'discard', takeDiscard: taken, table: [], discard: placed.tile, finish })
+  }
+
+  /**
+   * A double-clicked tile, any time: from the rack into the plan last
+   * changed if it fits, else a new plan; a planned tile back to the rack.
+   * Nothing is discarded or finished by double-click.
+   */
+  const quickMove = (placed: Placed) => {
+    if (watching || view.end || placed.id === TAKEN) return
+    const left = without(placed.id)
+    if (!rack.includes(placed)) return setTiles({ ...left, rack: [...left.rack, placed] })
+    const p = lastPlan.current
+    // A 1 after 13 ends a run here (12 13 1), which the classic placing doesn't know.
+    const wraps = p !== null && plans[p] && plainSet(view.okey, tilesOf([...plans[p], placed])) ? [...plans[p], placed] : null
+    const joined = wraps ?? (p !== null && plans[p] ? joinNew(view.okey, plans[p], placed) : null)
+    if (joined) return setTiles({ ...left, plans: plans.map((plan, i) => (i === p ? joined : plan)) })
+    lastPlan.current = left.plans.length
+    setTiles({ ...left, plans: [...left.plans, [placed]] })
   }
 
   const onDragStart = ({ active }: DragStartEvent) => {
     setRefused(null)
     const id = String(active.id)
-    setDragging(id === OFFER ? (offer ? { id: TAKEN, tile: offer } : null) : (rack.find((p) => p.id === id) ?? null))
+    setDragging(id === OFFER ? (offer ? { id: TAKEN, tile: offer } : null) : (all.find((p) => p.id === id) ?? null))
   }
 
   const onDragEnd = ({ active, over }: DragEndEvent) => {
@@ -119,28 +167,55 @@ export function PlainOkeyBoard({
       const at = to === RACK ? rack.length : rack.findIndex((p) => p.id === to)
       const next = [...rack]
       next.splice(at, 0, { id: TAKEN, tile: offer })
-      setRack(next)
+      setTiles({ ...tiles, rack: next })
       setTaken(true)
       return
     }
-    const placed = rack.find((p) => p.id === id)
+    const placed = all.find((p) => p.id === id)
     if (!placed) return
     if (to === OFFER && id === TAKEN) {
-      setRack(rack.filter((p) => p.id !== TAKEN))
+      setTiles(without(TAKEN))
       setTaken(false)
       return
     }
     if ((to === DISCARD || to === FINISH) && canDiscard) return end(placed, to === FINISH)
+    // Into the plans: any of the player's tiles but the discard taken.
+    if (to === NEW_PLAN || isPlanTarget(to)) {
+      if (id === TAKEN) return
+      const left = without(id)
+      let p = Number(to.slice('plan-'.length))
+      const from = plans.findIndex((plan) => plan.includes(placed))
+      if (from >= 0 && from < p && plans[from].length === 1) p--
+      if (to === NEW_PLAN || !left.plans[p]) {
+        lastPlan.current = left.plans.length
+        return setTiles({ ...left, plans: [...left.plans, [placed]] })
+      }
+      // Pointer left of the plan's middle: its front.
+      const translated = active.rect.current.translated
+      const front = translated !== null && translated.left + translated.width / 2 < over.rect.left + over.rect.width / 2
+      lastPlan.current = p
+      return setTiles({ ...left, plans: left.plans.map((plan, i) => (i === p ? (front ? [placed, ...plan] : [...plan, placed]) : plan)) })
+    }
+    const overRack = to === RACK || rack.some((p) => p.id === to)
+    if (!overRack) return
+    // Back from a plan, at the place it's dropped.
+    if (!rack.includes(placed)) {
+      const left = without(id)
+      const at = to === RACK ? left.rack.length : left.rack.findIndex((p) => p.id === to)
+      const next = [...left.rack]
+      next.splice(at < 0 ? next.length : at, 0, placed)
+      return setTiles({ ...left, rack: next })
+    }
     const target = to === RACK ? rack.length - 1 : rack.findIndex((p) => p.id === to)
     if (target < 0) return
     setSort('custom')
-    setRack(arrayMove(rack, rack.indexOf(placed), target))
+    setTiles({ ...tiles, rack: arrayMove(rack, rack.indexOf(placed), target) })
   }
 
   const sortRack = (by: 'number' | 'color') => {
     setSort(by)
     remember('rummy.rackSort', by)
-    setRack([...rack].sort((a, b) => compareTiles(a.tile, b.tile, by)))
+    setTiles({ ...tiles, rack: [...rack].sort((a, b) => compareTiles(a.tile, b.tile, by)) })
   }
 
   const name = (seat: number) => room.seats[seat]?.name ?? t('board.player', { n: seat + 1 })
@@ -250,8 +325,9 @@ export function PlainOkeyBoard({
                   </Button>
                 </div>
               </div>
+              <Plans plans={plans} okey={view.okey} valid={plainSet} canPlay={false} drawnId={drawnId} onQuick={quickMove} />
               <div className="flex items-stretch gap-3">
-                <Rack tiles={rack} sortable={!watching} okey={view.okey} />
+                <Rack tiles={rack} sortable={!watching} okey={view.okey} drawnId={drawnId} onQuick={quickMove} />
                 <DiscardSpot id={DISCARD} label={t('okey.discardHere')} active={canDiscard} />
               </div>
             </section>

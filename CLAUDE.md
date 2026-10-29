@@ -324,7 +324,11 @@ only builds it on start.
     tile on the discard spot, or on the finish spot in the middle to show
     the other 14 as a winning hand (checked first, `okeyComplete`). Shares
     the Okey board's parts (`okeyParts.ts`, `Middle`, `DiscardPile`,
-    `Rack`, `DiscardSpot`, `Overlay`). `?demo=plain`, `?demo=plain-scores`,
+    `Rack`, `DiscardSpot`, `Overlay`, `Plans`: a rack tile double-clicked
+    goes into a plan, any time, plans checked as plain Okey's sets with
+    12-13-1, `plainSet`). Both Okey boards mark the tile last drawn
+    (`OkeyGame.drawn`, from the phase going draw to play in `useGame.ts`).
+    `?demo=plain`, `?demo=plain-scores`,
     `?demo=plain-marks`.
   - Planned: shadcn/ui for menus, `@heroiclabs/nakama-js` for
     accounts/matchmaking.

@@ -8,6 +8,7 @@ import {
   type ClientMessage,
   type MatchView,
   type Notice,
+  type Phase,
   type PlainView,
   type PlayerView,
   type RoomInfo,
@@ -58,6 +59,8 @@ export interface OkeyGame {
   version: number
   /** The state in which the current turn began. */
   turnSince: number
+  /** The tile this player last drew from the pool, this hand (see `okeyDrawn`). */
+  drawn?: Tile
 }
 
 /** The latest state of a plain Okey game: as `OkeyGame`. */
@@ -69,6 +72,7 @@ export interface PlainOkeyGame {
   racks?: Tile[][]
   version: number
   turnSince: number
+  drawn?: Tile
 }
 
 /** A finished turn, as open racks show it. */
@@ -132,6 +136,28 @@ function drawn(previous: GameState | null, view: PlayerView, version: number): G
   if (!theirs || view.current === previous.view.current) return previous.drawn
   const drew = without(view.rack, previous.view.rack)
   return drew.length === 1 ? { tile: drew[0], version } : undefined
+}
+
+/** What an Okey hand shows of whose turn it is and the player's rack. */
+interface OkeyTurn {
+  you?: number
+  current: number
+  phase: Phase
+  rack: Tile[]
+  end?: unknown
+}
+
+/**
+ * Okey: the tile this player last drew from the pool, found as their turn
+ * goes from drawing to playing (taking a discard is part of the turn sent
+ * whole, so it isn't one). Kept until they draw again; a new hand clears it.
+ */
+function okeyDrawn(previous: OkeyTurn | undefined, view: OkeyTurn, kept: Tile | undefined): Tile | undefined {
+  if (!previous || previous.end) return undefined
+  const drew = previous.current === view.you && view.current === view.you && previous.phase === 'draw' && view.phase === 'play'
+  if (!drew) return kept
+  const added = without(view.rack, previous.rack)
+  return added.length === 1 ? added[0] : undefined
 }
 
 /** Whether nobody has moved yet: every rack as dealt, the table empty. */
@@ -309,6 +335,7 @@ export function useGame() {
               previous && previous.view.hand.current === message.view.hand.current && !previous.view.hand.end
                 ? previous.turnSince
                 : next,
+            drawn: okeyDrawn(previous?.view.hand, message.view.hand, previous?.drawn),
           }))
           setDraft(null)
           setProblem(null)
@@ -328,6 +355,7 @@ export function useGame() {
               previous && previous.view.current === message.view.current && !previous.view.end
                 ? previous.turnSince
                 : next,
+            drawn: okeyDrawn(previous?.view, message.view, previous?.drawn),
           }))
           setProblem(null)
           break

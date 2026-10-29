@@ -1,9 +1,9 @@
 import { closestCenter, pointerWithin, type CollisionDetection } from '@dnd-kit/core'
 import { createContext } from 'react'
 
-import { arrangeRack, type RackSort } from './arrange.ts'
+import { arrangeRack, joinAt, keepPlans, without, type RackSort } from './arrange.ts'
 import { remembered } from './storage.ts'
-import type { Tile } from './wasm/engine.js'
+import { okeyMeldKind, type Tile } from './wasm/engine.js'
 
 /** What the Okey boards (Okey 101 and plain Okey) share besides components. */
 
@@ -62,4 +62,46 @@ export function orderedRack(key: string, code: string, rack: Tile[], sort: RackS
   const previous = saved && saved.code === code ? saved.tiles : []
   const [first, second] = arrangeRack([previous, []], sort, rack)
   return [...first, ...second].map((tile, i) => ({ id: `r${i}`, tile }))
+}
+
+/**
+ * The rack and the plans as the player left them in room `code` (saved
+ * under `key` with the rack's order), for the tiles now on `rack`.
+ */
+export function rackAndPlans(key: string, code: string, rack: Tile[], sort: RackSort): { rack: Placed[]; plans: Placed[][] } {
+  const saved = remembered<{ code: string; plans?: Tile[][] }>(key, 'session')
+  const planned = keepPlans(saved?.code === code ? (saved.plans ?? []) : [], rack)
+  let n = 0
+  return {
+    rack: orderedRack(key, code, without(rack, planned.flat()), sort),
+    plans: planned.map((plan) => plan.map((tile) => ({ id: `p${n++}`, tile }))),
+  }
+}
+
+/** A tile as the classic sets read it: the okey wild, a false okey the okey's own tile. */
+const asClassic = (okey: Tile, tile: Tile): Tile => (sameTile(tile, okey) ? { kind: 'joker' } : tile.kind === 'joker' ? okey : tile)
+
+/** `set` (being built, not on the table) with `tile` where it joins: as the classic board places it, or as a pair. */
+export function joinNew(okey: Tile, set: Placed[], tile: Placed): Placed[] | null {
+  const pair = set.length === 1 && sameTile(set[0].tile, tile.tile)
+  const at = pair ? 1 : joinAt(set.map((p) => asClassic(okey, p.tile)), asClassic(okey, tile.tile))
+  return at === null ? null : [...set.slice(0, at), tile, ...set.slice(at)]
+}
+
+/** Whether `tiles` are a run, group or pair of Okey 101, the okey wild. */
+export const okeySet = (okey: Tile, tiles: Tile[]) => okeyMeldKind(okey, tiles) !== undefined
+
+/**
+ * Whether `tiles` are a set of plain Okey: as Okey 101's, or a run ending
+ * 12 13 1 (1 high; not 13 1 2). Checked as the run one lower, ending on 13.
+ */
+export function plainSet(okey: Tile, tiles: Tile[]): boolean {
+  if (okeySet(okey, tiles)) return true
+  const last = tiles.at(-1)
+  if (tiles.length < 3 || last?.kind !== 'number' || last.value !== 1 || sameTile(last, okey)) return false
+  const lower = tiles.map((tile): Tile => {
+    if (sameTile(tile, okey) || tile.kind !== 'number') return tile
+    return { ...tile, value: tile.value === 1 ? 13 : tile.value - 1 }
+  })
+  return okeySet(okey, lower)
 }

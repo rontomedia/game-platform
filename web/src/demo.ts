@@ -178,6 +178,8 @@ export function demoOkey(scores = false): OkeyGame {
     nextHandAt: scores ? Date.now() + 12_000 : undefined,
     version: 1,
     turnSince: 1,
+    // Drawn on the player's last turn: marked on the rack.
+    drawn: n('orange', 9),
   }
 }
 
@@ -221,5 +223,6 @@ export function demoPlainOkey(scores = false): PlainOkeyGame {
     nextHandAt: scores ? Date.now() + 12_000 : undefined,
     version: 1,
     turnSince: 1,
+    drawn: n('orange', 9),
   }
 }
