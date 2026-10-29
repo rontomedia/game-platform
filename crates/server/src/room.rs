@@ -4,32 +4,29 @@
 //!
 //! Computer players sit in rooms like people, without a connection. On a
 //! bot's turn the room waits a moment, works out its move on a blocking
-//! thread (it can take a while on a full table), shows it as a live turn,
-//! and plays it. Bots across the server think a few at a time
-//! (`Config::bot_threads`), each for at most `Timing::bot_time`.
+//! thread (it can take a while), shows it as a live turn, and plays it.
+//! Bots across the server think a few at a time (the permits `Rooms` is
+//! given), each for at most `Timing::bot_time`.
 //!
-//! Others may watch without a seat: they see the table and live turns, and
-//! in a game only bots play, every rack too. The host of such a game, who
-//! may be watching it, can pause it and step through it a turn at a time.
+//! Others may watch without a seat: they see the game and live turns, and
+//! in a game only bots play, every hidden hand too. The host of such a
+//! game, who may be watching it, can pause it and step through it a turn
+//! at a time.
 //!
-//! The room knows its game only as a `GameEngine` (tile rummy's is
-//! `Contest`): what a move is, whether it ends the turn (Okey's draw
-//! doesn't), what a player whose time ran out plays, and what each is sent.
-//! Between hands the scores are shown for `Timing::between_hands` before
-//! the next deal.
+//! The room knows its game only as a `GameEngine` (`G`): what a move is,
+//! whether it ends the turn (Okey's draw doesn't), what a player whose time
+//! ran out plays, and what each is sent. Between hands the scores are shown
+//! for `Timing::between_hands` before the next deal.
 
 use std::sync::Arc;
 use std::time::Duration;
 
-use tile_rummy::{BotLevel, Lookahead, Tile};
-use protocol::{Notice, Refusal, RoomInfo, RoomOptions, Seat, ServerMessage};
 use tokio::sync::{mpsc, oneshot, Semaphore};
 use tokio::time::{sleep_until, Instant};
 
-use crate::clock::Bonus;
-use crate::contest::{Contest, RummyConfig, RummyMove, RummyRules};
 use crate::engine::{ClockInfo, GameEngine, TimedOut};
 use crate::rooms::Rooms;
+use crate::shared::{Notice, Out, Refusal, RoomInfo, RoomOptions, Seat, SharedMessage};
 
 pub const MAX_WATCHERS: usize = 8;
 
@@ -40,8 +37,8 @@ const BOT_NAMES: [&str; 4] = ["Ada", "Bruno", "Cleo", "Dev"];
 #[derive(Clone, Copy, Debug)]
 pub struct Timing {
     /// A turn of a minute, the default; rooms that chose another length get
-    /// it in proportion. When it runs out, the table the player left is
-    /// played if it's a valid turn, else they draw.
+    /// it in proportion. When it runs out, the game plays something for
+    /// the player (`GameEngine::time_out`).
     pub turn: Duration,
     /// A turn of a player who has lost their connection.
     pub absent_turn: Duration,
@@ -59,13 +56,11 @@ pub struct Timing {
     pub bank: Duration,
     /// ...and the most it holds: time left over from turns is added to it.
     pub bank_cap: Duration,
-    /// Extra time for tiles, in rooms with `tile_bonus`.
-    pub bonus: Bonus,
-    /// Extra time a player may be given for tiles they then take back before
+    /// Extra time a player may be given for a draft they then take back before
     /// they're warned, and before they get no more for the game.
     pub unearned_warning: Duration,
     pub unearned_limit: Duration,
-    /// Okey 101: how long a hand's scores are shown before the next deal.
+    /// How long a hand's scores are shown before the next deal.
     pub between_hands: Duration,
 }
 
@@ -81,7 +76,6 @@ impl Default for Timing {
             bot_time: Duration::from_secs(1),
             bank: Duration::from_secs(120),
             bank_cap: Duration::from_secs(180),
-            bonus: Bonus { per_tile: Duration::from_secs(15), per_set: Duration::from_secs(20) },
             unearned_warning: Duration::from_secs(60),
             unearned_limit: Duration::from_secs(120),
             between_hands: Duration::from_secs(12),
@@ -94,49 +88,51 @@ impl Default for Timing {
 pub type PlayerId = u64;
 
 /// Where a connection receives its messages.
-pub type Outbox = mpsc::UnboundedSender<ServerMessage>;
+pub type Outbox<G> = mpsc::UnboundedSender<Out<G>>;
 
 /// A connection, as a room knows it. The id tells a stale connection's
 /// `Disconnect` (after its player came back on a new one) from a current one.
-pub struct Connection {
+pub struct Connection<G: GameEngine> {
     pub id: u64,
-    pub outbox: Outbox,
+    pub outbox: Outbox<G>,
 }
 
-pub enum Command {
-    Join { name: String, watch: bool, connection: Connection, reply: oneshot::Sender<Result<PlayerId, Refusal>> },
-    Rejoin { token: String, connection: Connection, reply: oneshot::Sender<Result<PlayerId, Refusal>> },
+/// The answer to joining a room.
+pub type Reply = oneshot::Sender<Result<PlayerId, Refusal>>;
+
+pub enum Command<G: GameEngine> {
+    Join { name: String, watch: bool, connection: Connection<G>, reply: Reply },
+    Rejoin { token: String, connection: Connection<G>, reply: Reply },
     /// A connection has gone; its player may come back.
     Disconnect { player: PlayerId, connection: u64 },
     /// A player leaves for good.
     Leave { player: PlayerId },
     Watch { player: PlayerId, watching: bool },
-    AddBot { player: PlayerId, level: BotLevel },
+    AddBot { player: PlayerId, level: G::Level },
     RemoveBot { player: PlayerId, seat: usize },
     Start { player: PlayerId },
     Pause { player: PlayerId, paused: bool },
     Step { player: PlayerId },
-    Move { player: PlayerId, mv: RummyMove },
+    Move { player: PlayerId, mv: G::Move },
     /// The current player's work in progress.
-    Draft { player: PlayerId, draft: Vec<Vec<Tile>> },
-    /// Something a seated player tells the game that isn't a move (Okey:
-    /// the tiles they set aside to discard next, in order).
-    Aside { player: PlayerId, aside: Vec<Tile> },
+    Draft { player: PlayerId, draft: G::Draft },
+    /// Something a seated player tells the game that isn't a move.
+    Aside { player: PlayerId, aside: G::Aside },
     /// A bot's move, worked out for turn number `turn`.
-    BotMove { turn: u64, mv: RummyMove },
+    BotMove { turn: u64, mv: G::Move },
 }
 
 /// A player in a room, or someone watching (the time fields unused).
-struct Player {
+struct Player<G: GameEngine> {
     id: PlayerId,
     token: String,
     name: String,
-    connection: Option<Connection>,
+    connection: Option<Connection<G>>,
     /// Set for a computer player.
-    bot: Option<BotLevel>,
+    bot: Option<G::Level>,
     /// What's left of their time bank.
     bank: Duration,
-    /// Extra time they were given for tiles they then took back...
+    /// Extra time they were given for a draft they then took back...
     unearned: Duration,
     /// ...whether they've been warned about it...
     warned: bool,
@@ -144,7 +140,7 @@ struct Player {
     no_bonus: bool,
 }
 
-impl Player {
+impl<G: GameEngine> Player<G> {
     /// Whether they can take their turns: connected, or a bot.
     fn present(&self) -> bool {
         self.connection.is_some() || self.bot.is_some()
@@ -152,48 +148,43 @@ impl Player {
 }
 
 /// Where a bot is in its turn.
-enum BotTurn {
+enum BotTurn<G: GameEngine> {
     /// Waiting before it works out its move.
     Thinking,
     /// Working it out.
     Choosing,
     /// Making this move, once its play has been shown (in rooms with live
     /// turns).
-    Ready(RummyMove),
+    Ready(G::Move),
 }
 
-/// How the server's rooms are set up.
+/// How the server's rooms are set up, whatever their game.
 #[derive(Clone, Copy, Debug)]
 pub struct Config {
     pub timing: Timing,
-    /// Every state tells every player all the racks: for watching how the
-    /// bots play, never for real games.
+    /// Every state shows every player all the hidden hands (tile rummy:
+    /// racks): for watching how the bots play, never for real games.
     pub open_racks: bool,
-    /// How far Extra Hard bots look ahead.
-    pub lookahead: Lookahead,
-    /// How many bots may think at once, across all rooms; the others wait
-    /// their turn.
-    pub bot_threads: usize,
 }
 
-pub struct Room {
+pub struct Room<G: GameEngine> {
     code: String,
     config: Config,
-    options: RoomOptions,
-    /// The game's part of the options.
-    rules: RummyRules,
+    /// The game's setup for its bots and clock.
+    game_config: G::Config,
+    options: RoomOptions<G::Rules, G::Level>,
     /// For bots' moves, worked out elsewhere, to come back as commands. Weak,
     /// so the room still ends when every connection has gone.
-    commands: mpsc::WeakSender<Command>,
+    commands: mpsc::WeakSender<Command<G>>,
     /// Shared by every room: a permit for each bot thinking.
     thinking: Arc<Semaphore>,
     /// In seat order.
-    players: Vec<Player>,
+    players: Vec<Player<G>>,
     /// Those watching, in the order they came.
-    watchers: Vec<Player>,
+    watchers: Vec<Player<G>>,
     next_id: PlayerId,
-    game: Option<Contest>,
-    /// Okey 101, between hands: when the next is dealt.
+    game: Option<G>,
+    /// Between hands: when the next is dealt.
     next_hand_at: Option<Instant>,
     /// Counts turns, so a bot's move that arrives late is known for one.
     turn: u64,
@@ -204,15 +195,13 @@ pub struct Room {
     full_turn_ends: Option<Instant>,
     /// When the room closes if nobody comes back.
     closes: Option<Instant>,
-    /// The current player's table so far this turn, if they've sent one:
-    /// played for them if their time runs out and it's a valid turn, and in
-    /// rooms with live turns shown to the others (and to anyone who
-    /// reconnects).
-    draft: Option<Vec<Vec<Tile>>>,
+    /// The current player's work so far this turn, if they've sent any:
+    /// what's played for them if their time runs out, and in rooms with
+    /// live turns shown to the others (and to anyone who reconnects).
+    draft: Option<G::Draft>,
     /// On a bot's turn: what it's doing, and when it takes its next step.
-    bot_turn: Option<(BotTurn, Instant)>,
-    /// Extra time given this turn for tiles: what the best table so far was
-    /// worth.
+    bot_turn: Option<(BotTurn<G>, Instant)>,
+    /// Extra time given this turn: what the best draft so far was worth.
     granted: Duration,
     /// Since when the game has been paused (only bots play it): the clock
     /// and the bots wait.
@@ -222,18 +211,19 @@ pub struct Room {
 }
 
 /// Starts a room's task; it removes itself from `rooms` when it closes.
-pub fn spawn(code: String, config: Config, options: RoomOptions, rooms: Arc<Rooms>) -> mpsc::Sender<Command> {
+pub fn spawn<G: GameEngine>(
+    code: String,
+    config: Config,
+    game_config: G::Config,
+    options: RoomOptions<G::Rules, G::Level>,
+    rooms: Arc<Rooms<G>>,
+) -> mpsc::Sender<Command<G>> {
     let (sender, commands) = mpsc::channel(64);
-    let rules = RummyRules {
-        rules: options.rules.clone(),
-        tile_bonus: options.tile_bonus,
-        false_okey_marks: options.false_okey_marks,
-    };
     let room = Room {
         code,
         config,
+        game_config,
         options,
-        rules,
         commands: sender.downgrade(),
         thinking: rooms.thinking(),
         players: Vec::new(),
@@ -255,8 +245,8 @@ pub fn spawn(code: String, config: Config, options: RoomOptions, rooms: Arc<Room
     sender
 }
 
-impl Room {
-    async fn run(mut self, mut commands: mpsc::Receiver<Command>, rooms: Arc<Rooms>) {
+impl<G: GameEngine> Room<G> {
+    async fn run(mut self, mut commands: mpsc::Receiver<Command<G>>, rooms: Arc<Rooms<G>>) {
         println!("room {} opened", self.code);
         // A room nobody joins closes too.
         self.closes = Some(Instant::now() + self.config.timing.abandoned);
@@ -286,7 +276,7 @@ impl Room {
         println!("room {} closed", self.code);
     }
 
-    fn handle(&mut self, command: Command) {
+    fn handle(&mut self, command: Command<G>) {
         match command {
             Command::Join { name, watch, connection, reply } => {
                 let _ = reply.send(self.join(name, watch, connection));
@@ -313,14 +303,14 @@ impl Room {
         }
     }
 
-    fn join(&mut self, name: String, watch: bool, connection: Connection) -> Result<PlayerId, Refusal> {
+    fn join(&mut self, name: String, watch: bool, connection: Connection<G>) -> Result<PlayerId, Refusal> {
         if watch {
             self.check_watcher_room()?;
         } else {
             self.check_seat_free()?;
         }
         let token = format!("{:032x}", rand::random::<u128>());
-        let _ = connection.outbox.send(ServerMessage::Joined { code: self.code.clone(), token: token.clone() });
+        let _ = connection.outbox.send(Out::Shared(SharedMessage::Joined { code: self.code.clone(), token: token.clone() }));
         let id = self.seat_player(name, token, Some(connection), None);
         if watch {
             let watcher = self.players.pop().expect("just seated");
@@ -345,14 +335,14 @@ impl Room {
         if self.game.is_some() {
             return Err(Refusal::GameStarted);
         }
-        let max = *Contest::seats(&self.rules).end();
+        let max = *G::seats(&self.options.game).end();
         if self.players.len() >= max {
             return Err(Refusal::RoomFull { max: max as u32 });
         }
         Ok(())
     }
 
-    fn seat_player(&mut self, name: String, token: String, connection: Option<Connection>, bot: Option<BotLevel>) -> PlayerId {
+    fn seat_player(&mut self, name: String, token: String, connection: Option<Connection<G>>, bot: Option<G::Level>) -> PlayerId {
         let id = self.next_id;
         self.next_id += 1;
         let bank = self.config.timing.bank;
@@ -360,9 +350,10 @@ impl Room {
         id
     }
 
-    fn rejoin(&mut self, token: &str, connection: Connection) -> Result<PlayerId, Refusal> {
+    fn rejoin(&mut self, token: &str, connection: Connection<G>) -> Result<PlayerId, Refusal> {
         if let Some(watcher) = self.watchers.iter_mut().find(|w| w.token == token) {
-            let _ = connection.outbox.send(ServerMessage::Joined { code: self.code.clone(), token: watcher.token.clone() });
+            let joined = SharedMessage::Joined { code: self.code.clone(), token: watcher.token.clone() };
+            let _ = connection.outbox.send(Out::Shared(joined));
             watcher.connection = Some(connection);
             let id = watcher.id;
             self.connections_changed();
@@ -372,7 +363,8 @@ impl Room {
         }
         let seat = self.players.iter().position(|p| p.bot.is_none() && p.token == token).ok_or(Refusal::NoSuchSeat)?;
         let player = &mut self.players[seat];
-        let _ = connection.outbox.send(ServerMessage::Joined { code: self.code.clone(), token: player.token.clone() });
+        let joined = SharedMessage::Joined { code: self.code.clone(), token: player.token.clone() };
+        let _ = connection.outbox.send(Out::Shared(joined));
         // Replaces any connection the player still had.
         player.connection = Some(connection);
         let id = player.id;
@@ -387,7 +379,7 @@ impl Room {
         Ok(id)
     }
 
-    /// The current player's table so far, for someone who just came, in
+    /// The current player's draft so far, for someone who just came, in
     /// rooms with live turns (not for the current player: it's theirs).
     fn send_draft_to(&self, player: PlayerId) {
         let Some(draft) = self.draft.as_ref().filter(|_| self.options.live_turns) else { return };
@@ -395,7 +387,7 @@ impl Room {
         let by = game.current();
         if self.seat(player) != Some(by) {
             if let Some(message) = game.draft_message(by, draft) {
-                self.send_to(player, message);
+                self.send_to(player, Out::Game(message));
             }
         }
     }
@@ -487,7 +479,7 @@ impl Room {
         }
     }
 
-    fn add_bot(&mut self, player: PlayerId, level: BotLevel) {
+    fn add_bot(&mut self, player: PlayerId, level: G::Level) {
         if let Some(refusal) = self.host_refusal(player) {
             return self.refuse(player, refusal);
         }
@@ -516,8 +508,8 @@ impl Room {
             Some(Refusal::GameStarted)
         } else if self.host() != Some(player) {
             Some(Refusal::OnlyHost)
-        } else if self.players.iter().filter(|p| p.present()).count() < *Contest::seats(&self.rules).start() {
-            Some(Refusal::TooFewPlayers { min: *Contest::seats(&self.rules).start() as u32 })
+        } else if self.players.iter().filter(|p| p.present()).count() < *G::seats(&self.options.game).start() {
+            Some(Refusal::TooFewPlayers { min: *G::seats(&self.options.game).start() as u32 })
         } else {
             None
         };
@@ -526,7 +518,7 @@ impl Room {
         }
         // Those who left before the start don't get a seat.
         self.players.retain(Player::present);
-        self.game = Some(Contest::new(&self.rules, self.players.len(), rand::random()));
+        self.game = Some(G::new(&self.options.game, self.players.len(), rand::random()));
         println!("room {}: game started with {} players", self.code, self.players.len());
         self.start_turn();
         self.broadcast_room();
@@ -536,7 +528,7 @@ impl Room {
     /// Why `player` can't pause or step the game, if they can't: only the
     /// host, in a game only bots play.
     fn pause_refusal(&self, player: PlayerId) -> Option<Refusal> {
-        if self.game.as_ref().is_none_or(Contest::over) {
+        if self.game.as_ref().is_none_or(G::over) {
             Some(Refusal::NoGame)
         } else if self.host() != Some(player) {
             Some(Refusal::OnlyHost)
@@ -591,7 +583,7 @@ impl Room {
     }
 
     /// A move by `player`: applied, or rejected to them.
-    fn make_move(&mut self, player: PlayerId, mv: RummyMove) {
+    fn make_move(&mut self, player: PlayerId, mv: G::Move) {
         let Some(seat) = self.seat(player) else {
             return self.refuse(player, Refusal::Watching);
         };
@@ -601,7 +593,7 @@ impl Room {
         if self.players[seat].bot.is_some() {
             return; // only the room moves for bots
         }
-        let kept = Contest::move_draft(&mv).map_or(Duration::ZERO, |draft| self.worth(seat, draft));
+        let kept = G::move_draft(&mv).map_or(Duration::ZERO, |draft| self.worth(seat, draft));
         // Their turn's time left, should this end it.
         let left = self.turn_ends.map_or(Duration::ZERO, |t| t.saturating_duration_since(Instant::now()));
         let ends_turn = game.ends_turn(&mv);
@@ -611,14 +603,14 @@ impl Room {
         match self.game.as_mut().expect("checked above").apply(seat, mv) {
             Ok(()) if ends_turn => self.end_turn(seat, kept, left),
             Ok(()) => self.went_on(seat, left),
-            Err(message) => self.send(seat, message),
+            Err(message) => self.send(seat, Out::Game(message)),
         }
     }
 
     /// `seat` has made a move that doesn't end their turn (drawn in Okey):
     /// it goes on, unless the hand has ended (the pool was empty).
     fn went_on(&mut self, seat: usize, left: Duration) {
-        if self.game.as_ref().is_some_and(Contest::in_turn) {
+        if self.game.as_ref().is_some_and(G::in_turn) {
             self.broadcast_state();
         } else {
             self.settle_bank();
@@ -628,7 +620,7 @@ impl Room {
 
     /// `seat`'s turn has ended with `left` of its time unused, its play
     /// worth `kept` in extra time: banks the time left (not what was given
-    /// for tiles then taken back), counts what they were given beyond what
+    /// for a draft then taken back), counts what they were given beyond what
     /// they kept, and begins the next turn.
     fn end_turn(&mut self, seat: usize, kept: Duration, left: Duration) {
         if self.options.time_bank && self.players[seat].bot.is_none() {
@@ -638,29 +630,24 @@ impl Room {
             player.bank = (player.bank + left.saturating_sub(unearned)).min(cap).max(player.bank);
         }
         let notice = self.count_unearned(seat, kept);
-        if let Some(places) = self.game.as_ref().and_then(Contest::placings) {
+        if let Some(places) = self.game.as_ref().and_then(G::placings) {
             println!("room {}: game over, places {places:?}", self.code);
         }
         self.start_turn();
         self.broadcast_state();
         if let Some(notice) = notice {
-            self.send(seat, ServerMessage::Notice { notice });
+            self.send(seat, Out::Shared(SharedMessage::Notice { notice }));
         }
     }
 
-    /// The game's setup for bots and the clock.
-    fn game_config(&self) -> RummyConfig {
-        RummyConfig { lookahead: self.config.lookahead, bonus: self.config.timing.bonus }
-    }
-
     /// What `draft` would earn `seat` in extra time as their turn.
-    fn worth(&self, seat: usize, draft: &Vec<Vec<Tile>>) -> Duration {
-        self.game.as_ref().map_or(Duration::ZERO, |game| game.worth(&self.game_config(), seat, draft))
+    fn worth(&self, seat: usize, draft: &G::Draft) -> Duration {
+        self.game.as_ref().map_or(Duration::ZERO, |game| game.worth(&self.game_config, seat, draft))
     }
 
     /// The current player's draft is worth more extra time than any before
     /// it this turn: they get the difference.
-    fn give_bonus(&mut self, seat: usize, draft: &Vec<Vec<Tile>>) {
+    fn give_bonus(&mut self, seat: usize, draft: &G::Draft) {
         if self.players[seat].no_bonus {
             return;
         }
@@ -675,7 +662,7 @@ impl Room {
         self.turn_ends = self.turn_ends.map(|t| t + added);
         self.full_turn_ends = self.full_turn_ends.map(|t| t + added);
         let turn_ms = self.turn_ends.map_or(0, |t| t.saturating_duration_since(Instant::now()).as_millis() as u32);
-        self.broadcast(ServerMessage::Clock { by: seat, added_ms: added.as_millis() as u32, turn_ms });
+        self.broadcast(Out::Shared(SharedMessage::Clock { by: seat, added_ms: added.as_millis() as u32, turn_ms }));
     }
 
     /// Extra time `seat` was given this turn beyond what their play kept
@@ -728,7 +715,7 @@ impl Room {
     /// out, and passed on to the others in rooms with live turns. Only from
     /// the current player, and only what they could use (tile rummy: the
     /// table's tiles and their rack's).
-    fn share_draft(&mut self, player: PlayerId, draft: Vec<Vec<Tile>>) {
+    fn share_draft(&mut self, player: PlayerId, draft: G::Draft) {
         let Some(seat) = self.seat(player) else { return };
         let Some(game) = &self.game else { return };
         if game.current() != seat || !game.in_turn() {
@@ -743,8 +730,8 @@ impl Room {
 
     /// Keeps the current player's work so far, shown to the others in rooms
     /// with live turns.
-    fn pass_on_draft(&mut self, by: usize, draft: Vec<Vec<Tile>>) {
-        let message = self.game.as_ref().and_then(|game| game.draft_message(by, &draft));
+    fn pass_on_draft(&mut self, by: usize, draft: G::Draft) {
+        let message = self.game.as_ref().and_then(|game| game.draft_message(by, &draft)).map(Out::Game);
         if let Some(message) = message.filter(|_| self.options.live_turns) {
             for other in (0..self.players.len()).filter(|&other| other != by) {
                 self.send(other, message.clone());
@@ -766,7 +753,7 @@ impl Room {
                 let (game, turn) = (game.clone(), self.turn);
                 let Some(commands) = self.commands.upgrade() else { return };
                 self.bot_turn = Some((BotTurn::Choosing, Instant::now()));
-                let (config, limit, thinking) = (self.game_config(), self.config.timing.bot_time, self.thinking.clone());
+                let (config, limit, thinking) = (self.game_config, self.config.timing.bot_time, self.thinking.clone());
                 tokio::spawn(async move {
                     let Ok(_permit) = thinking.acquire_owned().await else { return };
                     let choose = move || {
@@ -785,7 +772,7 @@ impl Room {
 
     /// A bot's move has been worked out: shown first in rooms with live
     /// turns, then made (once the game isn't paused).
-    fn bot_chose(&mut self, turn: u64, mv: RummyMove) {
+    fn bot_chose(&mut self, turn: u64, mv: G::Move) {
         if turn != self.turn || !matches!(self.bot_turn, Some((BotTurn::Choosing, _))) {
             return; // its turn has passed
         }
@@ -806,7 +793,7 @@ impl Room {
     /// The current player, a bot, makes this move. Should the game refuse
     /// one that would end its turn, it makes some allowed move instead
     /// (`bot_fallback`).
-    fn bot_moves(&mut self, mv: RummyMove) {
+    fn bot_moves(&mut self, mv: G::Move) {
         let Some(game) = self.game.as_mut() else { return };
         let seat = game.current();
         let ends_turn = game.ends_turn(&mv);
@@ -831,28 +818,27 @@ impl Room {
     /// them, from their draft if they sent one.
     fn time_out(&mut self) {
         self.settle_bank();
-        let config = self.game_config();
         let Some(game) = self.game.as_mut() else { return };
         let seat = game.current();
-        let TimedOut { kept, notice } = game.time_out(&config, self.draft.take());
+        let TimedOut { kept, notice } = game.time_out(&self.game_config, self.draft.take());
         self.end_turn(seat, kept, Duration::ZERO);
         if let Some(notice) = notice {
-            self.send(seat, notice);
+            self.send(seat, Out::Game(notice));
         }
     }
 
     /// Deals the next hand once the scores have been shown.
     fn next_hand(&mut self) {
         self.next_hand_at = None;
-        if self.game.as_mut().is_some_and(Contest::next_hand) {
+        if self.game.as_mut().is_some_and(G::next_hand) {
             self.start_turn();
             self.broadcast_state();
         }
     }
 
     /// Sets the timer for the turn now beginning (none once the game is
-    /// over, or an Okey 101 hand), and a bot's first step if it's a bot's
-    /// turn. After an Okey 101 hand, when the next is dealt.
+    /// over, or a hand), and a bot's first step if it's a bot's turn.
+    /// After a hand, when the next is dealt.
     fn start_turn(&mut self) {
         let Some(game) = &self.game else { return };
         self.turn += 1;
@@ -891,7 +877,7 @@ impl Room {
     }
 
     /// Players and those watching.
-    fn members(&self) -> impl Iterator<Item = &Player> {
+    fn members(&self) -> impl Iterator<Item = &Player<G>> {
         self.players.iter().chain(&self.watchers)
     }
 
@@ -901,7 +887,7 @@ impl Room {
         self.members().filter(|p| p.connection.is_some()).map(|p| p.id).min()
     }
 
-    fn send(&self, seat: usize, message: ServerMessage) {
+    fn send(&self, seat: usize, message: Out<G>) {
         if let Some(connection) = &self.players[seat].connection {
             let _ = connection.outbox.send(message);
         }
@@ -909,23 +895,23 @@ impl Room {
 
     /// To a member, seated or watching.
     fn refuse(&self, player: PlayerId, refusal: Refusal) {
-        self.send_to(player, ServerMessage::Refused { refusal });
+        self.send_to(player, Out::Shared(SharedMessage::Refused { refusal }));
     }
 
-    fn send_to(&self, player: PlayerId, message: ServerMessage) {
+    fn send_to(&self, player: PlayerId, message: Out<G>) {
         if let Some(connection) = self.members().find(|p| p.id == player).and_then(|p| p.connection.as_ref()) {
             let _ = connection.outbox.send(message);
         }
     }
 
-    fn send_watchers(&self, message: ServerMessage) {
+    fn send_watchers(&self, message: Out<G>) {
         for connection in self.watchers.iter().filter_map(|w| w.connection.as_ref()) {
             let _ = connection.outbox.send(message.clone());
         }
     }
 
     /// To everyone, seated or watching.
-    fn broadcast(&self, message: ServerMessage) {
+    fn broadcast(&self, message: Out<G>) {
         for connection in self.members().filter_map(|p| p.connection.as_ref()) {
             let _ = connection.outbox.send(message.clone());
         }
@@ -933,7 +919,7 @@ impl Room {
 
     fn broadcast_room(&self) {
         let host = self.host();
-        let seat = |p: &Player| Seat { name: p.name.clone(), connected: p.present(), bot: p.bot, host: host == Some(p.id) };
+        let seat = |p: &Player<G>| Seat { name: p.name.clone(), connected: p.present(), bot: p.bot, host: host == Some(p.id) };
         let room = RoomInfo {
             code: self.code.clone(),
             seats: self.players.iter().map(seat).collect(),
@@ -945,12 +931,12 @@ impl Room {
             options: self.options.clone(),
         };
         for you in 0..self.players.len() {
-            self.send(you, ServerMessage::Room { room: RoomInfo { you: Some(you), ..room.clone() } });
+            self.send(you, Out::Shared(SharedMessage::Room { room: RoomInfo { you: Some(you), ..room.clone() } }));
         }
         for (watching, watcher) in self.watchers.iter().enumerate() {
             if let Some(connection) = &watcher.connection {
                 let room = RoomInfo { watching: Some(watching), ..room.clone() };
-                let _ = connection.outbox.send(ServerMessage::Room { room });
+                let _ = connection.outbox.send(Out::Shared(SharedMessage::Room { room }));
             }
         }
     }
@@ -974,13 +960,13 @@ impl Room {
     }
 
     /// The game as `seat` may see it, or someone watching (`None`).
-    fn state(&self, seat: Option<usize>) -> Option<ServerMessage> {
+    fn state(&self, seat: Option<usize>) -> Option<Out<G>> {
         let game = self.game.as_ref()?;
         // The clock stands still while the game is paused.
         let now = self.paused.unwrap_or_else(Instant::now);
         let turn_ms = self.turn_ends.map(|t| t.saturating_duration_since(now).as_millis() as u32);
         let next_hand_ms = self.next_hand_at.map(|t| t.saturating_duration_since(now).as_millis() as u32);
-        // Watching a game only bots play, there's nobody to give a rack away to.
+        // Watching a game only bots play, there's nobody to give a hand away to.
         let open = self.config.open_racks || (seat.is_none() && self.players.iter().all(|p| p.bot.is_some()));
         // The current player's bank as of now, should they be using it.
         let overdue = self.turn_ends.map_or(Duration::ZERO, |t| now.saturating_duration_since(t));
@@ -995,7 +981,7 @@ impl Room {
                 })
                 .collect()
         });
-        Some(game.state(seat, &ClockInfo { turn_ms, banks, next_hand_ms }, open))
+        Some(Out::Game(game.state(seat, &ClockInfo { turn_ms, banks, next_hand_ms }, open)))
     }
 
     fn broadcast_state(&self) {

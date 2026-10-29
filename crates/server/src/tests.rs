@@ -12,7 +12,6 @@ use tokio_tungstenite::tungstenite::Message;
 use tokio_tungstenite::{MaybeTlsStream, WebSocketStream};
 
 use super::*;
-use crate::clock::Bonus;
 
 /// Long enough never to run out during a test.
 const SLOW: Timing = Timing {
@@ -25,7 +24,6 @@ const SLOW: Timing = Timing {
     bot_time: Duration::from_millis(200),
     bank: Duration::from_secs(60),
     bank_cap: Duration::from_secs(90),
-    bonus: Bonus { per_tile: Duration::from_secs(15), per_set: Duration::from_secs(20) },
     unearned_warning: Duration::from_secs(60),
     unearned_limit: Duration::from_secs(120),
     between_hands: Duration::from_millis(50),

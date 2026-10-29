@@ -18,6 +18,13 @@ pub struct Bonus {
     pub per_set: Duration,
 }
 
+/// 15 s a tile and 20 s a set holding one.
+impl Default for Bonus {
+    fn default() -> Bonus {
+        Bonus { per_tile: Duration::from_secs(15), per_set: Duration::from_secs(20) }
+    }
+}
+
 impl Bonus {
     /// The time `after` earns as a turn from `before` with `rack`: nothing
     /// unless it's a valid turn.

@@ -5,12 +5,18 @@ use std::net::SocketAddr;
 use std::sync::Arc;
 
 use axum::extract::ws::{Message, WebSocket};
-use protocol::{ClientMessage, Refusal, ServerMessage, PROTOCOL_VERSION};
-use tokio::sync::{mpsc, oneshot};
+use protocol::{ClientMessage, PROTOCOL_VERSION};
+use tokio::sync::mpsc;
 
-use crate::contest::{Discard, RummyMove};
-use crate::room::{Command, Connection, Outbox, PlayerId};
-use crate::rooms::Rooms;
+use crate::contest::{Contest, Discard, RummyMove};
+use crate::room::{self, Connection, PlayerId, Reply};
+use crate::rooms;
+use crate::shared::{Out, Refusal, SharedMessage};
+use crate::wire;
+
+type Command = room::Command<Contest>;
+type Outbox = room::Outbox<Contest>;
+type Rooms = rooms::Rooms<Contest>;
 
 /// Longest player name kept, in characters.
 const MAX_NAME: usize = 20;
@@ -25,13 +31,13 @@ pub async fn run(mut socket: WebSocket, rooms: Arc<Rooms>, address: SocketAddr) 
     let id = rooms.connection_id();
     println!("{address} connected");
     let (outbox, mut inbox) = mpsc::unbounded_channel();
-    let _ = outbox.send(ServerMessage::Welcome { protocol: PROTOCOL_VERSION });
+    let _ = outbox.send(Out::Shared(SharedMessage::Welcome { protocol: PROTOCOL_VERSION }));
     let mut membership = None;
     loop {
         // Both are cancel-safe: whichever loses the race loses nothing.
         tokio::select! {
             Some(message) = inbox.recv() => {
-                if socket.send(Message::text(message.to_json())).await.is_err() {
+                if socket.send(Message::text(wire::server_message(message).to_json())).await.is_err() {
                     break;
                 }
             }
@@ -54,11 +60,11 @@ pub async fn run(mut socket: WebSocket, rooms: Arc<Rooms>, address: SocketAddr) 
 }
 
 fn error(outbox: &Outbox, message: impl Into<String>) {
-    let _ = outbox.send(ServerMessage::Error { message: message.into() });
+    let _ = outbox.send(Out::Shared(SharedMessage::Error { message: message.into() }));
 }
 
 fn refuse(outbox: &Outbox, refusal: Refusal) {
-    let _ = outbox.send(ServerMessage::Refused { refusal });
+    let _ = outbox.send(Out::Shared(SharedMessage::Refused { refusal }));
 }
 
 async fn handle(message: ClientMessage, rooms: &Arc<Rooms>, membership: &mut Option<Membership>, id: u64, outbox: &Outbox) {
@@ -70,7 +76,7 @@ async fn handle(message: ClientMessage, rooms: &Arc<Rooms>, membership: &mut Opt
             refuse(outbox, Refusal::AlreadyInRoom)
         }
         ClientMessage::CreateRoom { name, options } => {
-            let room = rooms.create(options.checked());
+            let room = rooms.create(wire::room_options(options.checked()));
             let join = |reply| Command::Join { name: clean(&name), watch: false, connection: connection(), reply };
             *membership = enter(room, outbox, join).await;
         }
@@ -116,9 +122,9 @@ async fn handle(message: ClientMessage, rooms: &Arc<Rooms>, membership: &mut Opt
 async fn enter(
     room: mpsc::Sender<Command>,
     outbox: &Outbox,
-    command: impl FnOnce(oneshot::Sender<Result<PlayerId, Refusal>>) -> Command,
+    command: impl FnOnce(Reply) -> Command,
 ) -> Option<Membership> {
-    let (reply, answer) = oneshot::channel();
+    let (reply, answer) = tokio::sync::oneshot::channel();
     if room.send(command(reply)).await.is_err() {
         refuse(outbox, Refusal::RoomClosed);
         return None;

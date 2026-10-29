@@ -1,30 +1,32 @@
-//! All open rooms, by code.
+//! All open rooms of a game, by code.
 
 use std::collections::HashMap;
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::{Arc, Mutex};
 
-use protocol::RoomOptions;
 use tokio::sync::{mpsc, Semaphore};
 
+use crate::engine::GameEngine;
 use crate::room::{self, Command, Config};
+use crate::shared::RoomOptions;
 
 /// Letters of room codes: no I or O, which read as 1 and 0.
 const CODE_LETTERS: &[u8] = b"ABCDEFGHJKLMNPQRSTUVWXYZ";
 const CODE_LENGTH: usize = 4;
 
-pub struct Rooms {
-    rooms: Mutex<HashMap<String, mpsc::Sender<Command>>>,
+pub struct Rooms<G: GameEngine> {
+    rooms: Mutex<HashMap<String, mpsc::Sender<Command<G>>>>,
     config: Config,
+    game_config: G::Config,
     connections: AtomicU64,
-    /// A permit for each bot thinking, shared by every room.
+    /// A permit for each bot thinking, shared by every room (and every
+    /// game's rooms, given the same).
     thinking: Arc<Semaphore>,
 }
 
-impl Rooms {
-    pub fn new(config: Config) -> Rooms {
-        let thinking = Arc::new(Semaphore::new(config.bot_threads.max(1)));
-        Rooms { rooms: Mutex::default(), config, connections: AtomicU64::new(0), thinking }
+impl<G: GameEngine> Rooms<G> {
+    pub fn new(config: Config, game_config: G::Config, thinking: Arc<Semaphore>) -> Rooms<G> {
+        Rooms { rooms: Mutex::default(), config, game_config, connections: AtomicU64::new(0), thinking }
     }
 
     pub fn thinking(&self) -> Arc<Semaphore> {
@@ -32,7 +34,7 @@ impl Rooms {
     }
 
     /// Opens a room with a new code.
-    pub fn create(self: &Arc<Self>, options: RoomOptions) -> mpsc::Sender<Command> {
+    pub fn create(self: &Arc<Self>, options: RoomOptions<G::Rules, G::Level>) -> mpsc::Sender<Command<G>> {
         let mut rooms = self.rooms.lock().unwrap();
         let code = loop {
             let code: String =
@@ -41,13 +43,13 @@ impl Rooms {
                 break code;
             }
         };
-        let sender = room::spawn(code.clone(), self.config, options, self.clone());
+        let sender = room::spawn(code.clone(), self.config, self.game_config, options, self.clone());
         rooms.insert(code, sender.clone());
         sender
     }
 
     /// The room with this code, typed in any case.
-    pub fn get(&self, code: &str) -> Option<mpsc::Sender<Command>> {
+    pub fn get(&self, code: &str) -> Option<mpsc::Sender<Command<G>>> {
         self.rooms.lock().unwrap().get(&code.trim().to_uppercase()).cloned()
     }
 
@@ -59,4 +61,9 @@ impl Rooms {
     pub fn connection_id(&self) -> u64 {
         self.connections.fetch_add(1, Ordering::Relaxed)
     }
+}
+
+/// The bots' permits: `threads` may think at once.
+pub fn bot_pool(threads: usize) -> Arc<Semaphore> {
+    Arc::new(Semaphore::new(threads.max(1)))
 }

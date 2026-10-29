@@ -11,6 +11,7 @@ use tile_rummy::okey101::{self, Match, OkeyMove, Phase, Turn};
 use tile_rummy::plain_okey::{plain_bot_move, PlainGame, PlainMove, PlainTurn};
 use tile_rummy::{bot_move_with, salvage, within_reach, BotLevel, Game, Lookahead, Move, Rules, Tile};
 use protocol::{Notice, RuleSet, ServerMessage};
+use serde::{Deserialize, Serialize};
 
 use crate::clock::Bonus;
 use crate::engine::{placings_by, ClockInfo, GameEngine, TimedOut};
@@ -36,8 +37,9 @@ enum Kind {
     Plain(PlainGame),
 }
 
-/// What a room's options say about its game.
-#[derive(Clone, Debug, PartialEq)]
+/// What a room's options say about its game (the rest is the room's).
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct RummyRules {
     pub rules: RuleSet,
     pub tile_bonus: bool,

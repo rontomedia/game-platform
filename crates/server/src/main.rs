@@ -8,8 +8,10 @@ mod contest;
 mod engine;
 mod room;
 mod rooms;
+mod shared;
 #[cfg(test)]
 mod tests;
+mod wire;
 
 use std::net::SocketAddr;
 use std::sync::Arc;
@@ -19,10 +21,26 @@ use axum::extract::{ConnectInfo, State};
 use axum::response::Response;
 use axum::routing::get;
 use axum::Router;
+use clock::Bonus;
+use contest::{Contest, RummyConfig};
 use tile_rummy::Lookahead;
-use room::{Config, Timing};
-use rooms::Rooms;
+use room::Timing;
+use rooms::{bot_pool, Rooms};
 use tokio::net::TcpListener;
+
+/// How the server is set up, from the command line (see `config`).
+#[derive(Clone, Copy, Debug)]
+pub struct Config {
+    pub timing: Timing,
+    /// Every state tells every player all the racks: for watching how the
+    /// bots play, never for real games.
+    pub open_racks: bool,
+    /// How far Extra Hard bots look ahead.
+    pub lookahead: Lookahead,
+    /// How many bots may think at once, across all rooms; the others wait
+    /// their turn.
+    pub bot_threads: usize,
+}
 
 /// All interfaces, so phones on the local network can connect.
 const ADDRESS: &str = "0.0.0.0:3000";
@@ -74,14 +92,17 @@ fn config(args: Vec<String>) -> Config {
 }
 
 async fn serve(listener: TcpListener, config: Config) {
-    let app = Router::new().route("/ws", get(upgrade)).with_state(Arc::new(Rooms::new(config)));
+    let rooms = room::Config { timing: config.timing, open_racks: config.open_racks };
+    let rummy = RummyConfig { lookahead: config.lookahead, bonus: Bonus::default() };
+    let rooms = Rooms::new(rooms, rummy, bot_pool(config.bot_threads));
+    let app = Router::new().route("/ws", get(upgrade)).with_state(Arc::new(rooms));
     axum::serve(listener, app.into_make_service_with_connect_info::<SocketAddr>()).await.expect("server failed");
 }
 
 async fn upgrade(
     ws: WebSocketUpgrade,
     ConnectInfo(address): ConnectInfo<SocketAddr>,
-    State(rooms): State<Arc<Rooms>>,
+    State(rooms): State<Arc<Rooms<Contest>>>,
 ) -> Response {
     ws.on_upgrade(move |socket| connection::run(socket, rooms, address))
 }
