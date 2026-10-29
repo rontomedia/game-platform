@@ -1,5 +1,5 @@
 //! The match server: rooms that 2 to 4 players join with a code, each
-//! running one game (crates/engine) with a turn timer. Clients speak
+//! running one game (games/tile-rummy) with a turn timer. Clients speak
 //! crates/protocol over a WebSocket at /ws.
 
 mod clock;
@@ -18,7 +18,7 @@ use axum::extract::{ConnectInfo, State};
 use axum::response::Response;
 use axum::routing::get;
 use axum::Router;
-use engine::Lookahead;
+use tile_rummy::Lookahead;
 use room::{Config, Timing};
 use rooms::Rooms;
 use tokio::net::TcpListener;
@@ -45,7 +45,7 @@ async fn main() {
 /// - `--open-racks`: every player sees every rack, to judge the bots
 ///   (never for real games).
 /// - `--lookahead OPTIONS,GAMES,ROUNDS`: how far Extra Hard looks ahead
-///   (see `engine::Lookahead`; default 1,24,2).
+///   (see `tile_rummy::Lookahead`; default 1,24,2).
 /// - `--bot-time MS`: the longest a bot thinks about a move (default 1000).
 /// - `--bot-threads N`: how many bots think at once (default: one fewer
 ///   than the processor's threads, at least one).

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 
-import { newOrChanged, without } from './arrange.ts'
+import { newOrChanged, without } from './games/tile-rummy/arrange.ts'
 import type { Problem } from './messages.ts'
 
 import {
@@ -14,7 +14,7 @@ import {
   type RoomInfo,
   type ServerMessage,
   type Tile,
-} from './wasm/engine.js'
+} from './games/tile-rummy/wasm/engine.js'
 
 export type Status = 'connecting' | 'open' | 'closed'
 

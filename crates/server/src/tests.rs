@@ -3,9 +3,9 @@
 use std::net::SocketAddr;
 use std::time::Duration;
 
-use engine::{PlayerView, TurnError};
+use tile_rummy::{PlayerView, TurnError};
 use futures_util::{SinkExt, StreamExt};
-use engine::BotLevel;
+use tile_rummy::BotLevel;
 use protocol::{ClientMessage, Notice, Refusal, RoomInfo, RoomOptions, Seat, ServerMessage, PROTOCOL_VERSION};
 use tokio::net::{TcpListener, TcpStream};
 use tokio_tungstenite::tungstenite::Message;
@@ -32,7 +32,7 @@ const SLOW: Timing = Timing {
 };
 
 async fn start_server(timing: Timing) -> SocketAddr {
-    start_server_with(Config { timing, open_racks: false, lookahead: engine::Lookahead::default(), bot_threads: 2 }).await
+    start_server_with(Config { timing, open_racks: false, lookahead: tile_rummy::Lookahead::default(), bot_threads: 2 }).await
 }
 
 async fn start_server_with(config: Config) -> SocketAddr {
@@ -414,7 +414,7 @@ async fn bad_messages_get_an_error() {
 
 /// A table in the middle of Ann's turn: three of her tiles put down (not
 /// necessarily a valid set).
-fn draft(ann_view: &PlayerView) -> Vec<Vec<engine::Tile>> {
+fn draft(ann_view: &PlayerView) -> Vec<Vec<tile_rummy::Tile>> {
     vec![ann_view.rack[..3].to_vec()]
 }
 
@@ -443,7 +443,7 @@ async fn only_the_current_player_shares_a_draft_and_only_their_tiles() {
     // Not Bob's turn: ignored.
     bob.send(ClientMessage::Draft { table: vec![] }).await;
     // Three jokers: Ann can't have them.
-    let joker = engine::Tile::Joker;
+    let joker = tile_rummy::Tile::Joker;
     ann.send(ClientMessage::Draft { table: vec![vec![joker, joker, joker]] }).await;
     assert_eq!(ann.refusal().await, Refusal::NotYourTiles);
     ann.send(ClientMessage::Draw).await;
@@ -528,7 +528,7 @@ async fn against_bots(config: Config, levels: &[BotLevel]) -> (usize, PlayerView
                 drafts += 1;
             }
             ServerMessage::State { view, .. } => {
-                assert!(view.table.iter().all(|set| engine::classify(set).is_some()));
+                assert!(view.table.iter().all(|set| tile_rummy::classify(set).is_some()));
                 if let Some(_outcome) = &view.outcome {
                     let view = view.clone();
                     states.push(message);
@@ -546,7 +546,7 @@ async fn against_bots(config: Config, levels: &[BotLevel]) -> (usize, PlayerView
 
 #[tokio::test]
 async fn a_game_against_bots() {
-    let (drafts, last, states) = against_bots(Config { timing: SLOW, open_racks: false, lookahead: engine::Lookahead::default(), bot_threads: 2 }, &[BotLevel::Easy, BotLevel::Medium, BotLevel::Hard]).await;
+    let (drafts, last, states) = against_bots(Config { timing: SLOW, open_racks: false, lookahead: tile_rummy::Lookahead::default(), bot_threads: 2 }, &[BotLevel::Easy, BotLevel::Medium, BotLevel::Hard]).await;
     assert!(drafts > 0, "the bots' plays are shown live first");
     // Someone who never plays can't go out; the bots usually do.
     assert!(!last.outcome.unwrap().winners.is_empty());
@@ -556,7 +556,7 @@ async fn a_game_against_bots() {
 
 #[tokio::test]
 async fn open_racks_show_every_rack() {
-    let (_, _, states) = against_bots(Config { timing: SLOW, open_racks: true, lookahead: engine::Lookahead::default(), bot_threads: 2 }, &[BotLevel::Easy]).await;
+    let (_, _, states) = against_bots(Config { timing: SLOW, open_racks: true, lookahead: tile_rummy::Lookahead::default(), bot_threads: 2 }, &[BotLevel::Easy]).await;
     for message in states {
         if let ServerMessage::State { view, racks, .. } = message {
             let racks = racks.expect("every rack");
@@ -574,7 +574,7 @@ async fn a_valid_table_is_played_when_time_runs_out() {
     // Deals until Ann's rack has an initial meld (a bot finds it).
     for _ in 0..40 {
         let TwoPlayers { mut ann, mut bob, ann_view, .. } = two_player_game_with(timing, options.clone()).await;
-        let engine::Move::Play(table) = engine::bot_move(&ann_view, BotLevel::Hard) else { continue };
+        let tile_rummy::Move::Play(table) = tile_rummy::bot_move(&ann_view, BotLevel::Hard) else { continue };
         ann.send(ClientMessage::Draft { table: table.clone() }).await;
         let (view, _) = bob.state().await;
         assert_eq!(view.table, table, "played as she left it");
@@ -620,10 +620,10 @@ async fn the_bank_follows_the_turns_own_time() {
 
 /// A two-player game in which Ann can make her initial meld; the table
 /// for it.
-async fn ann_can_meld(timing: Timing, options: RoomOptions) -> (TwoPlayers, Vec<Vec<engine::Tile>>) {
+async fn ann_can_meld(timing: Timing, options: RoomOptions) -> (TwoPlayers, Vec<Vec<tile_rummy::Tile>>) {
     for _ in 0..40 {
         let game = two_player_game_with(timing, options.clone()).await;
-        if let engine::Move::Play(table) = engine::bot_move(&game.ann_view, BotLevel::Hard) {
+        if let tile_rummy::Move::Play(table) = tile_rummy::bot_move(&game.ann_view, BotLevel::Hard) {
             return (game, table);
         }
     }
@@ -850,11 +850,11 @@ fn the_command_line_sets_up_the_bots() {
     let args = |s: &str| s.split_whitespace().map(String::from).collect::<Vec<_>>();
     let set = config(args("--open-racks --lookahead 2,10,3 --bot-time 500 --bot-threads 3"));
     assert!(set.open_racks);
-    assert_eq!(set.lookahead, engine::Lookahead { options: 2, games: 10, rounds: 3 });
+    assert_eq!(set.lookahead, tile_rummy::Lookahead { options: 2, games: 10, rounds: 3 });
     assert_eq!((set.timing.bot_time, set.bot_threads), (Duration::from_millis(500), 3));
     let set = config(Vec::new());
     assert!(!set.open_racks);
-    assert_eq!((set.lookahead, set.timing.bot_time), (engine::Lookahead::default(), Duration::from_secs(1)));
+    assert_eq!((set.lookahead, set.timing.bot_time), (tile_rummy::Lookahead::default(), Duration::from_secs(1)));
     assert!(set.bot_threads >= 1);
 }
 
@@ -889,13 +889,13 @@ async fn an_extra_hard_bot_moves_within_its_time() {
 
 /// An Okey 101 room's options: `hands` hands, the rest as given.
 fn okey_room(hands: u32) -> RoomOptions {
-    let rules = engine::okey101::Okey101Rules { hands, ..Default::default() };
+    let rules = tile_rummy::okey101::Okey101Rules { hands, ..Default::default() };
     RoomOptions { rules: protocol::RuleSet::Okey101(rules), ..RoomOptions::default() }
 }
 
 /// The next `OkeyState`: the view, the turn's time and the time to the
 /// next hand.
-async fn okey_state(client: &mut Client) -> (engine::okey101::MatchView, Option<u32>, Option<u32>) {
+async fn okey_state(client: &mut Client) -> (tile_rummy::okey101::MatchView, Option<u32>, Option<u32>) {
     next(client, |m| match m {
         ServerMessage::OkeyState { view, turn_ms, next_hand_ms, .. } => Some((view, turn_ms, next_hand_ms)),
         _ => None,
@@ -905,8 +905,8 @@ async fn okey_state(client: &mut Client) -> (engine::okey101::MatchView, Option<
 
 /// Ann's turn in Okey 101, as the placeholder bots play it: draw, then
 /// discard a tile that costs nothing.
-async fn okey_draw_and_discard(ann: &mut Client, view: &engine::okey101::MatchView) {
-    use engine::okey101::{safe_discard, Phase};
+async fn okey_draw_and_discard(ann: &mut Client, view: &tile_rummy::okey101::MatchView) {
+    use tile_rummy::okey101::{safe_discard, Phase};
     let hand = &view.hand;
     if hand.phase == Phase::Draw {
         ann.send(ClientMessage::Draw).await;
@@ -981,16 +981,16 @@ async fn okey_moves_that_arent_allowed() {
         _ => None,
     })
     .await;
-    assert_eq!(rejected, engine::okey101::OkeyError::AlreadyDrawn);
+    assert_eq!(rejected, tile_rummy::okey101::OkeyError::AlreadyDrawn);
     // A tile she doesn't hold.
-    let missing = engine::full_set().into_iter().find(|t| !view.hand.rack.contains(t)).unwrap();
+    let missing = tile_rummy::full_set().into_iter().find(|t| !view.hand.rack.contains(t)).unwrap();
     ann.send(ClientMessage::Discard { take_discard: false, table: vec![], discard: missing, finish: false }).await;
     let rejected = next(&mut ann, |m| match m {
         ServerMessage::OkeyRejected { error } => Some(error),
         _ => None,
     })
     .await;
-    assert_eq!(rejected, engine::okey101::OkeyError::TileNotOnRack);
+    assert_eq!(rejected, tile_rummy::okey101::OkeyError::TileNotOnRack);
 }
 
 #[tokio::test]
@@ -1023,7 +1023,7 @@ async fn an_okey_turn_that_runs_out_discards() {
 
 #[tokio::test]
 async fn a_plain_okey_game_against_bots() {
-    use engine::plain_okey::{plain_bot_move, PlainMove, PlainRules};
+    use tile_rummy::plain_okey::{plain_bot_move, PlainMove, PlainRules};
     let server = start_server(SLOW).await;
     let mut ann = Client::connect(server).await;
     let options = RoomOptions { rules: protocol::RuleSet::Okey(PlainRules { points: 4 }), ..RoomOptions::default() };

@@ -6,9 +6,9 @@
 //! `ServerMessage`) from the engine's WASM build. Fields are never `null`:
 //! an absent value is left out, which is what those types expect.
 
-use engine::okey101::{MatchView, Okey101Rules, OkeyError};
-use engine::plain_okey::{PlainRules, PlainView};
-use engine::{BotLevel, PlayerView, Tile, TurnError};
+use tile_rummy::okey101::{MatchView, Okey101Rules, OkeyError};
+use tile_rummy::plain_okey::{PlainRules, PlainView};
+use tile_rummy::{BotLevel, PlayerView, Tile, TurnError};
 use serde::{Deserialize, Serialize};
 
 #[cfg(feature = "wasm")]
@@ -52,12 +52,12 @@ pub struct RoomOptions {
 #[cfg_attr(feature = "wasm", derive(Tsify))]
 #[serde(tag = "kind", rename_all = "camelCase")]
 pub enum RuleSet {
-    /// Rearranging a shared table, 30 to open (`engine::Game`).
+    /// Rearranging a shared table, 30 to open (`tile_rummy::Game`).
     #[default]
     Classic,
-    /// Draw, meld, discard; 101 to open (`engine::okey101`).
+    /// Draw, meld, discard; 101 to open (`tile_rummy::okey101`).
     Okey101(Okey101Rules),
-    /// Draw, discard, no table: 14 tiles in sets to win (`engine::plain_okey`).
+    /// Draw, discard, no table: 14 tiles in sets to win (`tile_rummy::plain_okey`).
     Okey(PlainRules),
 }
 
@@ -152,16 +152,16 @@ pub enum ClientMessage {
     /// again (the host only).
     Step,
     /// End the turn with the table rearranged to this (see
-    /// `engine::check_turn`).
+    /// `tile_rummy::check_turn`).
     Play { table: Vec<Vec<Tile>> },
     /// Classic: end the turn by drawing a tile instead. Okey 101: draw
     /// from the pool, and the turn goes on.
     Draw,
     /// Okey 101: end the turn with the table as it now is and this tile
     /// discarded, having taken the previous player's discard instead of
-    /// drawing if `take_discard` (see `engine::okey101::Turn`). Plain
+    /// drawing if `take_discard` (see `tile_rummy::okey101::Turn`). Plain
     /// Okey: the table is left empty, and `finish` shows the other 14
-    /// tiles as a winning hand (`engine::plain_okey::PlainTurn`).
+    /// tiles as a winning hand (`tile_rummy::plain_okey::PlainTurn`).
     Discard {
         #[serde(default)]
         #[cfg_attr(feature = "wasm", tsify(optional))]
@@ -386,7 +386,7 @@ impl ServerMessage {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use engine::{Color, Game, Rules};
+    use tile_rummy::{Color, Game, Rules};
 
     #[test]
     fn client_messages_as_json() {

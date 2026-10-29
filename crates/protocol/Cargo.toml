@@ -5,10 +5,10 @@ edition = "2021"
 
 # The messages between the web client and the match server, sent as JSON
 # text frames. TypeScript types come from the `wasm` feature, through
-# crates/engine-wasm's build.
+# games/tile-rummy-wasm's build.
 
 [dependencies]
-engine = { path = "../engine" }
+tile-rummy = { path = "../../games/tile-rummy" }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 tsify = { version = "0.5.8", optional = true, default-features = false, features = ["js"] }
@@ -16,4 +16,4 @@ tsify = { version = "0.5.8", optional = true, default-features = false, features
 wasm-bindgen = { version = "0.2.129", optional = true }
 
 [features]
-wasm = ["dep:tsify", "dep:wasm-bindgen", "engine/wasm"]
+wasm = ["dep:tsify", "dep:wasm-bindgen", "tile-rummy/wasm"]

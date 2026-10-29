@@ -16,7 +16,7 @@ import { useTranslation } from 'react-i18next'
 
 import { compareTiles, type RackSort } from './arrange.ts'
 import { TopBar, WatchBar, type Clock } from './Board.tsx'
-import { noticeText, problemText, type Problem } from './messages.ts'
+import { noticeText, problemText, type Problem } from '../../messages.ts'
 import { DiscardPile, DiscardSpot, Middle, NextSpot, Overlay, Plans, Rack } from './OkeyBoard.tsx'
 import {
   collisions,
@@ -39,12 +39,12 @@ import {
   tilesOf,
   type Placed,
 } from './okeyParts.ts'
-import type { Settings } from './settings.ts'
-import { remember, remembered } from './storage.ts'
+import type { Settings } from '../../platform/settings.ts'
+import { remember, remembered } from '../../platform/storage.ts'
 import { TileFace } from './TileView.tsx'
-import { Button } from './ui.tsx'
-import type { PlainOkeyGame, Status } from './useGame.ts'
-import { useNow } from './useNow.ts'
+import { Button } from '../../platform/ui.tsx'
+import type { PlainOkeyGame, Status } from '../../useGame.ts'
+import { useNow } from '../../platform/useNow.ts'
 import { okeyComplete, type ClientMessage, type Notice, type RoomInfo } from './wasm/engine.js'
 
 /**

@@ -21,8 +21,8 @@ import { useTranslation } from 'react-i18next'
 import { compareTiles, type RackSort } from './arrange.ts'
 import { TableGrid, TopBar, WatchBar, type Clock } from './Board.tsx'
 import { footprint, gridWithout, resolve, type Cell } from './grid.ts'
-import { noticeText, okeyError, problemText, type Problem } from './messages.ts'
-import type { Settings } from './settings.ts'
+import { noticeText, okeyError, problemText, type Problem } from '../../messages.ts'
+import type { Settings } from '../../platform/settings.ts'
 import {
   collisions,
   DISCARD,
@@ -49,11 +49,11 @@ import {
   tilesOf,
   type Placed,
 } from './okeyParts.ts'
-import { remember, remembered } from './storage.ts'
+import { remember, remembered } from '../../platform/storage.ts'
 import { TileFace, type TileSize } from './TileView.tsx'
-import { Button } from './ui.tsx'
-import type { Draft, OkeyGame, Status } from './useGame.ts'
-import { useNow } from './useNow.ts'
+import { Button } from '../../platform/ui.tsx'
+import type { Draft, OkeyGame, Status } from '../../useGame.ts'
+import { useNow } from '../../platform/useNow.ts'
 import { useTableMetrics, type Metrics } from './useTableMetrics.ts'
 import {
   checkOkeyTurn,

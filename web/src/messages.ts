@@ -1,6 +1,6 @@
 import type { TFunction } from 'i18next'
 
-import type { Notice, OkeyError, Refusal, TurnError } from './wasm/engine.js'
+import type { Notice, OkeyError, Refusal, TurnError } from './games/tile-rummy/wasm/engine.js'
 
 /**
  * Something that went wrong, kept as what happened and worded when shown

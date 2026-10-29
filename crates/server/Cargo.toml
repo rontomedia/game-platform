@@ -4,7 +4,7 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-engine = { path = "../engine" }
+tile-rummy = { path = "../../games/tile-rummy" }
 protocol = { path = "../protocol" }
 axum = { version = "0.8.9", features = ["ws"] }
 rand = "0.10.3"

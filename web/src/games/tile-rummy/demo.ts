@@ -1,4 +1,4 @@
-import type { GameState, OkeyGame, PlainOkeyGame, TurnRecord } from './useGame.ts'
+import type { GameState, OkeyGame, PlainOkeyGame, TurnRecord } from '../../useGame.ts'
 import type { HandView, PlainView, RoomInfo, Tile } from './wasm/engine.js'
 
 /**

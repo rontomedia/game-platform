@@ -2,7 +2,7 @@ import { closestCenter, pointerWithin, type CollisionDetection } from '@dnd-kit/
 import { createContext } from 'react'
 
 import { arrangeRack, joinAt, keepPlans, without, type RackSort } from './arrange.ts'
-import { remembered } from './storage.ts'
+import { remembered } from '../../platform/storage.ts'
 import { okeyMeldKind, type Tile } from './wasm/engine.js'
 
 /** What the Okey boards (Okey 101 and plain Okey) share besides components. */

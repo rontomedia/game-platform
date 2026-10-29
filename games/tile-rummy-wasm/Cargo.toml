@@ -1,18 +1,18 @@
 [package]
-name = "engine-wasm"
+name = "tile-rummy-wasm"
 version = "0.1.0"
 edition = "2021"
 
 # The engine for the browser. Built by web/'s `npm run wasm` (wasm-pack)
-# into web/src/wasm/.
+# into web/src/games/tile-rummy/wasm/.
 
 [lib]
 crate-type = ["cdylib"]
 
 [dependencies]
-engine = { path = "../engine", features = ["wasm"] }
+tile-rummy = { path = "../tile-rummy", features = ["wasm"] }
 # The messages to and from the server (their TypeScript types come with it).
-protocol = { path = "../protocol", features = ["wasm"] }
+protocol = { path = "../../crates/protocol", features = ["wasm"] }
 wasm-bindgen = "0.2.129"
 serde = { version = "1", features = ["derive"] }
 tsify = { version = "0.5.8", default-features = false, features = ["js"] }

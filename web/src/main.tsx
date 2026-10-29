@@ -8,9 +8,9 @@ import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 
 import App from './App.tsx'
-import { initI18n } from './i18n.ts'
-import { savedSettings } from './settings.ts'
-import initEngine from './wasm/engine.js'
+import { initI18n } from './platform/i18n.ts'
+import { savedSettings } from './platform/settings.ts'
+import initEngine from './games/tile-rummy/wasm/engine.js'
 
 // The rules engine (Rust, crates/engine-wasm) must be loaded before
 // anything asks it a question, and the player's language before anything

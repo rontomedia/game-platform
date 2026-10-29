@@ -23,5 +23,5 @@ dist-ssr
 *.sln
 *.sw?
 
-# The engine's WASM build (npm run wasm)
-src/wasm
+# Each game's engine as WASM (npm run wasm)
+src/games/*/wasm

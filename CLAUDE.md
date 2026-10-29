@@ -2,13 +2,22 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-An online tile-rummy game in the style of Rummikub. The priority is a web
-game with a polished, modern look; multiplayer against people and bots.
-Design notes, status and the reasons behind the stack live outside the repo,
-in `D:\github\second-brain\projects\rummy-game\` (`README.md` for open items,
-`decisions.md` for why). Don't reopen those decisions unless something
-contradicts them. Don't call the game "Rummikub" anywhere user-facing (it's
-a trademark).
+An online games platform (working name `game-platform`), growing out of a
+tile-rummy game in the style of Rummikub, its first game. The priority is
+web games with a polished, modern look; multiplayer against people and
+bots. Design notes, status and the reasons behind the stack live outside
+the repo, in `D:\github\second-brain\projects\game-platform\` (the
+platform) and `projects\rummy-game\` (the tile game) (`README.md` for open
+items, `decisions.md` for why). Don't reopen those decisions unless
+something contradicts them. Don't call the game "Rummikub" anywhere
+user-facing (it's a trademark).
+
+Layout: `crates/` holds what all games share (`protocol`, `server`; the
+generic `platform` crate is being extracted from the server), `games/`
+a crate per game family and its `-wasm` crate. In `web/src/`,
+`platform/` is shared (i18n, settings, storage, ui) and `games/<family>/`
+a game's boards and engine WASM; `App.tsx`, `useGame.ts` and
+`messages.ts` still mix both, to be split as the second family arrives.
 
 ## Commands
 
@@ -20,7 +29,7 @@ cargo run -p server -- --open-racks # the same, every rack shown to everyone (ju
 # also: --lookahead OPTIONS,GAMES,ROUNDS (Extra Hard, default 1,24,2),
 # --bot-time MS (longest a bot thinks, default 1000), --bot-threads N
 # (bots thinking at once, default cores - 1); see `config` in main.rs
-cargo test --workspace              # one test: cargo test -p engine runs
+cargo test --workspace              # one test: cargo test -p tile-rummy runs
 cargo clippy --workspace --all-targets
 ```
 
@@ -30,28 +39,28 @@ From `web/`:
 npm run dev       # builds the engine WASM (debug), then Vite on http://localhost:5173
 npm run build     # release WASM + type check + production build into web/dist
 npm run lint      # oxlint
-npm test          # Vitest (web/src/*.test.ts); one test: npx vitest run -t "name"
+npm test          # Vitest (web/src/**/*.test.ts); one test: npx vitest run -t "name"
 npm run wasm      # only rebuild the engine WASM (needs wasm-pack)
 ```
 
 `http://localhost:5173/?demo` shows the board with a made-up 4-player game
-and no server (`src/demo.ts`): the place to work on the board's look.
+and no server (`src/games/tile-rummy/demo.ts`): the place to work on the board's look.
 `?demo=racks` adds the open racks panel; `?demo=watcher` is a bots-only
 game seen by its watching host (Pause works). `?lang=de` (any page) shows
 a language without changing the setting; `?lang=en-XA` (development only)
 is English accented and 40% longer, to find text that clips or isn't
 translated.
 
-`cargo test -p engine --release -- --ignored --nocapture strength` plays
+`cargo test -p tile-rummy --release -- --ignored --nocapture strength` plays
 the bot levels against each other and prints wins and time per move.
 
 Run the server and `npm run dev` together. After changing Rust in
-`crates/engine*`, rerun `npm run wasm:dev` (Vite then reloads); `npm run dev`
+`games/tile-rummy*`, rerun `npm run wasm:dev` (Vite then reloads); `npm run dev`
 only builds it on start.
 
 ## Architecture
 
-- **`crates/engine`**: the game rules, pure (no I/O, clock or outside
+- **`games/tile-rummy`** (crate `tile_rummy`): the game rules, pure (no I/O, clock or outside
   randomness; a deal is shuffled from a seed). The single source of truth
   for rules, used by the server, bots and the browser. `check_turn` validates
   a turn by tile counts (table after = table before + tiles from the rack),
@@ -112,11 +121,11 @@ only builds it on start.
   language (`web/src/messages.ts`); `Error { message }` is only for
   messages the server couldn't read. A new thing to tell players is a new
   variant, not text.
-- **`crates/engine-wasm`**: the browser API (`wasm-bindgen`): engine
+- **`games/tile-rummy-wasm`**: the browser API (`wasm-bindgen`): engine
   functions plus `protocolVersion`. wasm-pack writes JS glue and `.d.ts` into
-  `web/src/wasm/` (gitignored), so TypeScript types for the engine *and* the
+  `web/src/games/tile-rummy/wasm/` (gitignored), so TypeScript types for the engine *and* the
   protocol come from Rust. A crate's tsify types only reach the `.d.ts` if the
-  crate is actually used by engine-wasm. Engine types cross as
+  crate is actually used by tile-rummy-wasm. Engine types cross as
   `tsify::Ts<T>` and are converted inside the function; don't use tsify's
   `into_wasm_abi`/`from_wasm_abi` (deprecated, they leak on bad input).
 - **`crates/server`**: tokio + axum match server, `/ws` WebSocket route.
@@ -158,7 +167,7 @@ only builds it on start.
     the player's name, and a turn of theirs starts afresh for it.
     `Timing`: a minute's turn is 60 s, scaled by the room's
     length (when it runs out, the most of the table they left, their last
-    `draft`, that makes a valid turn is played, `engine::salvage`; the rest
+    `draft`, that makes a valid turn is played, `tile_rummy::salvage`; the rest
     goes back to their rack, and a `Notice` says so), 5 s for a player who
     is away (their full time is given back if they return during that turn),
     room closes after 120 s with nobody connected. Bots (`AddBot`, host
@@ -212,7 +221,7 @@ only builds it on start.
   - Live turns: the current player's board sends its table after each
     drop (`draft`, in every room: it's what's played if time runs out); the
     server checks it uses only tiles from the table and that player's rack
-    (`engine::within_reach`) and keeps it until the next state. In rooms
+    (`tile_rummy::within_reach`) and keeps it until the next state. In rooms
     created with `liveTurns` (on by default) it also passes it on, and to
     anyone who reconnects. Watchers see it via `withTable` in
     their own arrangement (unchanged sets keep their keys, so nothing they
@@ -272,7 +281,7 @@ only builds it on start.
     nothing is draggable), the board's outlines, the last frame for reduced
     motion. Texts under `rules` in the catalogues.
   - Languages: react-i18next, every visible text through `t('key')` (no
-    text in components). `src/locales/en.json` is the source and types the
+    text in components). `src/platform/locales/en.json` is the source and types the
     keys and their `{{values}}` (`i18next.d.ts`), so a wrong key fails the
     type check; the others (listed in `languages.ts`) load as chunks of
     their own, before the first render (`i18n.ts`).

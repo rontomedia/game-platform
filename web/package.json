@@ -1,10 +1,10 @@
 {
-  "name": "rummy-web",
+  "name": "game-platform-web",
   "private": true,
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "wasm": "wasm-pack build ../crates/engine-wasm --target web --out-dir ../../web/src/wasm --out-name engine --no-pack",
+    "wasm": "wasm-pack build ../games/tile-rummy-wasm --target web --out-dir ../../web/src/games/tile-rummy/wasm --out-name engine --no-pack",
     "wasm:dev": "npm run wasm -- --dev",
     "predev": "npm run wasm:dev",
     "dev": "vite",

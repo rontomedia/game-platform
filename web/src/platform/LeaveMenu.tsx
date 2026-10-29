@@ -3,7 +3,7 @@ import { useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import { Button } from './ui.tsx'
-import type { BotLevel } from './wasm/engine.js'
+import type { BotLevel } from '../games/tile-rummy/wasm/engine.js'
 
 /**
  * A door to leave the room by. A player in a game going on is asked first,

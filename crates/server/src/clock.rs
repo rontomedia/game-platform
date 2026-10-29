@@ -8,7 +8,7 @@
 
 use std::time::Duration;
 
-use engine::{check_turn, Rules, Tile};
+use tile_rummy::{check_turn, Rules, Tile};
 
 /// What a turn earns: per tile played from the rack, and per set new or
 /// changed that holds one of them.
@@ -42,7 +42,7 @@ impl Bonus {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use engine::Color::{self, *};
+    use tile_rummy::Color::{self, *};
 
     fn n(color: Color, value: u8) -> Tile {
         Tile::Number { color, value }

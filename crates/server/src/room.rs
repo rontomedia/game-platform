@@ -19,9 +19,9 @@
 use std::sync::Arc;
 use std::time::Duration;
 
-use engine::okey101::{OkeyMove, Phase, Turn};
-use engine::plain_okey::{PlainMove, PlainTurn};
-use engine::{salvage, BotLevel, Lookahead, Move, Tile};
+use tile_rummy::okey101::{OkeyMove, Phase, Turn};
+use tile_rummy::plain_okey::{PlainMove, PlainTurn};
+use tile_rummy::{salvage, BotLevel, Lookahead, Move, Tile};
 use protocol::{Notice, Refusal, RoomInfo, RoomOptions, Seat, ServerMessage};
 use tokio::sync::{mpsc, oneshot, Semaphore};
 use tokio::time::{sleep_until, Instant};
@@ -910,7 +910,7 @@ impl Room {
                         let _ = game.draw(seat);
                     }
                     if game.end().is_none() {
-                        if let PlainMove::Turn(turn) = engine::plain_okey::plain_bot_move(&game.view(seat), BotLevel::Easy) {
+                        if let PlainMove::Turn(turn) = tile_rummy::plain_okey::plain_bot_move(&game.view(seat), BotLevel::Easy) {
                             let _ = game.play(seat, turn);
                         }
                     }
@@ -923,7 +923,7 @@ impl Room {
     }
 
     /// The current player ran out of time: as much of the table they left
-    /// as makes a valid turn is played (see `engine::salvage`), the rest of
+    /// as makes a valid turn is played (see `tile_rummy::salvage`), the rest of
     /// their tiles going back to their rack; if nothing can be, they draw.
     fn time_out(&mut self) {
         self.settle_bank();
@@ -998,7 +998,7 @@ impl Room {
                 return self.end_turn(seat, Duration::ZERO, Duration::ZERO);
             }
         }
-        if let Some(turn) = engine::plain_okey::timeout_turn(&game.view(seat), &self.players[seat].discard_next) {
+        if let Some(turn) = tile_rummy::plain_okey::timeout_turn(&game.view(seat), &self.players[seat].discard_next) {
             if let Err(e) = game.play(seat, turn) {
                 eprintln!("room {}: a turn played when time ran out: {e}", self.code);
             }

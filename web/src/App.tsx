@@ -3,12 +3,12 @@ import type { TFunction } from 'i18next'
 import { useCallback, useEffect, useState, type FormEvent, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 
-import { emptyArrangement, type Arrangement, type RackSort } from './arrange.ts'
-import { Board } from './Board.tsx'
-import { LanguagePicker } from './LanguagePicker.tsx'
-import { OkeyBoard } from './OkeyBoard.tsx'
-import { PlainOkeyBoard } from './PlainOkeyBoard.tsx'
-import { HowToPlay } from './Rules.tsx'
+import { emptyArrangement, type Arrangement, type RackSort } from './games/tile-rummy/arrange.ts'
+import { Board } from './games/tile-rummy/Board.tsx'
+import { LanguagePicker } from './platform/LanguagePicker.tsx'
+import { OkeyBoard } from './games/tile-rummy/OkeyBoard.tsx'
+import { PlainOkeyBoard } from './games/tile-rummy/PlainOkeyBoard.tsx'
+import { HowToPlay } from './games/tile-rummy/Rules.tsx'
 
 import {
   asWatcher,
@@ -21,13 +21,13 @@ import {
   demoRoom,
   demoWatcherRoom,
   withOpenRacks,
-} from './demo.ts'
-import { useSettings } from './settings.ts'
-import { remember, remembered } from './storage.ts'
+} from './games/tile-rummy/demo.ts'
+import { useSettings } from './platform/settings.ts'
+import { remember, remembered } from './platform/storage.ts'
 import { problemText, type Problem } from './messages.ts'
-import { Button, inputClass, Note, Panel, Switch } from './ui.tsx'
+import { Button, inputClass, Note, Panel, Switch } from './platform/ui.tsx'
 import { SERVER_URL, useGame, type Draft, type Status } from './useGame.ts'
-import { protocolVersion, type ClientMessage, type Okey101Rules, type RoomInfo, type RoomOptions } from './wasm/engine.js'
+import { protocolVersion, type ClientMessage, type Okey101Rules, type RoomInfo, type RoomOptions } from './games/tile-rummy/wasm/engine.js'
 
 const statusDot: Record<Status, string> = {
   connecting: 'bg-amber-400 animate-pulse',

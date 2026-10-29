@@ -1,11 +1,11 @@
-//! The game a room plays: the classic one (`engine::Game`), an Okey 101
-//! match (`engine::okey101::Match`) or plain Okey (`engine::plain_okey`). The room runs either through this:
+//! The game a room plays: the classic one (`tile_rummy::Game`), an Okey 101
+//! match (`tile_rummy::okey101::Match`) or plain Okey (`tile_rummy::plain_okey`). The room runs either through this:
 //! turns, clocks, bots and watchers work the same; what a move is and
 //! what a player is sent differ.
 
-use engine::okey101::{self, Match, OkeyMove, Phase};
-use engine::plain_okey::{plain_bot_move, PlainGame, PlainMove};
-use engine::{bot_move_with, within_reach, BotLevel, Game, Lookahead, Move, Rules, Tile};
+use tile_rummy::okey101::{self, Match, OkeyMove, Phase};
+use tile_rummy::plain_okey::{plain_bot_move, PlainGame, PlainMove};
+use tile_rummy::{bot_move_with, within_reach, BotLevel, Game, Lookahead, Move, Rules, Tile};
 use protocol::{RuleSet, ServerMessage};
 
 #[derive(Clone)]

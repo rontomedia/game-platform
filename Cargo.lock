@@ -187,27 +187,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "engine"
-version = "0.1.0"
-dependencies = [
- "serde",
- "serde_json",
- "tsify",
- "wasm-bindgen",
-]
-
-[[package]]
-name = "engine-wasm"
-version = "0.1.0"
-dependencies = [
- "engine",
- "protocol",
- "serde",
- "tsify",
- "wasm-bindgen",
-]
-
-[[package]]
 name = "form_urlencoded"
 version = "1.2.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -467,9 +446,9 @@ dependencies = [
 name = "protocol"
 version = "0.1.0"
 dependencies = [
- "engine",
  "serde",
  "serde_json",
+ "tile-rummy",
  "tsify",
  "wasm-bindgen",
 ]
@@ -646,11 +625,11 @@ name = "server"
 version = "0.1.0"
 dependencies = [
  "axum",
- "engine",
  "futures-util",
  "protocol",
  "rand 0.10.3",
  "serde_json",
+ "tile-rummy",
  "tokio",
  "tokio-tungstenite 0.30.0",
 ]
@@ -745,6 +724,27 @@ dependencies = [
  "proc-macro2",
  "quote",
  "syn 3.0.9",
+]
+
+[[package]]
+name = "tile-rummy"
+version = "0.1.0"
+dependencies = [
+ "serde",
+ "serde_json",
+ "tsify",
+ "wasm-bindgen",
+]
+
+[[package]]
+name = "tile-rummy-wasm"
+version = "0.1.0"
+dependencies = [
+ "protocol",
+ "serde",
+ "tile-rummy",
+ "tsify",
+ "wasm-bindgen",
 ]
 
 [[package]]
