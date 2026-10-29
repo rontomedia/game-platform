@@ -27,8 +27,24 @@ export const isSetTarget = (id: string) => id.startsWith('set-')
 /** A set's grip, to move it around the table (this player's view only). */
 export const setItem = (index: number) => `move-set-${index}`
 export const isSetItem = (id: string) => id.startsWith('move-set-')
-/** The tile set aside to discard next, beside the discard spot. */
+/** The tiles set aside to discard next, beside the discard spot. */
 export const NEXT = 'next'
+/** The most tiles set aside to discard next (the server keeps as many). */
+export const QUEUE = 3
+
+/**
+ * The tiles set aside to discard next (first to go first), with `tile` put
+ * in where it was let go over their slot: `x`, the dragged tile's middle,
+ * across the slot's `rect`. The slot shows them right to left, the first
+ * nearest the discard spot. Past `QUEUE`, the last goes back (`out`).
+ */
+export function enqueue(queue: Placed[], tile: Placed, x: number, rect: { left: number; width: number }): { queue: Placed[]; out?: Placed } {
+  const n = queue.length
+  const fromLeft = Math.min(n, Math.max(0, Math.round(((x - rect.left) / rect.width) * n)))
+  const at = n - fromLeft
+  const next = [...queue.slice(0, at), tile, ...queue.slice(at)]
+  return next.length > QUEUE ? { queue: next.slice(0, QUEUE), out: next[QUEUE] } : { queue: next }
+}
 /** The plans strip, where a tile dropped starts a plan; and one plan. */
 export const NEW_PLAN = 'new-plan'
 export const planTarget = (index: number) => `plan-${index}`
@@ -47,7 +63,6 @@ export const collisions: CollisionDetection = (args) => {
 export const tilesOf = (placed: Placed[]) => placed.map((p) => p.tile)
 export const same = (a: Tile[][], b: Tile[][]) => JSON.stringify(a) === JSON.stringify(b)
 export const sameTile = (a: Tile, b: Tile) => JSON.stringify(a) === JSON.stringify(b)
-export const sameOptional = (a?: Tile, b?: Tile) => JSON.stringify(a) === JSON.stringify(b)
 
 /**
  * Okey: the tile false okeys stand for (the okey's), set by an Okey board
@@ -67,19 +82,19 @@ export function orderedRack(key: string, code: string, rack: Tile[], sort: RackS
   return [...first, ...second].map((tile, i) => ({ id: `r${i}`, tile }))
 }
 
-/** What an Okey board keeps for the tab: the rack's order, and for the hand `hand` its plans and the tile set aside. */
+/** What an Okey board keeps for the tab: the rack's order, and for the hand `hand` its plans and the tiles set aside. */
 export interface SavedRack {
   code: string
   tiles: Tile[]
   hand?: string
   plans?: Tile[][]
-  next?: Tile
+  next?: Tile[]
 }
 
 /**
- * The rack, the plans and the tile set aside to discard next as the player
- * left them in room `code` (saved under `key`), for the tiles now on
- * `rack`. Plans and the tile set aside belong to one hand (`hand`).
+ * The rack, the plans and the tiles set aside to discard next as the
+ * player left them in room `code` (saved under `key`), for the tiles now on
+ * `rack`. Plans and the tiles set aside belong to one hand (`hand`).
  */
 export function rackAndPlans(
   key: string,
@@ -87,17 +102,19 @@ export function rackAndPlans(
   hand: string,
   rack: Tile[],
   sort: RackSort,
-): { rack: Placed[]; plans: Placed[][]; parked?: Placed } {
+): { rack: Placed[]; plans: Placed[][]; parked: Placed[] } {
   const saved = remembered<SavedRack>(key, 'session')
   const same = saved?.code === code && saved.hand === hand
   const planned = keepPlans(same ? (saved.plans ?? []) : [], rack)
   const left = without(rack, planned.flat())
-  const next = same && saved.next && left.some((tile) => sameTile(tile, saved.next!)) ? saved.next : undefined
+  // Those still held, in order (an older save kept one tile, not a list).
+  const wanted = same && saved.next ? (Array.isArray(saved.next) ? saved.next : [saved.next]) : []
+  const next = keepPlans([wanted], left)[0] ?? []
   let n = 0
   return {
-    rack: orderedRack(key, code, next ? without(left, [next]) : left, sort),
+    rack: orderedRack(key, code, without(left, next), sort),
     plans: planned.map((plan) => plan.map((tile) => ({ id: `p${n++}`, tile }))),
-    parked: next && { id: 'next', tile: next },
+    parked: next.map((tile, i) => ({ id: `next${i}`, tile })),
   }
 }
 

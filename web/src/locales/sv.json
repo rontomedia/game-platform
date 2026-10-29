@@ -142,7 +142,7 @@
       "pair": "Par",
       "withOkey": "Med okey",
       "controlsTitle": "Kontroller",
-      "controlsNext": "Lägg brickan du tänker kasta härnäst på den lilla platsen bredvid kastplatsen: tar tiden slut är det den som kastas åt dig (i Okey 101, om den inte ger straff). Den räknas fortfarande som en av dina brickor."
+      "controlsNext": "Lägg upp till tre brickor du tänker kasta på den lilla platsen bredvid kastplatsen, nästa närmast den: tar tiden slut är det den som kastas åt dig (i Okey 101 den första som inte ger straff). De räknas fortfarande som dina brickor."
     },
     "okey101": {
       "controlsDraw": "Tryck på ”{{draw}}” eller på högen för att dra. För att ta förra spelarens kastade bricka, dra den till ditt ställ (eller direkt till bordet); dra tillbaka den om du ångrar dig.",
@@ -354,7 +354,7 @@
     "emptyTable": "Bordet är tomt. Första öppningen kräver 101 poäng eller fem par.",
     "discardHere": "Släpp en bricka här för att kasta den och avsluta draget",
     "discardNext": "Kasta härnäst",
-    "discardNextDetail": "Brickan du tänker kasta härnäst: tar tiden slut är det den som kastas (i Okey 101, om den inte ger straff).",
+    "discardNextDetail": "Upp till tre brickor du tänker kasta, nästa närmast kastplatsen: tar tiden slut är det den som kastas (i Okey 101 den första som inte ger straff).",
     "hand": "Giv {{n}} av {{total}}",
     "yourTurnDraw": "Din tur: dra en bricka.",
     "yourTurnDrawOrTake": "Din tur: dra en bricka, eller ta brickan {{name}} kastade om du kan använda den nu.",

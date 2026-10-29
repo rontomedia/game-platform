@@ -26,12 +26,13 @@ import {
   isPlanTarget,
   joinNew,
   NEW_PLAN,
+  enqueue,
   NEXT,
   OFFER,
   plainSet,
   RACK,
   rackAndPlans,
-  sameOptional,
+  same,
   sameTile,
   type SavedRack,
   TAKEN,
@@ -98,7 +99,7 @@ export function PlainOkeyBoard({
   const { rack, plans, parked } = tiles
   /** Sets the board's tiles, telling the server when the tile set aside to discard next changes. */
   const update = (next: typeof tiles) => {
-    if (!watching && !sameOptional(next.parked?.tile, parked?.tile)) send({ type: 'discardNext', tile: next.parked?.tile })
+    if (!watching && !same([tilesOf(next.parked)], [tilesOf(parked)])) send({ type: 'discardNext', tiles: tilesOf(next.parked) })
     setTiles(next)
   }
   const [taken, setTaken] = useState(false)
@@ -113,13 +114,13 @@ export function PlainOkeyBoard({
       tiles: tilesOf(rack.filter((p) => p.id !== TAKEN)),
       hand: handKey,
       plans: plans.map(tilesOf),
-      next: parked?.tile,
+      next: tilesOf(parked),
     }
     remember(RACK_KEY, saved, 'session')
   }, [rack, plans, parked, room.code, handKey])
 
   // Every tile the player holds, planned, set aside or not.
-  const all = [...rack, ...plans.flat(), ...(parked ? [parked] : [])]
+  const all = [...rack, ...plans.flat(), ...parked]
   const canDiscard = myTurn && (view.phase === 'play' || taken)
   // Whether some tile, discarded, leaves a winning 14.
   const canFinish =
@@ -131,7 +132,7 @@ export function PlainOkeyBoard({
   const without = (id: string) => ({
     rack: rack.filter((p) => p.id !== id),
     plans: plans.map((plan) => plan.filter((p) => p.id !== id)).filter((plan) => plan.length > 0),
-    parked: parked?.id === id ? undefined : parked,
+    parked: parked.filter((p) => p.id !== id),
   })
 
   const sensors = useSensors(
@@ -198,11 +199,14 @@ export function PlainOkeyBoard({
       return
     }
     if ((to === DISCARD || to === FINISH) && canDiscard) return end(placed, to === FINISH)
-    // Set aside to discard next, any time; a tile there before goes back to the rack.
+    // Set aside to discard next, any time: in order where let go, a fourth sending the last back.
     if (to === NEXT) {
       if (id === TAKEN) return
       const left = without(id)
-      return update({ ...left, rack: parked && parked.id !== id ? [...left.rack, parked] : left.rack, parked: placed })
+      const translated = active.rect.current.translated
+      const x = translated ? translated.left + translated.width / 2 : over.rect.left + over.rect.width
+      const { queue, out } = enqueue(left.parked, placed, x, over.rect)
+      return update({ ...left, rack: out ? [...left.rack, out] : left.rack, parked: queue })
     }
     // Into the plans: any of the player's tiles but the discard taken.
     if (to === NEW_PLAN || isPlanTarget(to)) {
@@ -353,7 +357,7 @@ export function PlainOkeyBoard({
               <Plans plans={plans} okey={view.okey} valid={plainSet} canPlay={false} drawnId={drawnId} onQuick={quickMove} />
               <div className="flex items-stretch gap-3">
                 <Rack tiles={rack} sortable={!watching} okey={view.okey} drawnId={drawnId} onQuick={quickMove} />
-                <NextSpot tile={parked} okey={view.okey} drawnId={drawnId} onQuick={quickMove} />
+                <NextSpot tiles={parked} okey={view.okey} drawnId={drawnId} onQuick={quickMove} />
                 <DiscardSpot id={DISCARD} label={t('okey.discardHere')} active={canDiscard} />
               </div>
             </section>

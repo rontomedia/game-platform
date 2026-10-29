@@ -146,10 +146,11 @@ only builds it on start.
     `Match`. In Okey 101 `Draw` doesn't end the turn, `Discard` does;
     states are `OkeyState`, errors `OkeyRejected`; when time runs out the
     player draws if they hadn't, their draft is played if valid and the
-    tile they set aside to discard next (`DiscardNext`, kept on `Player`,
-    cleared each hand) discarded if they hold it and it costs no
-    penalty, else a tile that costs nothing (`Hand::timeout_turn`; plain
-    Okey: a winning finish, else that tile, else an Easy bot's discard,
+    first of the tiles they set aside to discard next (`DiscardNext`, up
+    to 3 in order, kept on `Player`, cleared each hand) that they hold
+    and that costs no penalty is discarded, else a tile that costs
+    nothing (`Hand::timeout_turn`; plain Okey: a winning finish, else the
+    first of those held, else an Easy bot's discard,
     `plain_okey::timeout_turn`); between
     hands the scores show for `Timing::between_hands`. Leaving for good (`Leave`, the board's door button; not a lost
     connection, `Command::Disconnect`): in the lobby, or watching, the
@@ -238,9 +239,10 @@ only builds it on start.
     where the player builds sets from their rack any time; on their turn a
     plan goes onto the table whole (its ↑ button or double-click). Kept in
     the arrangement like the rack order (`keepPlans`).
-  - Double-clicking a rack tile: on your turn it goes onto the table, else
-    into a plan. It joins the set last changed there (by drag or
-    double-click) if it fits (`joinAt`: at an end, or into a run of its
+  - Double-clicking a rack tile: on your turn it goes where the player
+    last changed a set, the table or a plan (`lastIn`), else into a plan.
+    It joins the set last changed there (by drag or double-click) if it
+    fits (`joinAt`: at an end, or into a run of its
     colour at its place by number, gaps left to fill), else starts a new
     one, after the last row. Double-clicking a planned tile off your turn sends it back to
     the rack.
@@ -332,9 +334,10 @@ only builds it on start.
     goes into a plan, any time, plans checked as plain Okey's sets with
     12-13-1, `plainSet`). Both Okey boards mark the tile last drawn
     (`OkeyGame.drawn`, from the phase going draw to play in `useGame.ts`),
-    and have a slot beside the discard spot for the tile to discard next
-    (`NextSpot`), told to the server as it changes (`discardNext`); plans
-    and that tile are kept per tab for the hand.
+    and have a slot beside the discard spot for up to 3 tiles to discard
+    next (`NextSpot`, the first nearest the spot; a tile goes in where
+    it's let go, `enqueue`), told to the server as they change
+    (`discardNext`); plans and those tiles are kept per tab for the hand.
     `?demo=plain`, `?demo=plain-scores`,
     `?demo=plain-marks`.
   - Planned: shadcn/ui for menus, `@heroiclabs/nakama-js` for

@@ -142,7 +142,7 @@
       "pair": "Paar",
       "withOkey": "Met de okey",
       "controlsTitle": "Bediening",
-      "controlsNext": "Leg de steen die je hierna wilt weggooien op het kleine vakje naast je weggooiplek: als je tijd op is, wordt die voor je weggegooid (bij Okey 101, tenzij dat strafpunten kost). Hij telt nog steeds als een van je stenen."
+      "controlsNext": "Leg tot drie stenen die je wilt weggooien op het kleine vakje naast je weggooiplek, de volgende het dichtst erbij: als je tijd op is, wordt die voor je weggegooid (bij Okey 101 de eerste die geen strafpunten kost). Ze tellen nog steeds als jouw stenen."
     },
     "okey101": {
       "controlsDraw": "Druk op ‘{{draw}}’ of op de pot om een steen te pakken. Om de weggegooide steen van de vorige speler te nemen, sleep je hem naar je rekje (of meteen op tafel); sleep hem terug als je je bedenkt.",
@@ -354,7 +354,7 @@
     "emptyTable": "De tafel is leeg. De eerste opening vraagt 101 punten of vijf paren.",
     "discardHere": "Laat hier een steen los om hem weg te gooien en je beurt te beëindigen",
     "discardNext": "Hierna weg",
-    "discardNextDetail": "De steen die je hierna wilt weggooien: als je tijd op is, wordt die weggegooid (bij Okey 101, tenzij dat strafpunten kost).",
+    "discardNextDetail": "Tot drie stenen die je wilt weggooien, de volgende het dichtst bij je weggooiplek: als je tijd op is, wordt die weggegooid (bij Okey 101 de eerste die geen strafpunten kost).",
     "hand": "Ronde {{n}} van {{total}}",
     "yourTurnDraw": "Jouw beurt: pak een steen.",
     "yourTurnDrawOrTake": "Jouw beurt: pak een steen, of neem de weggegooide steen van {{name}} als je hem nu kunt gebruiken.",

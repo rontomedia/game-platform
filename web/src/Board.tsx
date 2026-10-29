@@ -289,6 +289,16 @@ export function Board({
   // double-clicked tile joins it if it fits.
   const lastSet = useRef<number | null>(null)
   const lastPlan = useRef<number | null>(null)
+  /** Where the player last changed a set: on the table or in their plans. */
+  const lastIn = useRef<'table' | 'plans'>('table')
+  const touchSet = (key: number) => {
+    lastSet.current = key
+    lastIn.current = 'table'
+  }
+  const touchPlan = (key: number) => {
+    lastPlan.current = key
+    lastIn.current = 'plans'
+  }
   const tableGrid = useRef<HTMLDivElement | null>(null)
   const metrics = useTableMetrics(tableGrid)
   const ticking = useNow()
@@ -604,7 +614,7 @@ export function Board({
       if (to === NEW_SET) {
         if (!mayGo(moving, NEW_SET) || !landed) return beforeDrag.current ?? l
         const key = nextSet.current++
-        lastSet.current = key
+        touchSet(key)
         return dropEmptySets({
           ...moveTile(l, moving, from, setHolder(key)),
           sets: [...l.sets, key],
@@ -614,11 +624,11 @@ export function Board({
       if (to === NEW_PLAN) {
         if (!mayGo(moving, NEW_PLAN)) return beforeDrag.current ?? l
         const key = nextPlan.current++
-        lastPlan.current = key
+        touchPlan(key)
         return dropEmptySets({ ...moveTile(l, moving, from, planHolder(key)), plans: [...l.plans, key] })
       }
-      if (to.startsWith('set-')) lastSet.current = Number(to.slice('set-'.length))
-      if (isPlan(to)) lastPlan.current = Number(to.slice('plan-'.length))
+      if (to.startsWith('set-')) touchSet(Number(to.slice('set-'.length)))
+      if (isPlan(to)) touchPlan(Number(to.slice('plan-'.length)))
       if (from !== to) return dropEmptySets(l)
       const items = l.holders[from]
       const oldIndex = items.findIndex((p) => p.id === id)
@@ -638,10 +648,11 @@ export function Board({
   }
 
   /**
-   * A double-clicked tile. From the rack: onto the table on the player's
-   * turn, else into a plan; either way it joins the set last changed there
-   * if it fits, else starts a new one. From a plan: on the player's turn the
-   * whole plan goes onto the table, else the tile goes back to the rack.
+   * A double-clicked tile. From the rack: on the player's turn to where
+   * they last changed a set, the table or their plans; else into a plan.
+   * It joins the set last changed there if it fits, else starts a new one
+   * there. From a plan: on the player's turn the whole plan goes onto the
+   * table, else the tile goes back to the rack.
    */
   const quickMove = (tile: Placed) => {
     const from = holderOf(layout, tile.id)
@@ -651,29 +662,29 @@ export function Board({
       return setLayout((l) => dropEmptySets(moveTile(l, tile, from, RACK_ROWS[flat ? 0 : 1])))
     }
     if (!isRack(from)) return
-    const last = myTurn
-      ? lastSet.current !== null && layout.sets.includes(lastSet.current)
+    const planKey = lastPlan.current !== null && layout.plans.includes(lastPlan.current) ? lastPlan.current : null
+    const toPlans = !myTurn || (lastIn.current === 'plans' && planKey !== null)
+    const last = toPlans
+      ? (planKey ?? layout.plans.at(-1) ?? null)
+      : lastSet.current !== null && layout.sets.includes(lastSet.current)
         ? lastSet.current
         : null
-      : lastPlan.current !== null && layout.plans.includes(lastPlan.current)
-        ? lastPlan.current
-        : (layout.plans.at(-1) ?? null)
-    const holder = myTurn ? setHolder : planHolder
+    const holder = toPlans ? planHolder : setHolder
     const at = last === null ? null : joinAt(tilesOf(layout.holders[holder(last)]), tile.tile)
     if (last !== null && at !== null) {
-      if (myTurn) lastSet.current = last
-      else lastPlan.current = last
+      if (toPlans) touchPlan(last)
+      else touchSet(last)
       return setLayout((l) => moveTile(l, tile, from, holder(last), at))
     }
-    if (!myTurn) {
+    if (toPlans) {
       const key = nextPlan.current++
-      lastPlan.current = key
+      touchPlan(key)
       return setLayout((l) => ({ ...moveTile(l, tile, from, planHolder(key)), plans: [...l.plans, key] }))
     }
     const cell = freeCell(footprint(1))
     if (!cell) return
     const key = nextSet.current++
-    lastSet.current = key
+    touchSet(key)
     setLayout((l) => ({ ...moveTile(l, tile, from, setHolder(key)), sets: [...l.sets, key], at: { ...pinned(l), [key]: cell } }))
   }
 
@@ -683,7 +694,7 @@ export function Board({
     const cell = myTurn && tiles ? freeCell(footprint(tiles.length)) : null
     if (!cell) return
     const key = nextSet.current++
-    lastSet.current = key
+    touchSet(key)
     setLayout((l) =>
       dropEmptySets({
         ...l,

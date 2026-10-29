@@ -105,7 +105,7 @@ async fn handle(message: ClientMessage, rooms: &Arc<Rooms>, membership: &mut Opt
             forward(membership, outbox, |player| Command::Discard { player, turn }).await
         }
         ClientMessage::Draft { table } => forward(membership, outbox, |player| Command::Draft { player, table }).await,
-        ClientMessage::DiscardNext { tile } => forward(membership, outbox, |player| Command::DiscardNext { player, tile }).await,
+        ClientMessage::DiscardNext { tiles } => forward(membership, outbox, |player| Command::DiscardNext { player, tiles }).await,
     }
 }
 

@@ -144,7 +144,7 @@
       "pair": "Pereche",
       "withOkey": "Cu okey-ul",
       "controlsTitle": "Comenzi",
-      "controlsNext": "Pune piesa pe care vrei s-o arunci data viitoare în locul mic de lângă locul de aruncat: dacă îți expiră timpul, ea e aruncată în locul tău (la Okey 101, dacă nu aduce o penalizare). Se socotește în continuare printre piesele tale."
+      "controlsNext": "Pune până la trei piese pe care vrei să le arunci în locul mic de lângă locul de aruncat, următoarea cea mai apropiată de el: dacă îți expiră timpul, ea e aruncată în locul tău (la Okey 101, prima care nu aduce penalizare). Se socotesc în continuare printre piesele tale."
     },
     "okey101": {
       "controlsDraw": "Apasă „{{draw}}” sau grămada ca să tragi. Ca să iei piesa aruncată de jucătorul dinainte, trage-o pe suport (sau direct pe masă); trage-o înapoi dacă te răzgândești.",
@@ -373,7 +373,7 @@
     "emptyTable": "Masa e goală. Prima deschidere cere 101 puncte sau cinci perechi.",
     "discardHere": "Lasă aici o piesă ca să o arunci și să-ți închei tura",
     "discardNext": "De aruncat",
-    "discardNextDetail": "Piesa pe care vrei s-o arunci data viitoare: dacă îți expiră timpul, ea e aruncată (la Okey 101, dacă nu aduce o penalizare).",
+    "discardNextDetail": "Până la trei piese pe care vrei să le arunci, următoarea cea mai apropiată de locul de aruncat: dacă îți expiră timpul, ea e aruncată (la Okey 101, prima care nu aduce penalizare).",
     "hand": "Mâna {{n}} din {{total}}",
     "yourTurnDraw": "Rândul tău: trage o piesă.",
     "yourTurnDrawOrTake": "Rândul tău: trage o piesă sau ia piesa aruncată de {{name}} dacă o poți folosi acum.",

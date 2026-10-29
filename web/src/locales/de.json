@@ -142,7 +142,7 @@
       "pair": "Paar",
       "withOkey": "Mit dem Okey",
       "controlsTitle": "Bedienung",
-      "controlsNext": "Leg den Stein, den du als Nächstes abwerfen willst, auf den kleinen Platz neben dem Abwurfplatz: Läuft deine Zeit ab, wird er für dich abgeworfen (in Okey 101, außer er kostet eine Strafe). Er zählt weiter zu deinen Steinen."
+      "controlsNext": "Leg bis zu drei Steine, die du abwerfen willst, auf den kleinen Platz neben dem Abwurfplatz, den nächsten am nächsten daran: Läuft deine Zeit ab, wird er für dich abgeworfen (in Okey 101 der erste, der keine Strafe kostet). Sie zählen weiter zu deinen Steinen."
     },
     "okey101": {
       "controlsDraw": "Drück auf „{{draw}}“ oder auf den Stapel, um zu ziehen. Den Abwurf des vorigen Spielers nimmst du, indem du ihn in deine Ablage ziehst (oder gleich auf den Tisch); zieh ihn zurück, wenn du es dir anders überlegst.",
@@ -354,7 +354,7 @@
     "emptyTable": "Der Tisch ist leer. Die erste Eröffnung braucht 101 Punkte oder fünf Paare.",
     "discardHere": "Stein hier ablegen, um ihn abzuwerfen und den Zug zu beenden",
     "discardNext": "Als Nächstes abwerfen",
-    "discardNextDetail": "Der Stein, den du als Nächstes abwerfen willst: Läuft deine Zeit ab, wird er abgeworfen (in Okey 101, außer er kostet eine Strafe).",
+    "discardNextDetail": "Bis zu drei Steine, die du abwerfen willst, der nächste am nächsten am Abwurfplatz: Läuft deine Zeit ab, wird er abgeworfen (in Okey 101 der erste, der keine Strafe kostet).",
     "hand": "Runde {{n}} von {{total}}",
     "yourTurnDraw": "Du bist dran: zieh einen Stein.",
     "yourTurnDrawOrTake": "Du bist dran: zieh einen Stein oder nimm den Abwurf von {{name}}, wenn du ihn gleich verwenden kannst.",

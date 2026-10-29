@@ -144,7 +144,7 @@
       "pair": "Pareja",
       "withOkey": "Con el okey",
       "controlsTitle": "Controles",
-      "controlsNext": "Pon la ficha que piensas tirar a continuación en la casilla pequeña junto a tu lugar de descarte: si se te acaba el tiempo, es la que se descarta por ti (en Okey 101, salvo que penalice). Sigue contando como una de tus fichas."
+      "controlsNext": "Pon hasta tres fichas que piensas tirar en la casilla pequeña junto a tu lugar de descarte, la siguiente la más cercana: si se te acaba el tiempo, es la que se descarta por ti (en Okey 101, la primera que no penaliza). Siguen contando como tus fichas."
     },
     "okey101": {
       "controlsDraw": "Pulsa «{{draw}}» o el montón para robar. Para tomar el descarte del jugador anterior, arrástralo a tu atril (o directamente a la mesa); devuélvelo arrastrándolo si cambias de idea.",
@@ -373,7 +373,7 @@
     "emptyTable": "La mesa está vacía. La primera apertura necesita 101 puntos o cinco parejas.",
     "discardHere": "Suelta aquí una ficha para descartarla y terminar tu turno",
     "discardNext": "Descartar después",
-    "discardNextDetail": "La ficha que piensas tirar a continuación: si se te acaba el tiempo, es la que se descarta (en Okey 101, salvo que penalice).",
+    "discardNextDetail": "Hasta tres fichas que piensas tirar, la siguiente la más cercana al lugar de descarte: si se te acaba el tiempo, es la que se descarta (en Okey 101, la primera que no penaliza).",
     "hand": "Mano {{n}} de {{total}}",
     "yourTurnDraw": "Tu turno: roba una ficha.",
     "yourTurnDrawOrTake": "Tu turno: roba una ficha, o toma el descarte de {{name}} si puedes usarlo ya.",

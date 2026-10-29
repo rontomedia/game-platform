@@ -626,14 +626,17 @@ impl Hand {
 
     /// The turn played for `player` when their time runs out, once they
     /// have drawn: their `draft` (their table so far) if it makes a valid
-    /// turn with some discard, else the table as it was. The discard: `next`,
-    /// the tile they set aside to throw next, if it's left on their rack and
-    /// costs no penalty; else as `safe_discard` picks it from what's left.
-    pub fn timeout_turn(&self, player: usize, draft: Option<&[Vec<Tile>]>, next: Option<Tile>) -> Turn {
+    /// turn with some discard, else the table as it was. The discard: the
+    /// first of `next`, the tiles they set aside to throw next in order, that
+    /// is left on their rack and costs no penalty; else as `safe_discard`
+    /// picks it from what's left.
+    pub fn timeout_turn(&self, player: usize, draft: Option<&[Vec<Tile>]>, next: &[Tile]) -> Turn {
         let costs = |tile: Tile, table: &[Vec<Tile>]| self.rules.penalties && (tile == self.okey || fits(self.okey, table, tile));
-        let discard = |table: &[Vec<Tile>], rack: &[Tile]| match next {
-            Some(tile) if rack.contains(&tile) && !costs(tile, table) => tile,
-            _ => safe_discard(self.okey, table, rack),
+        let discard = |table: &[Vec<Tile>], rack: &[Tile]| {
+            next.iter()
+                .copied()
+                .find(|tile| rack.contains(tile) && !costs(*tile, table))
+                .unwrap_or_else(|| safe_discard(self.okey, table, rack))
         };
         let fallback = || Turn { take_discard: false, table: self.table.clone(), discard: discard(&self.table, &self.racks[player]) };
         let Some(draft) = draft else { return fallback() };
@@ -1455,14 +1458,14 @@ mod tests {
         let mut rack: Vec<Tile> = opening().concat();
         rack.extend([n(Red, 1), n(Black, 2)]);
         let h = hand(vec![rack, vec![]], vec![]);
-        let turn = h.timeout_turn(0, Some(&opening()), None);
+        let turn = h.timeout_turn(0, Some(&opening()), &[]);
         assert_eq!(turn.table, opening());
         assert_eq!(turn.discard, n(Black, 2));
         assert!(h.check_turn(0, &turn).is_ok());
         // Too little to open: the table stays as it was.
         let low = vec![vec![n(Black, 11), n(Black, 12), n(Black, 13)]];
-        assert_eq!(h.timeout_turn(0, Some(&low), None).table, Vec::<Vec<Tile>>::new());
-        assert!(h.check_turn(0, &h.timeout_turn(0, None, None)).is_ok());
+        assert_eq!(h.timeout_turn(0, Some(&low), &[]).table, Vec::<Vec<Tile>>::new());
+        assert!(h.check_turn(0, &h.timeout_turn(0, None, &[])).is_ok());
     }
 
     #[test]
@@ -1470,13 +1473,14 @@ mod tests {
         let mut rack: Vec<Tile> = opening().concat();
         rack.extend([n(Red, 1), n(Black, 2), OKEY]);
         let h = hand(vec![rack, vec![]], vec![]);
-        assert_eq!(h.timeout_turn(0, Some(&opening()), Some(n(Red, 1))).discard, n(Red, 1), "the player's choice");
-        assert_eq!(h.timeout_turn(0, None, Some(n(Red, 1))).discard, n(Red, 1), "with nothing played too");
-        assert_eq!(h.timeout_turn(0, Some(&opening()), Some(OKEY)).discard, n(Black, 2), "the okey costs 101");
+        assert_eq!(h.timeout_turn(0, Some(&opening()), &[n(Red, 1)]).discard, n(Red, 1), "the player's choice");
+        assert_eq!(h.timeout_turn(0, None, &[n(Red, 1)]).discard, n(Red, 1), "with nothing played too");
+        assert_eq!(h.timeout_turn(0, Some(&opening()), &[OKEY]).discard, n(Black, 2), "the okey costs 101");
+        assert_eq!(h.timeout_turn(0, Some(&opening()), &[OKEY, n(Red, 1)]).discard, n(Red, 1), "then the next choice");
         // A tile now on the table can't be thrown; one that fits a set costs 101.
-        assert_eq!(h.timeout_turn(0, Some(&opening()), Some(n(Blue, 12))).discard, n(Black, 2));
+        assert_eq!(h.timeout_turn(0, Some(&opening()), &[n(Blue, 12)]).discard, n(Black, 2));
         let low = vec![vec![n(Black, 11), n(Black, 12), n(Black, 13)]];
-        let turn = h.timeout_turn(0, Some(&low), Some(n(Black, 13)));
+        let turn = h.timeout_turn(0, Some(&low), &[n(Black, 13)]);
         assert_eq!((turn.table.len(), turn.discard), (0, n(Black, 13)), "too low to play: still on the rack, so as chosen");
         let free = Hand::from_deal(
             vec![h.racks[0].clone(), vec![]],
@@ -1485,7 +1489,7 @@ mod tests {
             0,
             Okey101Rules { penalties: false, ..Okey101Rules::default() },
         );
-        assert_eq!(free.timeout_turn(0, None, Some(OKEY)).discard, OKEY, "no penalties: as chosen");
+        assert_eq!(free.timeout_turn(0, None, &[OKEY]).discard, OKEY, "no penalties: as chosen");
     }
 
     #[test]

@@ -121,8 +121,8 @@ pub enum Command {
     /// Okey 101 or plain Okey: the end of a turn.
     Discard { player: PlayerId, turn: Discard },
     Draft { player: PlayerId, table: Vec<Vec<Tile>> },
-    /// Okey: the tile a player has set aside to discard next, or none.
-    DiscardNext { player: PlayerId, tile: Option<Tile> },
+    /// Okey: the tiles a player has set aside to discard next, in order.
+    DiscardNext { player: PlayerId, tiles: Vec<Tile> },
     /// A bot's move, worked out for turn number `turn`.
     BotMove { turn: u64, choice: BotChoice },
 }
@@ -143,6 +143,9 @@ enum Action {
     Discard(Discard),
 }
 
+/// The most tiles a player may set aside to discard next (the board's slot holds as many).
+const DISCARD_NEXT: usize = 3;
+
 /// A player in a room, or someone watching (the time fields unused).
 struct Player {
     id: PlayerId,
@@ -159,9 +162,10 @@ struct Player {
     warned: bool,
     /// ...and whether it's too much: no more extra time this game.
     no_bonus: bool,
-    /// Okey: the tile they set aside to discard next, thrown if their time
-    /// runs out (when they still hold it). Cleared by a new hand.
-    discard_next: Option<Tile>,
+    /// Okey: the tiles they set aside to discard next, in order: the first
+    /// they still hold is thrown if their time runs out. Cleared by a new
+    /// hand. A few at most (`DISCARD_NEXT`).
+    discard_next: Vec<Tile>,
 }
 
 impl Player {
@@ -318,9 +322,10 @@ impl Room {
             Command::Draw { player } => self.make_move(player, Action::Draw),
             Command::Discard { player, turn } => self.make_move(player, Action::Discard(turn)),
             Command::Draft { player, table } => self.share_draft(player, table),
-            Command::DiscardNext { player, tile } => {
+            Command::DiscardNext { player, mut tiles } => {
                 if let Some(seat) = self.seat(player) {
-                    self.players[seat].discard_next = tile;
+                    tiles.truncate(DISCARD_NEXT);
+                    self.players[seat].discard_next = tiles;
                 }
             }
             Command::BotMove { turn, choice } => self.bot_chose(turn, choice),
@@ -369,7 +374,7 @@ impl Room {
         let id = self.next_id;
         self.next_id += 1;
         let bank = self.config.timing.bank;
-        self.players.push(Player { id, token, name, connection, bot, bank, unearned: Duration::ZERO, warned: false, no_bonus: false, discard_next: None });
+        self.players.push(Player { id, token, name, connection, bot, bank, unearned: Duration::ZERO, warned: false, no_bonus: false, discard_next: Vec::new() });
         id
     }
 
@@ -873,7 +878,7 @@ impl Room {
                         let _ = game.draw(seat);
                     }
                     if game.hand().end().is_none() {
-                        let fallback = game.hand().timeout_turn(seat, None, None);
+                        let fallback = game.hand().timeout_turn(seat, None, &[]);
                         let _ = game.play(seat, fallback);
                     }
                 }
@@ -966,7 +971,7 @@ impl Room {
             }
         }
         let draft = self.draft.take();
-        let turn = game.hand().timeout_turn(seat, draft.as_deref(), self.players[seat].discard_next);
+        let turn = game.hand().timeout_turn(seat, draft.as_deref(), &self.players[seat].discard_next);
         let size = |table: &[Vec<Tile>]| table.iter().map(Vec::len).sum::<usize>();
         let before = size(game.hand().table());
         let put_down = draft.as_ref().map_or(0, |d| size(d).saturating_sub(before));
@@ -993,7 +998,7 @@ impl Room {
                 return self.end_turn(seat, Duration::ZERO, Duration::ZERO);
             }
         }
-        if let Some(turn) = engine::plain_okey::timeout_turn(&game.view(seat), self.players[seat].discard_next) {
+        if let Some(turn) = engine::plain_okey::timeout_turn(&game.view(seat), &self.players[seat].discard_next) {
             if let Err(e) = game.play(seat, turn) {
                 eprintln!("room {}: a turn played when time ran out: {e}", self.code);
             }
@@ -1005,7 +1010,7 @@ impl Room {
     fn next_hand(&mut self) {
         self.next_hand_at = None;
         for player in &mut self.players {
-            player.discard_next = None;
+            player.discard_next.clear();
         }
         let dealt = match self.game.as_mut() {
             Some(Contest::Okey(game)) => game.next_hand(),
