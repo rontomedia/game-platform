@@ -60,7 +60,9 @@
     "penalties": "Tresty",
     "penaltiesDetail": "101 bodů za odhození okeye nebo kamene, který pasuje na stůl, a za okey vzatý z vaší sestavy; číslo odhozeného kamene ×10, když s ním další hráč otevře.",
     "okey": "Okey",
-    "points": "Body na začátku"
+    "points": "Body na začátku",
+    "falseOkeyMarks": "Označit falešné okeye",
+    "falseOkeyMarksDetail": "Každý falešný okey ukáže v rohu kámen, který zastupuje: pomoc při učení. U skutečného stolu jsou bez označení."
   },
   "room": {
     "summary": "{{parts}}.",
@@ -80,7 +82,8 @@
     "okey101": "Okey 101, rozdání: {{hands}}",
     "progressive": "rostoucí otevření",
     "noPenalties": "bez trestů",
-    "okeyPlain": "Okey, body: {{points}}"
+    "okeyPlain": "Okey, body: {{points}}",
+    "falseOkeyMarks": "falešné okeye označené"
   },
   "lobby": {
     "code": "Kód místnosti: pošlete ho ostatním hráčům",
@@ -198,7 +201,8 @@
       "orange": "oranžová",
       "red": "červená"
     },
-    "drawn": "Váš líznutý kámen"
+    "drawn": "Váš líznutý kámen",
+    "standsFor": "Zastupuje: {{tile}}"
   },
   "board": {
     "tabYourTurn": "Jste na tahu · Rummy",

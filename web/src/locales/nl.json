@@ -58,7 +58,9 @@
     "penalties": "Strafpunten",
     "penaltiesDetail": "101 punten voor het weggooien van de okey of een steen die op tafel past, en voor een okey die uit je combinatie wordt gehaald; het getal van de weggegooide steen ×10 als de volgende speler ermee opent.",
     "okey": "Okey",
-    "points": "Startpunten"
+    "points": "Startpunten",
+    "falseOkeyMarks": "Valse okeys markeren",
+    "falseOkeyMarksDetail": "Elke valse okey toont in zijn hoek de steen waarvoor hij staat: een hulp bij het leren. Aan een echte tafel zijn ze ongemarkeerd."
   },
   "room": {
     "summary": "{{parts}}.",
@@ -78,7 +80,8 @@
     "okey101": "Okey 101, rondes: {{hands}}",
     "progressive": "stijgende opening",
     "noPenalties": "geen strafpunten",
-    "okeyPlain": "Okey, punten: {{points}}"
+    "okeyPlain": "Okey, punten: {{points}}",
+    "falseOkeyMarks": "valse okeys gemarkeerd"
   },
   "lobby": {
     "code": "Kamercode: deel hem met de andere spelers",
@@ -194,7 +197,8 @@
       "orange": "oranje",
       "red": "rode"
     },
-    "drawn": "Deze steen heb je gepakt"
+    "drawn": "Deze steen heb je gepakt",
+    "standsFor": "Staat voor: {{tile}}"
   },
   "board": {
     "tabYourTurn": "Jij bent aan de beurt · Rummy",

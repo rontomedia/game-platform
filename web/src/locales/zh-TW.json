@@ -57,7 +57,9 @@
     "penalties": "罰分",
     "penaltiesDetail": "打出 okey 或能接到桌上的牌罰 101 分，自己組合裡的 okey 被拿走罰 101 分；下家用你打出的牌開牌時，罰該牌數字 ×10。",
     "okey": "Okey",
-    "points": "起始分數"
+    "points": "起始分數",
+    "falseOkeyMarks": "標出假 okey",
+    "falseOkeyMarksDetail": "每張假 okey 的角上顯示它所代表的牌：學習時的輔助。真正的牌桌上沒有這個標記。"
   },
   "room": {
     "summary": "{{parts}}。",
@@ -77,7 +79,8 @@
     "okey101": "Okey 101，手數：{{hands}}",
     "progressive": "遞增開牌",
     "noPenalties": "無罰分",
-    "okeyPlain": "Okey，分數：{{points}}"
+    "okeyPlain": "Okey，分數：{{points}}",
+    "falseOkeyMarks": "假 okey 有標記"
   },
   "lobby": {
     "code": "房間代碼：分享給其他玩家",
@@ -192,7 +195,8 @@
       "orange": "橘",
       "red": "紅"
     },
-    "drawn": "你摸到的牌"
+    "drawn": "你摸到的牌",
+    "standsFor": "代表：{{tile}}"
   },
   "board": {
     "tabYourTurn": "輪到你了 · Rummy",

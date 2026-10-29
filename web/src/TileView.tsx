@@ -1,5 +1,8 @@
+import { useContext } from 'react'
 import { useTranslation } from 'react-i18next'
 
+import { tileLabel } from './arrange.ts'
+import { FalseOkeyMark } from './okeyParts.ts'
 import type { Color, Tile } from './wasm/engine.js'
 
 const numeralColor: Record<Color, string> = {
@@ -36,14 +39,27 @@ export function TileFace({
   drawn?: boolean
 }) {
   const { t } = useTranslation()
+  const mark = useContext(FalseOkeyMark)
+  const marked = tile.kind === 'joker' && mark?.kind === 'number' ? mark : undefined
   return (
     <div
       className={`tile relative flex shrink-0 select-none items-center justify-center font-extrabold tabular-nums tracking-tight ${sizes[size]} ${
         lifted ? 'tile-lifted' : ''
       } ${drawn ? 'tile-drawn' : ''}`}
-      title={drawn ? t('tile.drawn') : undefined}
+      title={
+        drawn
+          ? t('tile.drawn')
+          : marked
+            ? t('tile.standsFor', { tile: tileLabel(t, marked) })
+            : undefined
+      }
     >
       {tile.kind === 'joker' ? <JokerFace /> : <span className={numeralColor[tile.color]}>{tile.value}</span>}
+      {marked && (
+        <span className={`absolute end-[8%] top-[3%] text-[0.45em] leading-none ${numeralColor[marked.color]}`} aria-hidden>
+          {marked.value}
+        </span>
+      )}
     </div>
   )
 }

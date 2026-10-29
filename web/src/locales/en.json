@@ -58,7 +58,9 @@
     "penalties": "Penalties",
     "penaltiesDetail": "101 points for discarding the okey or a tile that fits the table, and for an okey taken from your set; the discard’s number ×10 when the next player opens with it.",
     "okey": "Okey",
-    "points": "Points to start with"
+    "points": "Points to start with",
+    "falseOkeyMarks": "Mark the false okeys",
+    "falseOkeyMarksDetail": "Each false okey shows the tile it stands for in its corner: a help while learning. At a real table they’re plain."
   },
   "room": {
     "summary": "{{parts}}.",
@@ -78,7 +80,8 @@
     "okey101": "Okey 101, hands: {{hands}}",
     "progressive": "rising opening",
     "noPenalties": "no penalties",
-    "okeyPlain": "Okey, points: {{points}}"
+    "okeyPlain": "Okey, points: {{points}}",
+    "falseOkeyMarks": "false okeys marked"
   },
   "lobby": {
     "code": "Room code: share it with the other players",
@@ -194,7 +197,8 @@
       "orange": "orange",
       "red": "red"
     },
-    "drawn": "You drew this tile"
+    "drawn": "You drew this tile",
+    "standsFor": "Stands for {{tile}}"
   },
   "board": {
     "tabYourTurn": "Your turn · Rummy",

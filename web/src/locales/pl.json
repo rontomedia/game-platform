@@ -60,7 +60,9 @@
     "penalties": "Kary",
     "penaltiesDetail": "101 punktów za odrzucenie okeya lub kamienia pasującego do stołu i za okeya zabranego z twojego układu; liczba z odrzuconego kamienia ×10, gdy następny gracz nim otworzy.",
     "okey": "Okey",
-    "points": "Punkty na start"
+    "points": "Punkty na start",
+    "falseOkeyMarks": "Oznacz fałszywe okeye",
+    "falseOkeyMarksDetail": "Każdy fałszywy okey pokazuje w rogu kamień, który zastępuje: pomoc w nauce. Przy prawdziwym stole nie mają oznaczeń."
   },
   "room": {
     "summary": "{{parts}}.",
@@ -80,7 +82,8 @@
     "okey101": "Okey 101, rozdania: {{hands}}",
     "progressive": "rosnące otwarcie",
     "noPenalties": "bez kar",
-    "okeyPlain": "Okey, punkty: {{points}}"
+    "okeyPlain": "Okey, punkty: {{points}}",
+    "falseOkeyMarks": "fałszywe okeye oznaczone"
   },
   "lobby": {
     "code": "Kod pokoju: przekaż go pozostałym graczom",
@@ -198,7 +201,8 @@
       "orange": "pomarańczowa",
       "red": "czerwona"
     },
-    "drawn": "Płytka dobrana przez ciebie"
+    "drawn": "Płytka dobrana przez ciebie",
+    "standsFor": "Zastępuje: {{tile}}"
   },
   "board": {
     "tabYourTurn": "Twoja tura · Rummy",

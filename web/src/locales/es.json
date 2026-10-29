@@ -59,7 +59,9 @@
     "penalties": "Penalizaciones",
     "penaltiesDetail": "101 puntos por descartar el okey o una ficha que encaja en la mesa, y por un okey quitado de tu combinación; el número del descarte ×10 si el siguiente jugador abre con él.",
     "okey": "Okey",
-    "points": "Puntos iniciales"
+    "points": "Puntos iniciales",
+    "falseOkeyMarks": "Marcar los okeys falsos",
+    "falseOkeyMarksDetail": "Cada okey falso muestra en su esquina la ficha que representa: una ayuda mientras aprendes. En una mesa de verdad no llevan marca."
   },
   "room": {
     "summary": "{{parts}}.",
@@ -79,7 +81,8 @@
     "okey101": "Okey 101, manos: {{hands}}",
     "progressive": "apertura creciente",
     "noPenalties": "sin penalizaciones",
-    "okeyPlain": "Okey, puntos: {{points}}"
+    "okeyPlain": "Okey, puntos: {{points}}",
+    "falseOkeyMarks": "okeys falsos marcados"
   },
   "lobby": {
     "code": "Código de sala: compártelo con los demás jugadores",
@@ -196,7 +199,8 @@
       "orange": "naranja",
       "red": "rojo"
     },
-    "drawn": "Robaste esta ficha"
+    "drawn": "Robaste esta ficha",
+    "standsFor": "Representa: {{tile}}"
   },
   "board": {
     "tabYourTurn": "Tu turno · Rummy",

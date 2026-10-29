@@ -58,7 +58,9 @@
     "penalties": "Strafen",
     "penaltiesDetail": "101 Punkte fürs Abwerfen des Okey oder eines Steins, der an den Tisch passt, und für ein Okey, das aus deiner Kombination genommen wird; die Zahl des Abwurfs ×10, wenn der Nächste damit eröffnet.",
     "okey": "Okey",
-    "points": "Startpunkte"
+    "points": "Startpunkte",
+    "falseOkeyMarks": "Falsche Okeys markieren",
+    "falseOkeyMarksDetail": "Jedes falsche Okey zeigt in seiner Ecke den Stein, für den es steht: eine Hilfe beim Lernen. Am echten Tisch sind sie unmarkiert."
   },
   "room": {
     "summary": "{{parts}}.",
@@ -78,7 +80,8 @@
     "okey101": "Okey 101, Runden: {{hands}}",
     "progressive": "steigende Eröffnung",
     "noPenalties": "ohne Strafen",
-    "okeyPlain": "Okey, Punkte: {{points}}"
+    "okeyPlain": "Okey, Punkte: {{points}}",
+    "falseOkeyMarks": "falsche Okeys markiert"
   },
   "lobby": {
     "code": "Raumcode: Teile ihn mit den anderen",
@@ -194,7 +197,8 @@
       "orange": "orange",
       "red": "rote"
     },
-    "drawn": "Diesen Stein hast du gezogen"
+    "drawn": "Diesen Stein hast du gezogen",
+    "standsFor": "Steht für: {{tile}}"
   },
   "board": {
     "tabYourTurn": "Du bist dran · Rummy",

@@ -59,7 +59,9 @@
     "penalties": "Pénalités",
     "penaltiesDetail": "101 points pour défausser l’okey ou une tuile qui va sur la table, et pour un okey pris dans votre combinaison ; le chiffre de la défausse ×10 quand le joueur suivant ouvre avec.",
     "okey": "Okey",
-    "points": "Points de départ"
+    "points": "Points de départ",
+    "falseOkeyMarks": "Marquer les faux okeys",
+    "falseOkeyMarksDetail": "Chaque faux okey montre dans son coin la tuile qu’il vaut : une aide pour apprendre. À une vraie table, ils n’ont pas de marque."
   },
   "room": {
     "summary": "{{parts}}.",
@@ -79,7 +81,8 @@
     "okey101": "Okey 101, manches : {{hands}}",
     "progressive": "ouverture montante",
     "noPenalties": "sans pénalités",
-    "okeyPlain": "Okey, points : {{points}}"
+    "okeyPlain": "Okey, points : {{points}}",
+    "falseOkeyMarks": "faux okeys marqués"
   },
   "lobby": {
     "code": "Code de la salle : partagez-le avec les autres joueurs",
@@ -196,7 +199,8 @@
       "orange": "orange",
       "red": "rouge"
     },
-    "drawn": "Vous avez pioché cette tuile"
+    "drawn": "Vous avez pioché cette tuile",
+    "standsFor": "Vaut : {{tile}}"
   },
   "board": {
     "tabYourTurn": "À vous · Rummy",

@@ -58,7 +58,9 @@
     "penalties": "Straff",
     "penaltiesDetail": "101 poäng för att kasta okey eller en bricka som passar på bordet, och för en okey som tas från din kombination; kastets tal ×10 när nästa spelare öppnar med den.",
     "okey": "Okey",
-    "points": "Startpoäng"
+    "points": "Startpoäng",
+    "falseOkeyMarks": "Märk de falska okey",
+    "falseOkeyMarksDetail": "Varje falsk okey visar i hörnet brickan den står för: en hjälp medan du lär dig. Vid ett riktigt bord är de omärkta."
   },
   "room": {
     "summary": "{{parts}}.",
@@ -78,7 +80,8 @@
     "okey101": "Okey 101, givar: {{hands}}",
     "progressive": "stigande öppning",
     "noPenalties": "inga straff",
-    "okeyPlain": "Okey, poäng: {{points}}"
+    "okeyPlain": "Okey, poäng: {{points}}",
+    "falseOkeyMarks": "falska okey märkta"
   },
   "lobby": {
     "code": "Rumskod: dela den med de andra spelarna",
@@ -194,7 +197,8 @@
       "orange": "orange",
       "red": "röd"
     },
-    "drawn": "Du drog den här brickan"
+    "drawn": "Du drog den här brickan",
+    "standsFor": "Står för: {{tile}}"
   },
   "board": {
     "tabYourTurn": "Din tur · Rummy",

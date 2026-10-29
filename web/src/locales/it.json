@@ -59,7 +59,9 @@
     "penalties": "Penalità",
     "penaltiesDetail": "101 punti per scartare l’okey o una tessera che va sul tavolo, e per un okey tolto dalla tua combinazione; il numero dello scarto ×10 se il giocatore successivo apre con esso.",
     "okey": "Okey",
-    "points": "Punti iniziali"
+    "points": "Punti iniziali",
+    "falseOkeyMarks": "Segna i falsi okey",
+    "falseOkeyMarksDetail": "Ogni falso okey mostra nell’angolo la tessera che sostituisce: un aiuto mentre impari. A un tavolo vero non hanno segni."
   },
   "room": {
     "summary": "{{parts}}.",
@@ -79,7 +81,8 @@
     "okey101": "Okey 101, mani: {{hands}}",
     "progressive": "apertura crescente",
     "noPenalties": "senza penalità",
-    "okeyPlain": "Okey, punti: {{points}}"
+    "okeyPlain": "Okey, punti: {{points}}",
+    "falseOkeyMarks": "falsi okey segnati"
   },
   "lobby": {
     "code": "Codice della stanza: condividilo con gli altri giocatori",
@@ -196,7 +199,8 @@
       "orange": "arancione",
       "red": "rosso"
     },
-    "drawn": "Hai pescato questa tessera"
+    "drawn": "Hai pescato questa tessera",
+    "standsFor": "Vale: {{tile}}"
   },
   "board": {
     "tabYourTurn": "Tocca a te · Rummy",

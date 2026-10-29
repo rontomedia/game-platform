@@ -58,7 +58,9 @@
     "penalties": "Cezalar",
     "penaltiesDetail": "Okey atmak, masaya işlenebilen taşı atmak ve perinden okey alınması 101 puan; sonraki oyuncu attığın taşla açarsa taşın sayısı ×10.",
     "okey": "Okey",
-    "points": "Başlangıç puanı"
+    "points": "Başlangıç puanı",
+    "falseOkeyMarks": "Sahte okeyleri işaretle",
+    "falseOkeyMarksDetail": "Her sahte okey köşesinde yerine geçtiği taşı gösterir: öğrenirken bir yardım. Gerçek masada işaretsizdir."
   },
   "room": {
     "summary": "{{parts}}.",
@@ -78,7 +80,8 @@
     "okey101": "Okey 101, el sayısı: {{hands}}",
     "progressive": "katlamalı açma",
     "noPenalties": "cezasız",
-    "okeyPlain": "Okey, puan: {{points}}"
+    "okeyPlain": "Okey, puan: {{points}}",
+    "falseOkeyMarks": "sahte okeyler işaretli"
   },
   "lobby": {
     "code": "Oda kodu: diğer oyuncularla paylaşın",
@@ -194,7 +197,8 @@
       "orange": "turuncu",
       "red": "kırmızı"
     },
-    "drawn": "Bu taşı çektiniz"
+    "drawn": "Bu taşı çektiniz",
+    "standsFor": "Yerine geçtiği taş: {{tile}}"
   },
   "board": {
     "tabYourTurn": "Sıra sizde · Rummy",

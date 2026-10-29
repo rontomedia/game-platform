@@ -45,15 +45,19 @@ export default function App() {
   return mode?.startsWith('okey') ? <OkeyDemo /> : <Demo />
 }
 
-/** `?demo=plain`: a plain Okey hand; `?demo=plain-scores`: its end. */
+/**
+ * `?demo=plain`: a plain Okey hand; `?demo=plain-scores`: its end;
+ * `?demo=plain-marks`: the hand with false okeys marked.
+ */
 function PlainOkeyDemo() {
-  const scores = new URLSearchParams(location.search).get('demo') === 'plain-scores'
+  const mode = new URLSearchParams(location.search).get('demo')
+  const scores = mode === 'plain-scores'
   const [game] = useState(() => demoPlainOkey(scores))
   const [settings, changeSettings] = useSettings()
   return (
     <PlainOkeyBoard
       game={game}
-      room={demoPlainOkeyRoom}
+      room={mode === 'plain-marks' ? withMarks(demoPlainOkeyRoom) : demoPlainOkeyRoom}
       status="open"
       problem={null}
       notice={null}
@@ -67,16 +71,18 @@ function PlainOkeyDemo() {
 
 /**
  * `?demo=okey`: an Okey 101 hand, the player about to draw.
- * `?demo=okey-scores`: the scores after a hand.
+ * `?demo=okey-scores`: the scores after a hand. `?demo=okey-marks`: the
+ * hand with false okeys marked.
  */
 function OkeyDemo() {
-  const scores = new URLSearchParams(location.search).get('demo') === 'okey-scores'
+  const mode = new URLSearchParams(location.search).get('demo')
+  const scores = mode === 'okey-scores'
   const [okey] = useState(() => demoOkey(scores))
   const [settings, changeSettings] = useSettings()
   return (
     <OkeyBoard
       okey={okey}
-      room={demoOkeyRoom}
+      room={mode === 'okey-marks' ? withMarks(demoOkeyRoom) : demoOkeyRoom}
       status="open"
       problem={null}
       notice={null}
@@ -88,6 +94,9 @@ function OkeyDemo() {
     />
   )
 }
+
+/** A demo room with the false okeys marked (`falseOkeyMarks`). */
+const withMarks = (room: RoomInfo): RoomInfo => ({ ...room, options: { ...room.options, falseOkeyMarks: true } })
 
 /**
  * The demo game. `?demo=watch`: it's Maya's turn instead, and she shares it
@@ -375,6 +384,14 @@ function Home({ send, problem, ready }: { send: (m: ClientMessage) => void; prob
               onChange={(tileBonus) => change({ tileBonus })}
             />
           )}
+          {options.rules.kind !== 'classic' && (
+            <Option
+              title={t('home.falseOkeyMarks')}
+              detail={t('home.falseOkeyMarksDetail')}
+              checked={options.falseOkeyMarks}
+              onChange={(falseOkeyMarks) => change({ falseOkeyMarks })}
+            />
+          )}
           <Option
             title={t('home.liveTurns')}
             detail={t('home.liveTurnsDetail')}
@@ -449,6 +466,7 @@ const defaultOptions: Required<RoomOptions> = {
   timeBank: false,
   tileBonus: false,
   standIn: 'medium',
+  falseOkeyMarks: false,
   rules: { kind: 'classic' },
 }
 /** An Okey 101 room's settings to start from (the engine's defaults). */
@@ -463,11 +481,12 @@ const STAND_INS = ['easy', 'medium', 'hard'] as const
 /** How many of the options under "Advanced" differ from the defaults. */
 function changedOptions(options: Required<RoomOptions>): number {
   const shared = (['timeBank', 'liveTurns', 'standIn'] as const).filter((key) => options[key] !== defaultOptions[key]).length
+  const marks = Number(options.falseOkeyMarks !== defaultOptions.falseOkeyMarks)
   if (options.rules.kind === 'okey101') {
     const okey = { ...OKEY_DEFAULTS, ...options.rules }
-    return shared + Number(okey.progressive !== OKEY_DEFAULTS.progressive) + Number(okey.penalties !== OKEY_DEFAULTS.penalties)
+    return shared + marks + Number(okey.progressive !== OKEY_DEFAULTS.progressive) + Number(okey.penalties !== OKEY_DEFAULTS.penalties)
   }
-  if (options.rules.kind === 'okey') return shared
+  if (options.rules.kind === 'okey') return shared + marks
   return shared + Number(options.tileBonus !== defaultOptions.tileBonus)
 }
 /** Remembered across visits: the options the player last created a room with. */
@@ -493,6 +512,7 @@ function describe(t: TFunction, options: RoomOptions): string {
   parts.push(t('room.turn', { time: turnLength(t, options.turnSeconds ?? 60) }))
   if (rules.kind === 'okey101' && rules.progressive) parts.push(t('room.progressive'))
   if (rules.kind === 'okey101' && rules.penalties === false) parts.push(t('room.noPenalties'))
+  if (options.falseOkeyMarks && rules.kind !== 'classic') parts.push(t('room.falseOkeyMarks'))
   if (options.timeBank) parts.push(t('room.timeBank'))
   if (options.tileBonus && rules.kind === 'classic') parts.push(t('room.tileBonus'))
   parts.push(options.liveTurns ? t('room.liveTurns') : t('room.finishedTurns'))

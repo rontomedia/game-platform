@@ -138,7 +138,10 @@ only builds it on start.
     player: a `Notice` at 1 min, none for the rest of the game at 2), live
     turns, the stand-in bot (`stand_in`, default Medium, never Extra
     Hard), and the rule set (`rules`: classic, or Okey 101 with its hands,
-    rising bar and penalties; no extra time for tiles there). The room
+    rising bar and penalties; no extra time for tiles there), and for
+    Okey, marking false okeys (`falseOkeyMarks`, off: a corner numeral
+    of the tile they stand for, `FalseOkeyMark` context read by
+    `TileFace`). The room
     plays a `Contest` (`contest.rs`): the classic `Game` or an Okey
     `Match`. In Okey 101 `Draw` doesn't end the turn, `Discard` does;
     states are `OkeyState`, errors `OkeyRejected`; when time runs out the
@@ -300,13 +303,15 @@ only builds it on start.
     Indicator, okey and pool top left, everyone's discards top right, the
     opening total as it builds (`okeyProgress`), the scores between hands
     and at the end. Shares `TopBar` and `WatchBar` with `Board.tsx`; the
-    rack order is kept per tab. `?demo=okey` and `?demo=okey-scores`.
+    rack order is kept per tab. `?demo=okey`, `?demo=okey-scores` and
+    `?demo=okey-marks`.
   - `PlainOkeyBoard.tsx`: plain Okey (`rules` kind `okey`, states
     `plainOkeyState`): no table; draw or take the discard, then drop a
     tile on the discard spot, or on the finish spot in the middle to show
     the other 14 as a winning hand (checked first, `okeyComplete`). Shares
     the Okey board's parts (`okeyParts.ts`, `Middle`, `DiscardPile`,
-    `Rack`, `DiscardSpot`, `Overlay`). `?demo=plain`, `?demo=plain-scores`.
+    `Rack`, `DiscardSpot`, `Overlay`). `?demo=plain`, `?demo=plain-scores`,
+    `?demo=plain-marks`.
   - Planned: shadcn/ui for menus, `@heroiclabs/nakama-js` for
     accounts/matchmaking.
 

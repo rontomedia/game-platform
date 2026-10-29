@@ -59,7 +59,9 @@
     "penalties": "Penalizări",
     "penaltiesDetail": "101 puncte pentru aruncarea okey-ului sau a unei piese care se potrivește pe masă și pentru un okey luat din formația ta; numărul piesei aruncate ×10 când următorul jucător deschide cu ea.",
     "okey": "Okey",
-    "points": "Puncte de început"
+    "points": "Puncte de început",
+    "falseOkeyMarks": "Marchează okey-urile false",
+    "falseOkeyMarksDetail": "Fiecare okey fals arată în colț piesa pe care o înlocuiește: un ajutor cât înveți. La o masă adevărată nu sunt marcate."
   },
   "room": {
     "summary": "{{parts}}.",
@@ -79,7 +81,8 @@
     "okey101": "Okey 101, mâini: {{hands}}",
     "progressive": "deschidere crescătoare",
     "noPenalties": "fără penalizări",
-    "okeyPlain": "Okey, puncte: {{points}}"
+    "okeyPlain": "Okey, puncte: {{points}}",
+    "falseOkeyMarks": "okey-uri false marcate"
   },
   "lobby": {
     "code": "Codul camerei: trimite-l celorlalți jucători",
@@ -196,7 +199,8 @@
       "orange": "portocaliu",
       "red": "roșu"
     },
-    "drawn": "Ai tras piesa aceasta"
+    "drawn": "Ai tras piesa aceasta",
+    "standsFor": "Înlocuiește: {{tile}}"
   },
   "board": {
     "tabYourTurn": "E rândul tău · Rummy",

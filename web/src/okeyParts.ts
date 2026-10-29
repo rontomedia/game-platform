@@ -1,4 +1,5 @@
 import { closestCenter, pointerWithin, type CollisionDetection } from '@dnd-kit/core'
+import { createContext } from 'react'
 
 import { arrangeRack, type RackSort } from './arrange.ts'
 import { remembered } from './storage.ts'
@@ -32,6 +33,13 @@ export const collisions: CollisionDetection = (args) => {
 export const tilesOf = (placed: Placed[]) => placed.map((p) => p.tile)
 export const same = (a: Tile[][], b: Tile[][]) => JSON.stringify(a) === JSON.stringify(b)
 export const sameTile = (a: Tile, b: Tile) => JSON.stringify(a) === JSON.stringify(b)
+
+/**
+ * Okey: the tile false okeys stand for (the okey's), set by an Okey board
+ * when its room marks them (`falseOkeyMarks`); each joker face then shows
+ * it in a corner. Unset, a joker is plain.
+ */
+export const FalseOkeyMark = createContext<Tile | undefined>(undefined)
 
 /**
  * The rack in the player's order, remembered for the tab under `key`: as

@@ -24,6 +24,7 @@ import type { Settings } from './settings.ts'
 import {
   collisions,
   DISCARD,
+  FalseOkeyMark,
   isSetTarget,
   NEW_SET,
   OFFER,
@@ -326,113 +327,115 @@ export function OkeyBoard({
   const handNumber = Math.min(hand.rules.hands ?? view.played + 1, view.played + (hand.end ? 0 : 1))
 
   return (
-    <DndContext sensors={sensors} collisionDetection={collisions} onDragStart={onDragStart} onDragEnd={onDragEnd} onDragCancel={() => setDragging(null)}>
-      <div className="flex h-dvh flex-col gap-3 p-2 sm:gap-4 sm:p-4 short:gap-2 short:p-2">
-        <TopBar
-          room={room}
-          // Between hands nobody is playing.
-          view={{ rackSizes: hand.rackSizes, you, current: hand.end ? -1 : hand.current, pool: hand.pool, outcome: over || undefined }}
-          clock={clock}
-          status={status}
-          settings={settings}
-          onSettings={onSettings}
-          leave={leave}
-        />
+    <FalseOkeyMark value={room.options.falseOkeyMarks ? hand.okey : undefined}>
+      <DndContext sensors={sensors} collisionDetection={collisions} onDragStart={onDragStart} onDragEnd={onDragEnd} onDragCancel={() => setDragging(null)}>
+        <div className="flex h-dvh flex-col gap-3 p-2 sm:gap-4 sm:p-4 short:gap-2 short:p-2">
+          <TopBar
+            room={room}
+            // Between hands nobody is playing.
+            view={{ rackSizes: hand.rackSizes, you, current: hand.end ? -1 : hand.current, pool: hand.pool, outcome: over || undefined }}
+            clock={clock}
+            status={status}
+            settings={settings}
+            onSettings={onSettings}
+            leave={leave}
+          />
 
-        <div className="relative flex min-h-0 flex-1 flex-col">
-          {/* The playing surface stays left to right in every language: runs read 1 2 3. */}
-          <main
-            dir="ltr"
-            className="felt relative flex min-h-0 flex-1 flex-col gap-3 overflow-auto rounded-3xl p-3 [scrollbar-color:rgb(255_255_255/0.15)_transparent] [scrollbar-width:thin] sm:p-5 short:rounded-2xl short:p-2"
-          >
-            <div className="flex flex-wrap items-start gap-3">
-              <Middle
-                indicator={hand.indicator}
-                okey={hand.okey}
-                pool={hand.pool}
-                caption={t('okey.hand', { n: handNumber, total: hand.rules.hands ?? handNumber })}
-                canDraw={myTurn && hand.phase === 'draw' && !taken}
-                onDraw={() => send({ type: 'draw' })}
-              />
-              <div className="flex min-w-0 flex-1 flex-wrap justify-end gap-2">
-                {hand.discards.map((pile, seat) => (
-                  <DiscardPile
-                    key={seat}
-                    name={name(seat)}
-                    pile={pile}
-                    offered={seat === previous && canTake && !taken}
-                    returnable={seat === previous && taken}
+          <div className="relative flex min-h-0 flex-1 flex-col">
+            {/* The playing surface stays left to right in every language: runs read 1 2 3. */}
+            <main
+              dir="ltr"
+              className="felt relative flex min-h-0 flex-1 flex-col gap-3 overflow-auto rounded-3xl p-3 [scrollbar-color:rgb(255_255_255/0.15)_transparent] [scrollbar-width:thin] sm:p-5 short:rounded-2xl short:p-2"
+            >
+              <div className="flex flex-wrap items-start gap-3">
+                <Middle
+                  indicator={hand.indicator}
+                  okey={hand.okey}
+                  pool={hand.pool}
+                  caption={t('okey.hand', { n: handNumber, total: hand.rules.hands ?? handNumber })}
+                  canDraw={myTurn && hand.phase === 'draw' && !taken}
+                  onDraw={() => send({ type: 'draw' })}
+                />
+                <div className="flex min-w-0 flex-1 flex-wrap justify-end gap-2">
+                  {hand.discards.map((pile, seat) => (
+                    <DiscardPile
+                      key={seat}
+                      name={name(seat)}
+                      pile={pile}
+                      offered={seat === previous && canTake && !taken}
+                      returnable={seat === previous && taken}
+                    />
+                  ))}
+                </div>
+              </div>
+
+              <div className="flex flex-1 flex-wrap content-start items-start gap-x-4 gap-y-3">
+                {shown.length === 0 && !canTable && (
+                  <p dir="auto" className="w-full py-6 text-center text-emerald-100/40">
+                    {t('okey.emptyTable')}
+                  </p>
+                )}
+                {shown.map((set, s) => (
+                  <TableSet
+                    key={s}
+                    index={s}
+                    tiles={set}
+                    okey={hand.okey}
+                    droppable={canTable || (canTake && !taken)}
+                    draggable={myTurn ? (id) => !fixed.has(id) : () => false}
+                    fresh={myTurn && (s >= hand.table.length || !same([tilesOf(set)], [hand.table[s]]))}
+                    live={liveTable !== null && (s >= hand.table.length || !same([tilesOf(set)], [hand.table[s] ?? []]))}
                   />
                 ))}
+                {(canTable || (canTake && !taken)) && <NewSet />}
               </div>
-            </div>
+              <AnimatePresence>
+                {hand.end && !over && <HandScores okey={okey} name={name} now={now} />}
+                {over && <MatchScores okey={okey} name={name} leave={leave} />}
+              </AnimatePresence>
+            </main>
+          </div>
 
-            <div className="flex flex-1 flex-wrap content-start items-start gap-x-4 gap-y-3">
-              {shown.length === 0 && !canTable && (
-                <p dir="auto" className="w-full py-6 text-center text-emerald-100/40">
-                  {t('okey.emptyTable')}
-                </p>
-              )}
-              {shown.map((set, s) => (
-                <TableSet
-                  key={s}
-                  index={s}
-                  tiles={set}
-                  okey={hand.okey}
-                  droppable={canTable || (canTake && !taken)}
-                  draggable={myTurn ? (id) => !fixed.has(id) : () => false}
-                  fresh={myTurn && (s >= hand.table.length || !same([tilesOf(set)], [hand.table[s]]))}
-                  live={liveTable !== null && (s >= hand.table.length || !same([tilesOf(set)], [hand.table[s] ?? []]))}
-                />
-              ))}
-              {(canTable || (canTake && !taken)) && <NewSet />}
-            </div>
-            <AnimatePresence>
-              {hand.end && !over && <HandScores okey={okey} name={name} now={now} />}
-              {over && <MatchScores okey={okey} name={name} leave={leave} />}
-            </AnimatePresence>
-          </main>
+          {watching ? (
+            <WatchBar room={room} over={over} note={note.text} noteColor={noteColor} send={send} />
+          ) : (
+            <section className={`tray rounded-3xl p-3 sm:p-4 short:rounded-2xl short:p-2 ${myTurn && okey.turnSince === okey.version ? 'turn-cue' : ''}`}>
+              <div className="mb-3 flex flex-wrap items-center gap-x-4 gap-y-2 short:mb-2">
+                <p className={`min-w-0 flex-1 text-sm font-medium short:truncate ${noteColor}`}>{note.text}</p>
+                <div className="flex gap-1 rounded-xl bg-black/30 p-1 text-xs font-semibold" role="group" aria-label={t('board.sort')}>
+                  {(['number', 'color'] as const).map((by) => (
+                    <button
+                      key={by}
+                      onClick={() => sortRack(by)}
+                      aria-pressed={sort === by}
+                      className={`cursor-pointer rounded-lg px-2 py-1 ${sort === by ? 'bg-white/15 text-slate-100' : 'text-slate-400 hover:text-slate-200'}`}
+                    >
+                      {by === 'number' ? t('board.sortNumber') : t('board.sortColor')}
+                    </button>
+                  ))}
+                </div>
+                <div className={`flex gap-2 ${myTurn ? '' : 'invisible'}`} aria-hidden={!myTurn}>
+                  <Button look="quiet" onClick={reset} disabled={!myTurn || !changed}>
+                    {t('board.reset')}
+                  </Button>
+                  <Button onClick={() => send({ type: 'draw' })} disabled={!myTurn || hand.phase !== 'draw' || taken}>
+                    {t('board.draw')}
+                  </Button>
+                </div>
+              </div>
+              <div className="flex items-stretch gap-3">
+                <Rack tiles={rack} sortable={!watching} okey={hand.okey} />
+                <DiscardSpot id={DISCARD} label={t('okey.discardHere')} active={myTurn && (hand.phase === 'play' || taken)} />
+              </div>
+            </section>
+          )}
         </div>
 
-        {watching ? (
-          <WatchBar room={room} over={over} note={note.text} noteColor={noteColor} send={send} />
-        ) : (
-          <section className={`tray rounded-3xl p-3 sm:p-4 short:rounded-2xl short:p-2 ${myTurn && okey.turnSince === okey.version ? 'turn-cue' : ''}`}>
-            <div className="mb-3 flex flex-wrap items-center gap-x-4 gap-y-2 short:mb-2">
-              <p className={`min-w-0 flex-1 text-sm font-medium short:truncate ${noteColor}`}>{note.text}</p>
-              <div className="flex gap-1 rounded-xl bg-black/30 p-1 text-xs font-semibold" role="group" aria-label={t('board.sort')}>
-                {(['number', 'color'] as const).map((by) => (
-                  <button
-                    key={by}
-                    onClick={() => sortRack(by)}
-                    aria-pressed={sort === by}
-                    className={`cursor-pointer rounded-lg px-2 py-1 ${sort === by ? 'bg-white/15 text-slate-100' : 'text-slate-400 hover:text-slate-200'}`}
-                  >
-                    {by === 'number' ? t('board.sortNumber') : t('board.sortColor')}
-                  </button>
-                ))}
-              </div>
-              <div className={`flex gap-2 ${myTurn ? '' : 'invisible'}`} aria-hidden={!myTurn}>
-                <Button look="quiet" onClick={reset} disabled={!myTurn || !changed}>
-                  {t('board.reset')}
-                </Button>
-                <Button onClick={() => send({ type: 'draw' })} disabled={!myTurn || hand.phase !== 'draw' || taken}>
-                  {t('board.draw')}
-                </Button>
-              </div>
-            </div>
-            <div className="flex items-stretch gap-3">
-              <Rack tiles={rack} sortable={!watching} okey={hand.okey} />
-              <DiscardSpot id={DISCARD} label={t('okey.discardHere')} active={myTurn && (hand.phase === 'play' || taken)} />
-            </div>
-          </section>
-        )}
-      </div>
-
-      <DragOverlay dropAnimation={{ duration: 180, easing: 'cubic-bezier(0.2, 0.8, 0.2, 1)' }}>
-        {dragging ? <TileFace tile={dragging.tile} size="rack" lifted /> : null}
-      </DragOverlay>
-    </DndContext>
+        <DragOverlay dropAnimation={{ duration: 180, easing: 'cubic-bezier(0.2, 0.8, 0.2, 1)' }}>
+          {dragging ? <TileFace tile={dragging.tile} size="rack" lifted /> : null}
+        </DragOverlay>
+      </DndContext>
+    </FalseOkeyMark>
   )
 }
 

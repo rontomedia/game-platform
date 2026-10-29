@@ -57,7 +57,9 @@
     "penalties": "ペナルティ",
     "penaltiesDetail": "オーケイや場に付けられる牌を捨てると101点、自分のセットからオーケイを取られると101点。次の人が捨て牌でオープンしたら、その数字×10。",
     "okey": "Okey",
-    "points": "持ち点"
+    "points": "持ち点",
+    "falseOkeyMarks": "偽オーケイに印を付ける",
+    "falseOkeyMarksDetail": "偽オーケイの角に、代わりをしている牌を表示します。覚えるまでの手助けです。実際の卓では印はありません。"
   },
   "room": {
     "summary": "{{parts}}。",
@@ -77,7 +79,8 @@
     "okey101": "Okey 101、ハンド数：{{hands}}",
     "progressive": "上がっていくオープン",
     "noPenalties": "ペナルティなし",
-    "okeyPlain": "Okey、持ち点：{{points}}"
+    "okeyPlain": "Okey、持ち点：{{points}}",
+    "falseOkeyMarks": "偽オーケイに印あり"
   },
   "lobby": {
     "code": "ルームコード：ほかのプレイヤーに知らせてください",
@@ -192,7 +195,8 @@
       "orange": "オレンジ",
       "red": "赤"
     },
-    "drawn": "あなたが引いたタイル"
+    "drawn": "あなたが引いたタイル",
+    "standsFor": "{{tile}}として使う"
   },
   "board": {
     "tabYourTurn": "あなたの番 · Rummy",

@@ -38,6 +38,10 @@ pub struct RoomOptions {
     /// The bot that takes over the seat of a player who leaves the game:
     /// any level but Extra Hard.
     pub stand_in: BotLevel,
+    /// Okey: each false okey shows the tile it stands for (the okey's), a
+    /// help for players new to the game. Off by default, as the tiles are
+    /// plain at a real table; the classic game has no false okeys.
+    pub false_okey_marks: bool,
     /// The game played: the classic one, or Okey 101 with its settings.
     #[cfg_attr(feature = "wasm", tsify(optional))]
     pub rules: RuleSet,
@@ -65,6 +69,7 @@ impl Default for RoomOptions {
             time_bank: false,
             tile_bonus: false,
             stand_in: BotLevel::Medium,
+            false_okey_marks: false,
             rules: RuleSet::Classic,
         }
     }
@@ -81,7 +86,8 @@ pub const OKEY_POINTS: [u32; 4] = [4, 10, 20, 30];
 
 impl RoomOptions {
     /// The options with anything out of range back at its default. Extra
-    /// time for tiles is the classic game's only.
+    /// time for tiles is the classic game's only, marked false okeys
+    /// Okey's.
     pub fn checked(self) -> RoomOptions {
         let turn_seconds = if TURN_SECONDS.contains(&self.turn_seconds) { self.turn_seconds } else { 60 };
         let stand_in = if self.stand_in == BotLevel::ExtraHard { BotLevel::Medium } else { self.stand_in };
@@ -96,7 +102,8 @@ impl RoomOptions {
                 (RuleSet::Okey(PlainRules { points }), false)
             }
         };
-        RoomOptions { turn_seconds, stand_in, rules, tile_bonus, ..self }
+        let false_okey_marks = self.false_okey_marks && rules != RuleSet::Classic;
+        RoomOptions { turn_seconds, stand_in, rules, tile_bonus, false_okey_marks, ..self }
     }
 }
 
@@ -416,6 +423,10 @@ mod tests {
         let odd = RoomOptions { tile_bonus: true, rules: RuleSet::Okey101(Okey101Rules { hands: 4, ..Okey101Rules::default() }), ..RoomOptions::default() };
         assert_eq!(odd.clone().checked().rules, RuleSet::Okey101(Okey101Rules::default()), "4 hands isn't offered");
         assert!(!odd.checked().tile_bonus, "classic only");
+        let marked = r#"{"type":"createRoom","name":"Ann","options":{"falseOkeyMarks":true,"rules":{"kind":"okey"}}}"#;
+        let ClientMessage::CreateRoom { options, .. } = ClientMessage::from_json(marked).unwrap() else { panic!() };
+        assert!(options.clone().checked().false_okey_marks);
+        assert!(!RoomOptions { rules: RuleSet::Classic, ..options }.checked().false_okey_marks, "Okey only");
         let discard = r#"{"type":"discard","table":[],"discard":{"kind":"joker"}}"#;
         assert_eq!(
             ClientMessage::from_json(discard).unwrap(),

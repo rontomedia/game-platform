@@ -58,7 +58,9 @@
     "penalties": "Büntetések",
     "penaltiesDetail": "101 pont az okey vagy az asztalhoz illő kő eldobásáért, és ha a kombinációdból elveszik az okeyt; az eldobott kő száma ×10, ha a következő játékos azzal nyit.",
     "okey": "Okey",
-    "points": "Kezdőpontok"
+    "points": "Kezdőpontok",
+    "falseOkeyMarks": "Hamis okeyk jelölése",
+    "falseOkeyMarksDetail": "Minden hamis okey a sarkában mutatja, melyik követ helyettesíti: segítség tanuláshoz. Valódi asztalnál nincs rajtuk jelölés."
   },
   "room": {
     "summary": "{{parts}}.",
@@ -78,7 +80,8 @@
     "okey101": "Okey 101, leosztások: {{hands}}",
     "progressive": "emelkedő nyitás",
     "noPenalties": "büntetések nélkül",
-    "okeyPlain": "Okey, pontok: {{points}}"
+    "okeyPlain": "Okey, pontok: {{points}}",
+    "falseOkeyMarks": "hamis okeyk jelölve"
   },
   "lobby": {
     "code": "Szobakód: küldd el a többi játékosnak",
@@ -194,7 +197,8 @@
       "orange": "narancs",
       "red": "piros"
     },
-    "drawn": "Ezt a lapkát húztad"
+    "drawn": "Ezt a lapkát húztad",
+    "standsFor": "Helyettesíti: {{tile}}"
   },
   "board": {
     "tabYourTurn": "Te jössz · Rummy",
