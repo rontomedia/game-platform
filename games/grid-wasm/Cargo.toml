@@ -1,0 +1,18 @@
+[package]
+name = "grid-wasm"
+version = "0.1.0"
+edition = "2021"
+
+# The grid engine for the browser. Builds with
+# `cargo build -p grid-wasm --target wasm32-unknown-unknown`; not yet
+# used by web/ (wasm-pack output into web/src/games/grid/wasm/ comes
+# with the grid board).
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+grid = { path = "../grid", features = ["wasm"] }
+wasm-bindgen = "0.2.129"
+serde = { version = "1", features = ["derive"] }
+tsify = { version = "0.5.8", default-features = false, features = ["js"] }

@@ -271,6 +271,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "grid-wasm"
+version = "0.1.0"
+dependencies = [
+ "grid",
+ "serde",
+ "tsify",
+ "wasm-bindgen",
+]
+
+[[package]]
 name = "http"
 version = "1.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"

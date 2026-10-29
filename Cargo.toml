@@ -9,3 +9,6 @@ codegen-units = 1
 # The browser downloads it: small over fast.
 [profile.release.package.tile-rummy-wasm]
 opt-level = "s"
+
+[profile.release.package.grid-wasm]
+opt-level = "s"
