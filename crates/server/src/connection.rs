@@ -8,6 +8,7 @@ use axum::extract::ws::{Message, WebSocket};
 use protocol::{ClientMessage, Refusal, ServerMessage, PROTOCOL_VERSION};
 use tokio::sync::{mpsc, oneshot};
 
+use crate::contest::{Discard, RummyMove};
 use crate::room::{Command, Connection, Outbox, PlayerId};
 use crate::rooms::Rooms;
 
@@ -98,14 +99,16 @@ async fn handle(message: ClientMessage, rooms: &Arc<Rooms>, membership: &mut Opt
         ClientMessage::Start => forward(membership, outbox, |player| Command::Start { player }).await,
         ClientMessage::Pause { paused } => forward(membership, outbox, |player| Command::Pause { player, paused }).await,
         ClientMessage::Step => forward(membership, outbox, |player| Command::Step { player }).await,
-        ClientMessage::Play { table } => forward(membership, outbox, |player| Command::Play { player, table }).await,
-        ClientMessage::Draw => forward(membership, outbox, |player| Command::Draw { player }).await,
-        ClientMessage::Discard { take_discard, table, discard, finish } => {
-            let turn = crate::room::Discard { take_discard, table, discard, finish };
-            forward(membership, outbox, |player| Command::Discard { player, turn }).await
+        ClientMessage::Play { table } => {
+            forward(membership, outbox, |player| Command::Move { player, mv: RummyMove::Play(table) }).await
         }
-        ClientMessage::Draft { table } => forward(membership, outbox, |player| Command::Draft { player, table }).await,
-        ClientMessage::DiscardNext { tiles } => forward(membership, outbox, |player| Command::DiscardNext { player, tiles }).await,
+        ClientMessage::Draw => forward(membership, outbox, |player| Command::Move { player, mv: RummyMove::Draw }).await,
+        ClientMessage::Discard { take_discard, table, discard, finish } => {
+            let mv = RummyMove::Discard(Discard { take_discard, table, discard, finish });
+            forward(membership, outbox, |player| Command::Move { player, mv }).await
+        }
+        ClientMessage::Draft { table } => forward(membership, outbox, |player| Command::Draft { player, draft: table }).await,
+        ClientMessage::DiscardNext { tiles } => forward(membership, outbox, |player| Command::Aside { player, aside: tiles }).await,
     }
 }
 

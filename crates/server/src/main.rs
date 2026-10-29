@@ -5,6 +5,7 @@
 mod clock;
 mod connection;
 mod contest;
+mod engine;
 mod room;
 mod rooms;
 #[cfg(test)]
