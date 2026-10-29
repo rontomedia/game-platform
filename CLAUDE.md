@@ -12,9 +12,10 @@ items, `decisions.md` for why). Don't reopen those decisions unless
 something contradicts them. Don't call the game "Rummikub" anywhere
 user-facing (it's a trademark).
 
-Layout: `crates/` holds what all games share (`protocol`, `server`; the
-generic `platform` crate is being extracted from the server), `games/`
-a crate per game family and its `-wasm` crate. In `web/src/`,
+Layout: `crates/` holds what all games share (`platform`, the generic
+room; `protocol`; `server`, the binary with each game's adapter),
+`games/` a crate per game family and its `-wasm` crate (`tile-rummy`,
+`grid`). In `web/src/`,
 `platform/` is shared (i18n, settings, storage, ui) and `games/<family>/`
 a game's boards and engine WASM; `App.tsx`, `useGame.ts` and
 `messages.ts` still mix both, to be split as the second family arrives.
@@ -31,6 +32,7 @@ cargo run -p server -- --open-racks # the same, every rack shown to everyone (ju
 # (bots thinking at once, default cores - 1); see `config` in main.rs
 cargo test --workspace              # one test: cargo test -p tile-rummy runs
 cargo clippy --workspace --all-targets
+cargo build -p grid-wasm --target wasm32-unknown-unknown  # not yet used by web/
 ```
 
 From `web/`:
@@ -52,7 +54,9 @@ is English accented and 40% longer, to find text that clips or isn't
 translated.
 
 `cargo test -p tile-rummy --release -- --ignored --nocapture strength` plays
-the bot levels against each other and prints wins and time per move.
+the bot levels against each other and prints wins and time per move;
+`cargo test -p grid --release -- --ignored --nocapture grid_strength` the
+grid bots, on Tic-Tac-Toe and Gomoku (`GRID_GAMES`, `GRID_MS`).
 
 Run the server and `npm run dev` together. After changing Rust in
 `games/tile-rummy*`, rerun `npm run wasm:dev` (Vite then reloads); `npm run dev`
@@ -128,12 +132,54 @@ only builds it on start.
   crate is actually used by tile-rummy-wasm. Engine types cross as
   `tsify::Ts<T>` and are converted inside the function; don't use tsify's
   `into_wasm_abi`/`from_wasm_abi` (deprecated, they leak on bad input).
-- **`crates/server`**: tokio + axum match server, `/ws` WebSocket route.
-  - `rooms.rs`: open rooms by 4-letter code (no I or O).
-  - `room.rs`: each room is its own task (an actor) owning its players, the
-    `Game` and the turn timer; connections send it `Command`s over a channel,
-    so game state has no locks. Players are identified by a stable
-    `PlayerId` (seats shift when those who left are dropped at the start)
+- **`games/grid`** (crate `grid`): grid placement, pure like `tile_rummy`:
+  `GridRules` (named rule sets `TicTacToe` 3×3 line 3 and `Gomoku` 15×15
+  line 5, freestyle: a longer line wins too; sides 3-19 and the line as
+  house rules, `checked()`), `Game` (X, seat 0, first; `place`,
+  `GridError`, the outcome with its line, views, `placings`),
+  `check_place`, `outcome_of`. Bots (`bot.rs`, over `board.rs`'s windows
+  of `line` cells kept up to date): every level makes a line it can;
+  Easy blocks one, else one move ahead with hash noise; Medium two moves,
+  Hard four (grids of up to 12 cells searched to the end, so it never
+  loses Tic-Tac-Toe), Extra Hard deepening until `spent` (negamax with
+  alpha-beta over cells near the marks).
+- **`games/grid-wasm`**: `checkPlace`, `outcome`, `botMove`, as
+  tile-rummy-wasm; not yet built into `web/`.
+- **`crates/platform`**: what every game's rooms share; depends on no
+  game and not on `protocol`.
+  - `engine.rs`: the `GameEngine` trait a game implements for the room:
+    `Rules` (the game's part of the room options), `Move`, `Level`,
+    `Config` (server setup for its bots and clock), `Message`; `new`,
+    `seats`, `current`/`in_turn`/`over`, `ends_turn` (asked before
+    applying, so the bank is settled first), `apply`, `time_out`
+    (`TimedOut`: extra time kept, a notice), `bot_move` with `spent`,
+    `bot_fallback` (only for a refused move that would end the turn),
+    `next_hand`, `state` (with `ClockInfo`, `open` for hidden hands),
+    `placings`. Hooks with defaults, for games with live turns and extra
+    time: `Draft`, `Aside`, `draft_allowed`, `draft_message`, `worth`,
+    `move_draft`, `shown`, `aside`.
+  - `shared.rs`: what the room says whatever the game (`SharedMessage`:
+    joined, room, clock, notices, refusals; `RoomOptions<R, L>` with the
+    game's part flattened in), serialized as `protocol`'s; a connection
+    receives `Out<G>`, the room's message or the game's.
+  - `rooms.rs`: open rooms of a game by 4-letter code (no I or O);
+    `Rooms::new` takes the bot permits (`bot_pool`), so games can share
+    them.
+  - `room.rs`: `Room<G>`, each room its own task (an actor) owning its
+    players, the game and the turn timer; connections send it
+    `Command<G>`s over a channel, so game state has no locks.
+  - Tested with a counting game (`tests.rs`, a paused clock).
+- **`crates/server`**: tokio + axum match server, `/ws` WebSocket route,
+  serving tile rummy's rooms (`Rooms<Contest>`). `contest.rs` is tile
+  rummy's `GameEngine` (`RummyRules`, `RummyMove`, `RummyConfig`: Extra
+  Hard's `Lookahead` and `clock.rs`'s `Bonus`); `wire.rs` turns the
+  room's messages and options into `protocol`'s, one to one. `grid.rs`
+  is grid placement's (`GridMatch`, a newtype: the trait and
+  `grid::Game` are both foreign there), not served yet: `grid_tests.rs`
+  drives it through the room's commands.
+  - The room (`platform`'s `room.rs`, as tile rummy uses it): players
+    are identified by a stable `PlayerId` (seats shift when those who
+    left are dropped at the start)
     and keep their seat across lost connections with a token (`rejoin`).
     `RoomOptions` (chosen on the home screen): turn length (30 s to 3 min,
     default 1 min; `checked()` keeps it to `TURN_SECONDS`), a time bank
@@ -141,7 +187,7 @@ only builds it on start.
     `settle_bank` charges it before each move; time left when a player ends
     their turn is added, up to 3 min, less any extra time they were given
     for tiles they took back), extra time for tiles
-    (`clock.rs`: 15 s a tile and 20 s a set holding one, once a draft is a
+    (server's `clock.rs`: 15 s a tile and 20 s a set holding one, once a draft is a
     valid turn, only the amount above the best so far this turn, sent as
     `Clock`; time given for tiles then taken back counts against the
     player: a `Notice` at 1 min, none for the rest of the game at 2), live
@@ -151,12 +197,13 @@ only builds it on start.
     Okey, marking false okeys (`falseOkeyMarks`, off: a corner numeral
     of the tile they stand for, `FalseOkeyMark` context read by
     `TileFace`). The room
-    plays a `Contest` (`contest.rs`): the classic `Game` or an Okey
+    plays a `Contest`: the classic `Game` or an Okey
     `Match`. In Okey 101 `Draw` doesn't end the turn, `Discard` does;
     states are `OkeyState`, errors `OkeyRejected`; when time runs out the
     player draws if they hadn't, their draft is played if valid and the
-    first of the tiles they set aside to discard next (`DiscardNext`, up
-    to 3 in order, kept on `Player`, cleared each hand) that they hold
+    first of the tiles they set aside to discard next (`DiscardNext`, the
+    room's `Aside`, up to 3 in order, kept by `Contest`, cleared each
+    hand) that they hold
     and that costs no penalty is discarded, else a tile that costs
     nothing (`Hand::timeout_turn`; plain Okey: a winning finish, else the
     first of those held, else an Easy bot's discard,
@@ -174,7 +221,7 @@ only builds it on start.
     only, before the start) are players without a connection: on their
     turn the room waits, works the move out on a blocking thread
     (`Command::BotMove`, dropped if the turn has passed; at most
-    `Config::bot_threads` at once across rooms, a shared semaphore, each
+    `--bot-threads` at once across rooms, a shared semaphore, each
     for `Timing::bot_time`), shows it as a
     draft in rooms with live turns, then plays it. With `--open-racks`
     every `State` carries all racks (`racks`).
