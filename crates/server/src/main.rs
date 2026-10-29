@@ -5,6 +5,11 @@
 mod clock;
 mod connection;
 mod contest;
+// Not served yet: tested through the room's commands.
+#[cfg_attr(not(test), allow(dead_code))]
+mod grid;
+#[cfg(test)]
+mod grid_tests;
 #[cfg(test)]
 mod tests;
 mod wire;

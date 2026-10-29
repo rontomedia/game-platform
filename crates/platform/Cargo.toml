@@ -10,3 +10,7 @@ edition = "2021"
 rand = "0.10.3"
 serde = { version = "1", features = ["derive"] }
 tokio = { version = "1.54", features = ["rt", "macros", "sync", "time"] }
+
+[dev-dependencies]
+# A paused clock for the room's timing tests.
+tokio = { version = "1.54", features = ["rt", "macros", "sync", "time", "test-util"] }

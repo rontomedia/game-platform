@@ -7,3 +7,5 @@ pub mod engine;
 pub mod room;
 pub mod rooms;
 pub mod shared;
+#[cfg(test)]
+mod tests;
