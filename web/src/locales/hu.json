@@ -141,7 +141,8 @@
       "group": "Csoport",
       "pair": "Pár",
       "withOkey": "Okeyjel",
-      "controlsTitle": "Irányítás"
+      "controlsTitle": "Irányítás",
+      "controlsNext": "Tedd a követ, amit legközelebb el akarsz dobni, a dobóhely melletti kis helyre: ha lejár az időd, helyetted ezt dobják el (az Okey 101-ben, hacsak nem jár érte büntetés). Továbbra is a köveid közé számít."
     },
     "okey101": {
       "controlsDraw": "Húzáshoz nyomd meg a(z) „{{draw}}” gombot vagy a paklit. Az előző játékos eldobott kövét úgy veszed el, hogy a tartódra (vagy egyenesen az asztalra) húzod; ha meggondolod magad, húzd vissza.",
@@ -352,6 +353,8 @@
     "discardsOf": "{{name}} eldobott kövei",
     "emptyTable": "Az asztal üres. Az első nyitáshoz 101 pont vagy öt pár kell.",
     "discardHere": "Ide engedj egy követ, hogy eldobd és befejezd a köröd",
+    "discardNext": "Következő dobás",
+    "discardNextDetail": "A kő, amit legközelebb el akarsz dobni: ha lejár az időd, ezt dobják el (az Okey 101-ben, hacsak nem jár érte büntetés).",
     "hand": "{{n}}. leosztás / {{total}}",
     "yourTurnDraw": "Te jössz: húzz egy követ.",
     "yourTurnDrawOrTake": "Te jössz: húzz egy követ, vagy vedd el {{name}} eldobott kövét, ha most fel tudod használni.",

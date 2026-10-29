@@ -139,7 +139,8 @@
       "group": "同数组",
       "pair": "对子",
       "withOkey": "带 okey",
-      "controlsTitle": "操作"
+      "controlsTitle": "操作",
+      "controlsNext": "把你打算下一张打出的牌放进弃牌位旁边的小格子：时间到时就替你打出这张（Okey 101 中，前提是不罚分）。它仍算作你的牌。"
     },
     "okey101": {
       "controlsDraw": "点“{{draw}}”或牌堆摸牌。要拿上家打出的牌，把它拖到你的牌架上（或直接拖到桌面）；改主意了就拖回去。",
@@ -333,6 +334,8 @@
     "discardsOf": "{{name}} 打出的牌",
     "emptyTable": "桌面是空的。第一次开牌需要 101 分或五对。",
     "discardHere": "把牌放到这里打出并结束回合",
+    "discardNext": "下一张打出",
+    "discardNextDetail": "你打算下一张打出的牌：时间到时就打出这张（Okey 101 中，前提是不罚分）。",
     "hand": "第 {{n}} / {{total}} 手",
     "yourTurnDraw": "轮到你：摸一张牌。",
     "yourTurnDrawOrTake": "轮到你：摸一张牌，或者如果马上能用，就拿 {{name}} 打出的牌。",

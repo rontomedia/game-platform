@@ -27,6 +27,8 @@ export const isSetTarget = (id: string) => id.startsWith('set-')
 /** A set's grip, to move it around the table (this player's view only). */
 export const setItem = (index: number) => `move-set-${index}`
 export const isSetItem = (id: string) => id.startsWith('move-set-')
+/** The tile set aside to discard next, beside the discard spot. */
+export const NEXT = 'next'
 /** The plans strip, where a tile dropped starts a plan; and one plan. */
 export const NEW_PLAN = 'new-plan'
 export const planTarget = (index: number) => `plan-${index}`
@@ -45,6 +47,7 @@ export const collisions: CollisionDetection = (args) => {
 export const tilesOf = (placed: Placed[]) => placed.map((p) => p.tile)
 export const same = (a: Tile[][], b: Tile[][]) => JSON.stringify(a) === JSON.stringify(b)
 export const sameTile = (a: Tile, b: Tile) => JSON.stringify(a) === JSON.stringify(b)
+export const sameOptional = (a?: Tile, b?: Tile) => JSON.stringify(a) === JSON.stringify(b)
 
 /**
  * Okey: the tile false okeys stand for (the okey's), set by an Okey board
@@ -64,17 +67,37 @@ export function orderedRack(key: string, code: string, rack: Tile[], sort: RackS
   return [...first, ...second].map((tile, i) => ({ id: `r${i}`, tile }))
 }
 
+/** What an Okey board keeps for the tab: the rack's order, and for the hand `hand` its plans and the tile set aside. */
+export interface SavedRack {
+  code: string
+  tiles: Tile[]
+  hand?: string
+  plans?: Tile[][]
+  next?: Tile
+}
+
 /**
- * The rack and the plans as the player left them in room `code` (saved
- * under `key` with the rack's order), for the tiles now on `rack`.
+ * The rack, the plans and the tile set aside to discard next as the player
+ * left them in room `code` (saved under `key`), for the tiles now on
+ * `rack`. Plans and the tile set aside belong to one hand (`hand`).
  */
-export function rackAndPlans(key: string, code: string, rack: Tile[], sort: RackSort): { rack: Placed[]; plans: Placed[][] } {
-  const saved = remembered<{ code: string; plans?: Tile[][] }>(key, 'session')
-  const planned = keepPlans(saved?.code === code ? (saved.plans ?? []) : [], rack)
+export function rackAndPlans(
+  key: string,
+  code: string,
+  hand: string,
+  rack: Tile[],
+  sort: RackSort,
+): { rack: Placed[]; plans: Placed[][]; parked?: Placed } {
+  const saved = remembered<SavedRack>(key, 'session')
+  const same = saved?.code === code && saved.hand === hand
+  const planned = keepPlans(same ? (saved.plans ?? []) : [], rack)
+  const left = without(rack, planned.flat())
+  const next = same && saved.next && left.some((tile) => sameTile(tile, saved.next!)) ? saved.next : undefined
   let n = 0
   return {
-    rack: orderedRack(key, code, without(rack, planned.flat()), sort),
+    rack: orderedRack(key, code, next ? without(left, [next]) : left, sort),
     plans: planned.map((plan) => plan.map((tile) => ({ id: `p${n++}`, tile }))),
+    parked: next && { id: 'next', tile: next },
   }
 }
 

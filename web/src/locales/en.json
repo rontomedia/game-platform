@@ -141,7 +141,8 @@
       "group": "Group",
       "pair": "Pair",
       "withOkey": "With the okey",
-      "controlsTitle": "Controls"
+      "controlsTitle": "Controls",
+      "controlsNext": "Put the tile you mean to throw away next in the small slot beside the discard spot: if your time runs out, that’s the one discarded for you (in Okey 101, unless it would cost a penalty). It still counts as one of your tiles."
     },
     "okey101": {
       "controlsDraw": "Press {{draw}} or the pool to draw. To take the previous player’s discard, drag it onto your rack (or straight onto the table); drag it back if you change your mind.",
@@ -352,6 +353,8 @@
     "discardsOf": "{{name}}’s discards",
     "emptyTable": "The table is empty. The first opening needs 101 points or five pairs.",
     "discardHere": "Drop a tile here to discard it and end your turn",
+    "discardNext": "Discard next",
+    "discardNextDetail": "The tile you mean to throw away next: if your time runs out, it’s the one discarded (in Okey 101, unless it would cost a penalty).",
     "hand": "Hand {{n}} of {{total}}",
     "yourTurnDraw": "Your turn: draw a tile.",
     "yourTurnDrawOrTake": "Your turn: draw a tile, or take {{name}}’s discard if you can use it now.",

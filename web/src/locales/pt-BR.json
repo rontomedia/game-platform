@@ -143,7 +143,8 @@
       "group": "Grupo",
       "pair": "Par",
       "withOkey": "Com o okey",
-      "controlsTitle": "Controles"
+      "controlsTitle": "Controles",
+      "controlsNext": "Ponha a peça que você pretende descartar em seguida no espacinho ao lado do seu lugar de descarte: se o tempo acabar, é ela que é descartada por você (no Okey 101, a não ser que custe penalidade). Ela continua contando como uma das suas peças."
     },
     "okey101": {
       "controlsDraw": "Toque em “{{draw}}” ou no monte para comprar. Para pegar o descarte do jogador anterior, arraste-o para o seu suporte (ou direto para a mesa); arraste de volta se mudar de ideia.",
@@ -371,6 +372,8 @@
     "discardsOf": "Descartes de {{name}}",
     "emptyTable": "A mesa está vazia. A primeira abertura precisa de 101 pontos ou cinco pares.",
     "discardHere": "Solte uma peça aqui para descartá-la e encerrar a vez",
+    "discardNext": "Descartar depois",
+    "discardNextDetail": "A peça que você pretende descartar em seguida: se o tempo acabar, é ela que é descartada (no Okey 101, a não ser que custe penalidade).",
     "hand": "Mão {{n}} de {{total}}",
     "yourTurnDraw": "Sua vez: compre uma peça.",
     "yourTurnDrawOrTake": "Sua vez: compre uma peça ou pegue o descarte de {{name}} se puder usá-lo agora.",

@@ -16,7 +16,7 @@ use tsify::Tsify;
 
 /// Bumped when a message changes in a way an older client can't read; the
 /// server says which it speaks in `Welcome`.
-pub const PROTOCOL_VERSION: u32 = 10;
+pub const PROTOCOL_VERSION: u32 = 11;
 
 /// How a room plays, chosen by whoever opens it. Options left out take
 /// their defaults.
@@ -178,6 +178,14 @@ pub enum ClientMessage {
     /// others to watch in rooms with `live_turns`. Not a move: sets may be
     /// invalid.
     Draft { table: Vec<Vec<Tile>> },
+    /// Okey: the tile the player has set aside to discard next, any time
+    /// (none: nothing set aside). Thrown for them if their time runs out,
+    /// when they still hold it and, in Okey 101, it costs no penalty.
+    DiscardNext {
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        #[cfg_attr(feature = "wasm", tsify(optional))]
+        tile: Option<Tile>,
+    },
 }
 
 /// A player in a room, or someone watching.
@@ -432,6 +440,11 @@ mod tests {
             ClientMessage::from_json(discard).unwrap(),
             ClientMessage::Discard { take_discard: false, table: vec![], discard: Tile::Joker, finish: false }
         );
+        assert_eq!(
+            ClientMessage::from_json(r#"{"type":"discardNext","tile":{"kind":"joker"}}"#).unwrap(),
+            ClientMessage::DiscardNext { tile: Some(Tile::Joker) }
+        );
+        assert_eq!(ClientMessage::from_json(r#"{"type":"discardNext"}"#).unwrap(), ClientMessage::DiscardNext { tile: None });
         assert!(ClientMessage::from_json(r#"{"type":"cheat"}"#).is_err());
         assert!(ClientMessage::from_json("hello").is_err());
     }

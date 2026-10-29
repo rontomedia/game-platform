@@ -143,7 +143,8 @@
       "group": "Gruppo",
       "pair": "Coppia",
       "withOkey": "Con l’okey",
-      "controlsTitle": "Comandi"
+      "controlsTitle": "Comandi",
+      "controlsNext": "Metti la tessera che pensi di scartare dopo nella piccola casella accanto al posto degli scarti: se il tempo scade, è quella che viene scartata per te (in Okey 101, a meno che non costi una penalità). Conta ancora come una delle tue tessere."
     },
     "okey101": {
       "controlsDraw": "Premi «{{draw}}» o il mazzo per pescare. Per prendere lo scarto del giocatore precedente, trascinalo sul leggio (o direttamente sul tavolo); trascinalo indietro se cambi idea.",
@@ -371,6 +372,8 @@
     "discardsOf": "Scarti di {{name}}",
     "emptyTable": "Il tavolo è vuoto. La prima apertura richiede 101 punti o cinque coppie.",
     "discardHere": "Rilascia qui una tessera per scartarla e finire il turno",
+    "discardNext": "Da scartare",
+    "discardNextDetail": "La tessera che pensi di scartare dopo: se il tempo scade, è quella che viene scartata (in Okey 101, a meno che non costi una penalità).",
     "hand": "Mano {{n}} di {{total}}",
     "yourTurnDraw": "Tocca a te: pesca una tessera.",
     "yourTurnDrawOrTake": "Tocca a te: pesca una tessera o prendi lo scarto di {{name}} se puoi usarlo subito.",

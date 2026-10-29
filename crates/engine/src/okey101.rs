@@ -626,18 +626,21 @@ impl Hand {
 
     /// The turn played for `player` when their time runs out, once they
     /// have drawn: their `draft` (their table so far) if it makes a valid
-    /// turn with some discard, else the table as it was; the discard as
-    /// `safe_discard` picks it from what's left.
-    pub fn timeout_turn(&self, player: usize, draft: Option<&[Vec<Tile>]>) -> Turn {
-        let fallback = || {
-            let discard = safe_discard(self.okey, &self.table, &self.racks[player]);
-            Turn { take_discard: false, table: self.table.clone(), discard }
+    /// turn with some discard, else the table as it was. The discard: `next`,
+    /// the tile they set aside to throw next, if it's left on their rack and
+    /// costs no penalty; else as `safe_discard` picks it from what's left.
+    pub fn timeout_turn(&self, player: usize, draft: Option<&[Vec<Tile>]>, next: Option<Tile>) -> Turn {
+        let costs = |tile: Tile, table: &[Vec<Tile>]| self.rules.penalties && (tile == self.okey || fits(self.okey, table, tile));
+        let discard = |table: &[Vec<Tile>], rack: &[Tile]| match next {
+            Some(tile) if rack.contains(&tile) && !costs(tile, table) => tile,
+            _ => safe_discard(self.okey, table, rack),
         };
+        let fallback = || Turn { take_discard: false, table: self.table.clone(), discard: discard(&self.table, &self.racks[player]) };
         let Some(draft) = draft else { return fallback() };
         let played = Counts::of(draft.iter().flatten()).minus(&Counts::of(self.table.iter().flatten()));
         let left = played.and_then(|played| Counts::of(&self.racks[player]).minus(&played));
         let Some(left) = left.filter(|left| !left.is_empty()) else { return fallback() };
-        let turn = Turn { take_discard: false, table: draft.to_vec(), discard: safe_discard(self.okey, draft, &left.tiles()) };
+        let turn = Turn { take_discard: false, table: draft.to_vec(), discard: discard(draft, &left.tiles()) };
         if self.check_turn(player, &turn).is_ok() {
             turn
         } else {
@@ -1452,14 +1455,37 @@ mod tests {
         let mut rack: Vec<Tile> = opening().concat();
         rack.extend([n(Red, 1), n(Black, 2)]);
         let h = hand(vec![rack, vec![]], vec![]);
-        let turn = h.timeout_turn(0, Some(&opening()));
+        let turn = h.timeout_turn(0, Some(&opening()), None);
         assert_eq!(turn.table, opening());
         assert_eq!(turn.discard, n(Black, 2));
         assert!(h.check_turn(0, &turn).is_ok());
         // Too little to open: the table stays as it was.
         let low = vec![vec![n(Black, 11), n(Black, 12), n(Black, 13)]];
-        assert_eq!(h.timeout_turn(0, Some(&low)).table, Vec::<Vec<Tile>>::new());
-        assert!(h.check_turn(0, &h.timeout_turn(0, None)).is_ok());
+        assert_eq!(h.timeout_turn(0, Some(&low), None).table, Vec::<Vec<Tile>>::new());
+        assert!(h.check_turn(0, &h.timeout_turn(0, None, None)).is_ok());
+    }
+
+    #[test]
+    fn when_time_runs_out_the_tile_set_aside_is_discarded() {
+        let mut rack: Vec<Tile> = opening().concat();
+        rack.extend([n(Red, 1), n(Black, 2), OKEY]);
+        let h = hand(vec![rack, vec![]], vec![]);
+        assert_eq!(h.timeout_turn(0, Some(&opening()), Some(n(Red, 1))).discard, n(Red, 1), "the player's choice");
+        assert_eq!(h.timeout_turn(0, None, Some(n(Red, 1))).discard, n(Red, 1), "with nothing played too");
+        assert_eq!(h.timeout_turn(0, Some(&opening()), Some(OKEY)).discard, n(Black, 2), "the okey costs 101");
+        // A tile now on the table can't be thrown; one that fits a set costs 101.
+        assert_eq!(h.timeout_turn(0, Some(&opening()), Some(n(Blue, 12))).discard, n(Black, 2));
+        let low = vec![vec![n(Black, 11), n(Black, 12), n(Black, 13)]];
+        let turn = h.timeout_turn(0, Some(&low), Some(n(Black, 13)));
+        assert_eq!((turn.table.len(), turn.discard), (0, n(Black, 13)), "too low to play: still on the rack, so as chosen");
+        let free = Hand::from_deal(
+            vec![h.racks[0].clone(), vec![]],
+            vec![],
+            n(Red, 4),
+            0,
+            Okey101Rules { penalties: false, ..Okey101Rules::default() },
+        );
+        assert_eq!(free.timeout_turn(0, None, Some(OKEY)).discard, OKEY, "no penalties: as chosen");
     }
 
     #[test]

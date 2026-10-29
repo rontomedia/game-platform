@@ -336,6 +336,7 @@ function Okey101Rules() {
           <li>{t('rules.classic.controlsSets')}</li>
           <li>{t('rules.classic.controlsPlans')}</li>
           <li>{t('rules.okey101.controlsDiscard', words)}</li>
+          <li>{t('rules.okeyShared.controlsNext')}</li>
           <li>{t('rules.okey101.controlsTime')}</li>
         </ul>
       </Section>
@@ -387,6 +388,7 @@ function PlainOkeyRules() {
         <ul className="mt-1.5 list-disc space-y-1 ps-5 text-sm leading-relaxed text-slate-300 marker:text-teal-300/60">
           <li>{t('rules.okey.controlsDraw', words)}</li>
           <li>{t('rules.okey.controlsDiscard')}</li>
+          <li>{t('rules.okeyShared.controlsNext')}</li>
           <li>{t('rules.okey.controlsTime')}</li>
         </ul>
       </Section>

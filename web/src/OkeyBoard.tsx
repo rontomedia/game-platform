@@ -32,6 +32,7 @@ import {
   isSetTarget,
   joinNew,
   NEW_PLAN,
+  NEXT,
   NEW_SET,
   OFFER,
   okeySet,
@@ -39,7 +40,9 @@ import {
   rackAndPlans,
   RACK,
   same,
+  sameOptional,
   sameTile,
+  type SavedRack,
   setItem,
   setTarget,
   TAKEN,
@@ -47,7 +50,7 @@ import {
   type Placed,
 } from './okeyParts.ts'
 import { remember, remembered } from './storage.ts'
-import { TileFace } from './TileView.tsx'
+import { TileFace, type TileSize } from './TileView.tsx'
 import { Button } from './ui.tsx'
 import type { Draft, OkeyGame, Status } from './useGame.ts'
 import { useNow } from './useNow.ts'
@@ -83,6 +86,8 @@ interface Tiles {
   rack: Placed[]
   plans: Placed[][]
   sets: Placed[][]
+  /** The tile set aside to discard next. */
+  parked?: Placed
 }
 
 /** `tile` put into `list` at its front or back. */
@@ -126,11 +131,18 @@ export function OkeyBoard({
   const opened = !watching && hand.opened[you] !== 'no'
 
   const [sort, setSort] = useState<RackSort>(() => remembered<RackSort>('rummy.rackSort') ?? 'custom')
+  // Plans and the tile set aside belong to one hand.
+  const handKey = `${view.played}:${JSON.stringify(hand.indicator)}`
   const [tiles, setTiles] = useState<Tiles>(() => ({
-    ...rackAndPlans(RACK_KEY, room.code, hand.rack, sort),
+    ...rackAndPlans(RACK_KEY, room.code, handKey, hand.rack, sort),
     sets: hand.table.map((set, s) => set.map((tile, i) => ({ id: `t${s}-${i}`, tile }))),
   }))
-  const { rack, plans, sets } = tiles
+  const { rack, plans, sets, parked } = tiles
+  /** Sets the board's tiles, telling the server when the tile set aside to discard next changes. */
+  const update = (next: Tiles) => {
+    if (!watching && !sameOptional(next.parked?.tile, parked?.tile)) send({ type: 'discardNext', tile: next.parked?.tile })
+    setTiles(next)
+  }
   /** Where the player put each set, by its place on the table; unset, wherever it's shown. */
   const [at, setAt] = useState<(Cell | undefined)[]>(() => {
     const saved = remembered<{ code: string; played: number; at: (Cell | null)[] }>(TABLE_KEY, 'session')
@@ -166,7 +178,8 @@ export function OkeyBoard({
 
   const turnOf = (discard: Tile): Turn => ({ takeDiscard: taken, table, discard })
   // The table as a turn, whichever tile is discarded: for the note.
-  const verdict = canTable && rack.length > 0 ? checkOkeyTurn(hand, turnOf(rack[rack.length - 1].tile)) : undefined
+  const held = [...rack, ...plans.flat(), ...(parked ? [parked] : [])]
+  const verdict = canTable && held.length > 0 ? checkOkeyTurn(hand, turnOf(held[held.length - 1].tile)) : undefined
   const progress = myTurn && !opened ? okeyProgress({ view: hand, table }) : undefined
   // What the valid plans would add up to if laid down now, before opening.
   const planned = watching || opened || plans.length === 0
@@ -179,7 +192,7 @@ export function OkeyBoard({
         : t('okey.plannedPoints', { points: planned.points, needed: hand.openingPoints })
       : undefined
   // The tile this player last drew, marked wherever they keep it.
-  const drawnId = okey.drawn && [...rack, ...plans.flat()].findLast((p) => sameTile(p.tile, okey.drawn!))?.id
+  const drawnId = okey.drawn && held.findLast((p) => sameTile(p.tile, okey.drawn!))?.id
 
   // Someone else's turn, shared live: their table so far. The table only
   // grows at its end, so a set keeps its place (and its index) throughout.
@@ -195,15 +208,18 @@ export function OkeyBoard({
   /** Every shown set's place: where the player put it, else where it's shown now. */
   const pinned = () => shown.map((_, s) => at[s] ?? cells.get(s))
 
-  // The rack order, plans and set places outlive the state. A set new to
-  // this player keeps the place it was first shown in.
+  // The rack order, plans, the tile set aside and set places outlive the
+  // state. A set new to this player keeps the place it was first shown in.
   useEffect(() => {
-    remember(
-      RACK_KEY,
-      { code: room.code, tiles: tilesOf(rack.filter((p) => p.id !== TAKEN)), plans: plans.map(tilesOf) },
-      'session',
-    )
-  }, [rack, plans, room.code])
+    const saved: SavedRack = {
+      code: room.code,
+      tiles: tilesOf(rack.filter((p) => p.id !== TAKEN)),
+      hand: handKey,
+      plans: plans.map(tilesOf),
+      next: parked?.tile,
+    }
+    remember(RACK_KEY, saved, 'session')
+  }, [rack, plans, parked, room.code, handKey])
   const places = JSON.stringify(shown.flatMap((set, s) => (set.length > 0 ? [at[s] ?? cells.get(s) ?? null] : [])))
   useEffect(() => {
     if (metrics) remember(TABLE_KEY, { code: room.code, played: view.played, at: JSON.parse(places) }, 'session')
@@ -221,9 +237,11 @@ export function OkeyBoard({
     | { in: 'plan'; plan: number; at: number }
     | { in: 'set'; set: number; at: number }
     | { in: 'offer' }
-  /** Where a tile is: the rack, a plan, a set (and its place), or the offer. */
+    | { in: 'parked' }
+  /** Where a tile is: the rack, a plan, a set (and its place), set aside, or the offer. */
   const find = (id: string, where: Tiles = tiles): Where | null => {
     if (id === OFFER) return { in: 'offer' }
+    if (where.parked?.id === id) return { in: 'parked' }
     const at = where.rack.findIndex((p) => p.id === id)
     if (at >= 0) return { in: 'rack', at }
     for (const [plan, tiles] of where.plans.entries()) {
@@ -239,7 +257,7 @@ export function OkeyBoard({
 
   const placedOf = (id: string): Placed | undefined => {
     if (id === OFFER) return offer && { id: TAKEN, tile: offer }
-    return [...rack, ...plans.flat(), ...sets.flat()].find((p) => p.id === id)
+    return [...held, ...sets.flat()].find((p) => p.id === id)
   }
 
   /** The board without tile `id` (a plan left empty goes; a set keeps its place). */
@@ -247,6 +265,7 @@ export function OkeyBoard({
     rack: rack.filter((p) => p.id !== id),
     plans: plans.map((plan) => plan.filter((p) => p.id !== id)).filter((plan) => plan.length > 0),
     sets: sets.map((set) => set.filter((p) => p.id !== id)),
+    parked: parked?.id === id ? undefined : parked,
   })
 
   /** Where a set `width` wide lands if let go at `cell`: there if it's free, else the nearest free place in that row. */
@@ -278,7 +297,7 @@ export function OkeyBoard({
     const set = plans[plan]
     if (!canTable || !set) return
     lastPlaced.current = set[set.length - 1].id
-    setTiles(withNewSet({ ...tiles, plans: plans.filter((_, i) => i !== plan) }, set, freeCell(footprint(set.length))))
+    update(withNewSet({ ...tiles, plans: plans.filter((_, i) => i !== plan) }, set, freeCell(footprint(set.length))))
   }
 
   /**
@@ -294,29 +313,30 @@ export function OkeyBoard({
     const from = find(placed.id)
     if (watching || hand.end || !from || from.in === 'offer') return
     const left = without(placed.id)
+    if (from.in === 'parked') return update({ ...left, rack: [...left.rack, placed] })
     if (from.in === 'plan') {
       if (canTable) return playPlan(from.plan)
-      return setTiles({ ...left, rack: [...left.rack, placed] })
+      return update({ ...left, rack: [...left.rack, placed] })
     }
     if (from.in === 'set') {
       if (!canTable || fixed.has(placed.id)) return
-      return setTiles({ ...left, rack: [...left.rack, placed] })
+      return update({ ...left, rack: [...left.rack, placed] })
     }
     if (!canTable) {
       if (placed.id === TAKEN) return
       const p = lastPlan.current
       const joined = p !== null && plans[p] ? joinNew(hand.okey, plans[p], placed) : null
-      if (joined) return setTiles({ ...left, plans: plans.map((plan, i) => (i === p ? joined : plan)) })
+      if (joined) return update({ ...left, plans: plans.map((plan, i) => (i === p ? joined : plan)) })
       lastPlan.current = left.plans.length
-      return setTiles({ ...left, plans: [...left.plans, [placed]] })
+      return update({ ...left, plans: [...left.plans, [placed]] })
     }
     const last = lastPlaced.current === null ? null : find(lastPlaced.current)
     const s = last?.in === 'set' ? last.set : -1
     const set = sets[s]
     const joined = !set ? null : s < hand.table.length ? ([[...set, placed], [placed, ...set]].find(fits) ?? null) : joinNew(hand.okey, set, placed)
     lastPlaced.current = placed.id
-    if (joined) return setTiles({ ...left, sets: left.sets.map((other, i) => (i === s ? joined : other)) })
-    setTiles(withNewSet(left, [placed], freeCell(footprint(1))))
+    if (joined) return update({ ...left, sets: left.sets.map((other, i) => (i === s ? joined : other)) })
+    update(withNewSet(left, [placed], freeCell(footprint(1))))
   }
 
   const discard = (placed: Placed) => {
@@ -324,7 +344,7 @@ export function OkeyBoard({
     const turn: Turn = { takeDiscard: taken, table: kept(left.sets).map(tilesOf), discard: placed.tile }
     const check = checkOkeyTurn(hand, turn)
     if (check.verdict === 'rejected') return setRefused({ kind: 'okey', error: check.error })
-    setTiles(left)
+    update(left)
     send({ type: 'discard', ...turn })
   }
 
@@ -381,7 +401,7 @@ export function OkeyBoard({
     // The discard taken goes back.
     if (to === OFFER) {
       if (id !== TAKEN) return
-      setTiles(without(TAKEN))
+      update(without(TAKEN))
       setTaken(false)
       return
     }
@@ -389,20 +409,27 @@ export function OkeyBoard({
       if (from.in === 'offer' || !canTable) return
       return discard(placed)
     }
+    // Set aside to discard next, any time: the player's own tiles, not the
+    // discard taken. A tile there before goes back to the rack.
+    if (to === NEXT) {
+      if (from.in === 'offer' || id === TAKEN || (from.in === 'set' && !canTable)) return
+      const left = without(id)
+      return update({ ...left, rack: parked && parked.id !== id ? [...left.rack, parked] : left.rack, parked: placed })
+    }
     // The rack: put in order, or brought back from a plan or the table.
     const overRack = to === RACK || rack.some((p) => p.id === to)
     if (overRack) {
       if (from.in === 'rack') {
         const target = to === RACK ? rack.length - 1 : rack.findIndex((p) => p.id === to)
         setSort('custom')
-        return setTiles({ ...tiles, rack: arrayMove(rack, from.at, target) })
+        return update({ ...tiles, rack: arrayMove(rack, from.at, target) })
       }
       if (from.in === 'offer') setTaken(true)
       const left = from.in === 'offer' ? tiles : without(id)
       const at = to === RACK ? left.rack.length : left.rack.findIndex((p) => p.id === to)
       const next = [...left.rack]
       next.splice(at < 0 ? next.length : at, 0, placed)
-      return setTiles({ ...left, rack: next })
+      return update({ ...left, rack: next })
     }
     // The plans: any time, the player's own tiles (not the discard taken).
     if (to === NEW_PLAN || isPlanTarget(to)) {
@@ -410,14 +437,14 @@ export function OkeyBoard({
       const left = without(id)
       if (to === NEW_PLAN) {
         lastPlan.current = left.plans.length
-        return setTiles({ ...left, plans: [...left.plans, [placed]] })
+        return update({ ...left, plans: [...left.plans, [placed]] })
       }
       // The plan's place once the tile has left its old one, which goes if left empty.
       let p = Number(to.slice('plan-'.length))
       if (from.in === 'plan' && from.plan < p && plans[from.plan].length === 1) p--
-      if (!left.plans[p]) return setTiles({ ...left, plans: [...left.plans, [placed]] })
+      if (!left.plans[p]) return update({ ...left, plans: [...left.plans, [placed]] })
       lastPlan.current = p
-      return setTiles({ ...left, plans: left.plans.map((plan, i) => (i === p ? insertAt(plan, placed, nearFront) : plan)) })
+      return update({ ...left, plans: left.plans.map((plan, i) => (i === p ? insertAt(plan, placed, nearFront) : plan)) })
     }
     // Onto the table: only on the player's turn, and only tiles of this turn.
     if (!myTurn) return
@@ -429,7 +456,7 @@ export function OkeyBoard({
     const left = from.in === 'offer' ? tiles : without(id)
     if (from.in === 'offer') setTaken(true)
     lastPlaced.current = placed.id
-    if (to === NEW_SET) return setTiles(withNewSet(left, [placed], landed?.cell))
+    if (to === NEW_SET) return update(withNewSet(left, [placed], landed?.cell))
     if (!isSetTarget(to)) return
     const s = Number(to.slice('set-'.length))
     const set = left.sets[s]
@@ -450,16 +477,17 @@ export function OkeyBoard({
       nextSet = set.map((p, i) => (i === okeyAt ? placed : p))
       nextRack = [...left.rack, { id: `okey-${set[okeyAt].id}`, tile: set[okeyAt].tile }]
     } else nextSet = nearFront ? atFront : atBack
-    setTiles({ ...left, rack: nextRack, sets: left.sets.map((other, i) => (i === s ? nextSet : other)) })
+    update({ ...left, rack: nextRack, sets: left.sets.map((other, i) => (i === s ? nextSet : other)) })
   }
 
   // This turn's tiles back to the rack (the discard taken to its pile); plans stay.
   const reset = () => {
     const laid = sets.flat().filter((p) => !fixed.has(p.id) && p.id !== TAKEN && !p.id.startsWith('okey-'))
     const okeys = rack.filter((p) => p.id.startsWith('okey-'))
-    setTiles({
+    update({
       rack: [...rack.filter((p) => p.id !== TAKEN && !okeys.includes(p)), ...laid],
       plans,
+      parked,
       sets: hand.table.map((set, s) => set.map((tile, i) => ({ id: `t${s}-${i}`, tile }))),
     })
     setAt(at.slice(0, hand.table.length))
@@ -471,7 +499,7 @@ export function OkeyBoard({
   const sortRack = (by: 'number' | 'color') => {
     setSort(by)
     remember('rummy.rackSort', by)
-    setTiles({ ...tiles, rack: [...rack].sort((a, b) => compareTiles(a.tile, b.tile, by)) })
+    update({ ...tiles, rack: [...rack].sort((a, b) => compareTiles(a.tile, b.tile, by)) })
   }
 
   const name = (seat: number) => room.seats[seat]?.name ?? t('board.player', { n: seat + 1 })
@@ -658,6 +686,7 @@ export function OkeyBoard({
               />
               <div className="flex items-stretch gap-3">
                 <Rack tiles={rack} sortable={!watching} okey={hand.okey} drawnId={drawnId} onQuick={quickMove} />
+                <NextSpot tile={parked} okey={hand.okey} drawnId={drawnId} onQuick={quickMove} />
                 <DiscardSpot id={DISCARD} label={t('okey.discardHere')} active={myTurn && (hand.phase === 'play' || taken)} />
               </div>
             </section>
@@ -832,12 +861,14 @@ function TableTile({
   placed,
   draggable,
   okey,
+  size = 'table',
   drawn = false,
   onDoubleClick,
 }: {
   placed: Placed
   draggable: boolean
   okey: Tile
+  size?: TileSize
   drawn?: boolean
   onDoubleClick?: () => void
 }) {
@@ -850,7 +881,7 @@ function TableTile({
       onDoubleClick={onDoubleClick}
       className={`${draggable ? 'cursor-grab' : ''} ${isDragging ? 'opacity-30' : ''} ${isOkey ? 'rounded-md ring-2 ring-amber-300/70' : ''}`}
     >
-      <TileFace tile={placed.tile} size="table" drawn={drawn} />
+      <TileFace tile={placed.tile} size={size} drawn={drawn} />
     </div>
   )
 }
@@ -1033,6 +1064,42 @@ function RackTile({
       title={placed.id === TAKEN ? t('okey.takenTile') : undefined}
     >
       <TileFace tile={placed.tile} size="rack" drawn={drawn} />
+    </div>
+  )
+}
+
+/**
+ * The tile set aside to discard next, beside the discard spot: thrown for
+ * the player if their time runs out (in Okey 101 unless it costs a
+ * penalty). Any time; dragged out, or double-clicked back to the rack.
+ */
+export function NextSpot({
+  tile,
+  okey,
+  drawnId,
+  onQuick,
+}: {
+  tile?: Placed
+  okey: Tile
+  drawnId?: string
+  onQuick: (placed: Placed) => void
+}) {
+  const { t } = useTranslation()
+  const { setNodeRef, isOver } = useDroppable({ id: NEXT })
+  return (
+    <div
+      ref={setNodeRef}
+      dir="auto"
+      title={t('okey.discardNextDetail')}
+      className={`grid w-14 shrink-0 place-items-center rounded-2xl border-2 border-dashed p-1 text-center text-[0.65rem] leading-tight transition sm:w-16 ${
+        isOver ? 'border-sky-200 bg-sky-200/15 text-sky-100' : 'border-sky-200/30 text-sky-100/60'
+      }`}
+    >
+      {tile ? (
+        <TableTile placed={tile} draggable okey={okey} size="rack" drawn={tile.id === drawnId} onDoubleClick={() => onQuick(tile)} />
+      ) : (
+        t('okey.discardNext')
+      )}
     </div>
   )
 }

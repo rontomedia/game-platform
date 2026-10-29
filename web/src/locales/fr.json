@@ -143,7 +143,8 @@
       "group": "Série",
       "pair": "Paire",
       "withOkey": "Avec l’okey",
-      "controlsTitle": "Commandes"
+      "controlsTitle": "Commandes",
+      "controlsNext": "Mettez la tuile que vous comptez jeter ensuite dans la petite case à côté de votre place de défausse : si votre temps s’écoule, c’est elle qui est défaussée pour vous (à l’Okey 101, sauf si elle coûte une pénalité). Elle compte toujours parmi vos tuiles."
     },
     "okey101": {
       "controlsDraw": "Appuyez sur « {{draw}} » ou sur la pioche pour piocher. Pour prendre la défausse du joueur précédent, faites-la glisser sur votre chevalet (ou directement sur la table) ; ramenez-la si vous changez d’avis.",
@@ -371,6 +372,8 @@
     "discardsOf": "Défausses de {{name}}",
     "emptyTable": "La table est vide. La première ouverture demande 101 points ou cinq paires.",
     "discardHere": "Déposez une tuile ici pour la défausser et finir votre tour",
+    "discardNext": "À défausser",
+    "discardNextDetail": "La tuile que vous comptez jeter ensuite : si votre temps s’écoule, c’est elle qui est défaussée (à l’Okey 101, sauf si elle coûte une pénalité).",
     "hand": "Manche {{n}} sur {{total}}",
     "yourTurnDraw": "À vous : piochez une tuile.",
     "yourTurnDrawOrTake": "À vous : piochez une tuile, ou prenez la défausse de {{name}} si vous pouvez l’utiliser tout de suite.",

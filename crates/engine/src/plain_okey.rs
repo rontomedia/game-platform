@@ -502,6 +502,20 @@ pub enum PlainMove {
     Turn(PlainTurn),
 }
 
+/// The turn played for the player whose view this is when their time runs
+/// out, once they have drawn: a finish if their hand wins; else `next`, the
+/// tile they set aside to throw next, if they hold it (finishing if the
+/// other 14 win); else the discard an Easy bot would make.
+pub fn timeout_turn(view: &PlainView, next: Option<Tile>) -> Option<PlainTurn> {
+    let PlainMove::Turn(bot) = plain_bot_move(view, BotLevel::Easy) else { return None };
+    let Some(at) = next.and_then(|tile| view.rack.iter().position(|&t| t == tile)).filter(|_| !bot.finish) else {
+        return Some(bot);
+    };
+    let mut rest = view.rack.clone();
+    let discard = rest.remove(at);
+    Some(PlainTurn { take_discard: false, discard, finish: complete(view.okey, &rest).is_some() })
+}
+
 /// The move of the player whose view this is, on their turn. It finishes
 /// when it can (on the okey when that also wins, as it doubles); else
 /// keeps the 14 tiles that fit runs and groups (or pairs) best. Hard and
@@ -662,5 +676,27 @@ mod tests {
         // 2 each for the win; and 1 to those who didn't show for player 1's indicator.
         assert_eq!(end.lost, vec![1, 2, 3]);
         assert_eq!(game.points(), &[19, 18, 17]);
+    }
+
+    #[test]
+    fn when_time_runs_out_the_tile_set_aside_is_discarded() {
+        let mut game = PlainGame::new(2, PlainRules::default(), 1);
+        game.okey = OKEY;
+        let mut hand = vec![n(Blue, 1), n(Blue, 2), n(Blue, 3), n(Black, 12), n(Black, 13), n(Black, 1)];
+        hand.extend([n(Blue, 7), n(Black, 7), n(Orange, 7), n(Orange, 9), n(Orange, 10), n(Orange, 11), n(Orange, 12)]);
+        hand.extend([n(Blue, 4), n(Red, 9)]);
+        game.racks[0] = hand;
+        game.current = 0;
+        game.phase = Phase::Play;
+        // A winning hand finishes whatever was set aside.
+        let turn = timeout_turn(&game.view(0), Some(n(Blue, 7))).unwrap();
+        assert!(turn.finish);
+        assert_eq!(turn.discard, n(Red, 9));
+        // Not a winning hand any more: the tile set aside, if held.
+        game.racks[0][13] = n(Red, 11);
+        let turn = timeout_turn(&game.view(0), Some(n(Blue, 7))).unwrap();
+        assert_eq!((turn.discard, turn.finish), (n(Blue, 7), false));
+        let turn = timeout_turn(&game.view(0), Some(n(Black, 3))).unwrap();
+        assert_ne!(turn.discard, n(Black, 3), "not held: the bot's choice");
     }
 }

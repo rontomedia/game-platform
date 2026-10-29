@@ -141,7 +141,8 @@
       "group": "Grup",
       "pair": "Çift",
       "withOkey": "Okeyle",
-      "controlsTitle": "Kontroller"
+      "controlsTitle": "Kontroller",
+      "controlsNext": "Sonra atmayı düşündüğünüz taşı atma yerinin yanındaki küçük yere koyun: süreniz dolarsa sizin için atılan bu olur (Okey 101’de, ceza gerektirmiyorsa). Taşlarınızdan biri sayılmaya devam eder."
     },
     "okey101": {
       "controlsDraw": "Taş çekmek için “{{draw}}” düğmesine ya da desteye basın. Önceki oyuncunun attığı taşı almak için onu ıstakanıza (ya da doğrudan masaya) sürükleyin; vazgeçerseniz geri sürükleyin.",
@@ -352,6 +353,8 @@
     "discardsOf": "{{name}} adlı oyuncunun attıkları",
     "emptyTable": "Masa boş. İlk açış 101 puan ya da beş çift ister.",
     "discardHere": "Taşı atıp sıranı bitirmek için buraya bırak",
+    "discardNext": "Sıradaki atış",
+    "discardNextDetail": "Sonra atmayı düşündüğün taş: süren dolarsa atılan bu olur (Okey 101’de, ceza gerektirmiyorsa).",
     "hand": "El {{n}} / {{total}}",
     "yourTurnDraw": "Sıra sende: taş çek.",
     "yourTurnDrawOrTake": "Sıra sende: taş çek ya da hemen kullanabileceksen {{name}} adlı oyuncunun attığı taşı al.",

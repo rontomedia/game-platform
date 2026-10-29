@@ -145,7 +145,8 @@
       "group": "Skupina",
       "pair": "Pár",
       "withOkey": "S okeyem",
-      "controlsTitle": "Ovládání"
+      "controlsTitle": "Ovládání",
+      "controlsNext": "Kámen, který chcete odhodit příště, dejte do malého místa vedle místa pro odhoz: když vám vyprší čas, odhodí se za vás právě on (v Okey 101, pokud nestojí trest). Pořád se počítá mezi vaše kameny."
     },
     "okey101": {
       "controlsDraw": "Stiskněte „{{draw}}“ nebo balík a líznete si. Kámen odhozený předchozím hráčem vezmete přetažením na stojánek (nebo rovnou na stůl); když si to rozmyslíte, přetáhněte ho zpět.",
@@ -390,6 +391,8 @@
     "discardsOf": "Odhozené hráčem {{name}}",
     "emptyTable": "Stůl je prázdný. První otevření potřebuje 101 bodů nebo pět párů.",
     "discardHere": "Pusťte sem kámen, odhodíte ho a ukončíte tah",
+    "discardNext": "Odhodit příště",
+    "discardNextDetail": "Kámen, který chcete odhodit příště: když vám vyprší čas, odhodí se právě on (v Okey 101, pokud nestojí trest).",
     "hand": "Rozdání {{n}} z {{total}}",
     "yourTurnDraw": "Jste na tahu: lízněte si kámen.",
     "yourTurnDrawOrTake": "Jste na tahu: lízněte si kámen, nebo vezměte kámen odhozený hráčem {{name}}, pokud ho hned použijete.",

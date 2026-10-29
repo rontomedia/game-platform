@@ -1038,11 +1038,14 @@ async fn a_plain_okey_game_against_bots() {
             _ => None,
         })
         .await;
+        // The hand that ends the game counts too (one finish can, from 4 points).
+        if view.end.is_some() {
+            hands += 1;
+        }
         if view.winners.is_some() {
             break view;
         }
         if view.end.is_some() {
-            hands += 1;
             continue;
         }
         // Ann plays as an Easy bot would.

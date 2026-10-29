@@ -121,6 +121,8 @@ pub enum Command {
     /// Okey 101 or plain Okey: the end of a turn.
     Discard { player: PlayerId, turn: Discard },
     Draft { player: PlayerId, table: Vec<Vec<Tile>> },
+    /// Okey: the tile a player has set aside to discard next, or none.
+    DiscardNext { player: PlayerId, tile: Option<Tile> },
     /// A bot's move, worked out for turn number `turn`.
     BotMove { turn: u64, choice: BotChoice },
 }
@@ -157,6 +159,9 @@ struct Player {
     warned: bool,
     /// ...and whether it's too much: no more extra time this game.
     no_bonus: bool,
+    /// Okey: the tile they set aside to discard next, thrown if their time
+    /// runs out (when they still hold it). Cleared by a new hand.
+    discard_next: Option<Tile>,
 }
 
 impl Player {
@@ -313,6 +318,11 @@ impl Room {
             Command::Draw { player } => self.make_move(player, Action::Draw),
             Command::Discard { player, turn } => self.make_move(player, Action::Discard(turn)),
             Command::Draft { player, table } => self.share_draft(player, table),
+            Command::DiscardNext { player, tile } => {
+                if let Some(seat) = self.seat(player) {
+                    self.players[seat].discard_next = tile;
+                }
+            }
             Command::BotMove { turn, choice } => self.bot_chose(turn, choice),
         }
     }
@@ -359,7 +369,7 @@ impl Room {
         let id = self.next_id;
         self.next_id += 1;
         let bank = self.config.timing.bank;
-        self.players.push(Player { id, token, name, connection, bot, bank, unearned: Duration::ZERO, warned: false, no_bonus: false });
+        self.players.push(Player { id, token, name, connection, bot, bank, unearned: Duration::ZERO, warned: false, no_bonus: false, discard_next: None });
         id
     }
 
@@ -863,7 +873,7 @@ impl Room {
                         let _ = game.draw(seat);
                     }
                     if game.hand().end().is_none() {
-                        let fallback = game.hand().timeout_turn(seat, None);
+                        let fallback = game.hand().timeout_turn(seat, None, None);
                         let _ = game.play(seat, fallback);
                     }
                 }
@@ -956,7 +966,7 @@ impl Room {
             }
         }
         let draft = self.draft.take();
-        let turn = game.hand().timeout_turn(seat, draft.as_deref());
+        let turn = game.hand().timeout_turn(seat, draft.as_deref(), self.players[seat].discard_next);
         let size = |table: &[Vec<Tile>]| table.iter().map(Vec::len).sum::<usize>();
         let before = size(game.hand().table());
         let put_down = draft.as_ref().map_or(0, |d| size(d).saturating_sub(before));
@@ -972,8 +982,8 @@ impl Room {
     }
 
     /// Plain Okey: the current player's time ran out. They draw if they
-    /// hadn't (which may end the hand), then discard as an Easy bot would
-    /// (finishing, if their hand wins).
+    /// hadn't (which may end the hand), then finish if their hand wins, else
+    /// discard the tile they set aside, else as an Easy bot would.
     fn plain_time_out(&mut self) {
         let Some(Contest::Plain(game)) = self.game.as_mut() else { return };
         let seat = game.current();
@@ -983,7 +993,7 @@ impl Room {
                 return self.end_turn(seat, Duration::ZERO, Duration::ZERO);
             }
         }
-        if let PlainMove::Turn(turn) = engine::plain_okey::plain_bot_move(&game.view(seat), BotLevel::Easy) {
+        if let Some(turn) = engine::plain_okey::timeout_turn(&game.view(seat), self.players[seat].discard_next) {
             if let Err(e) = game.play(seat, turn) {
                 eprintln!("room {}: a turn played when time ran out: {e}", self.code);
             }
@@ -994,6 +1004,9 @@ impl Room {
     /// Okey: deals the next hand once the scores have been shown.
     fn next_hand(&mut self) {
         self.next_hand_at = None;
+        for player in &mut self.players {
+            player.discard_next = None;
+        }
         let dealt = match self.game.as_mut() {
             Some(Contest::Okey(game)) => game.next_hand(),
             Some(Contest::Plain(game)) => game.next_hand(),

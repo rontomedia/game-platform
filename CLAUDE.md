@@ -145,8 +145,12 @@ only builds it on start.
     plays a `Contest` (`contest.rs`): the classic `Game` or an Okey
     `Match`. In Okey 101 `Draw` doesn't end the turn, `Discard` does;
     states are `OkeyState`, errors `OkeyRejected`; when time runs out the
-    player draws if they hadn't, their draft is played if valid and a
-    tile that costs nothing discarded (`Hand::timeout_turn`); between
+    player draws if they hadn't, their draft is played if valid and the
+    tile they set aside to discard next (`DiscardNext`, kept on `Player`,
+    cleared each hand) discarded if they hold it and it costs no
+    penalty, else a tile that costs nothing (`Hand::timeout_turn`; plain
+    Okey: a winning finish, else that tile, else an Easy bot's discard,
+    `plain_okey::timeout_turn`); between
     hands the scores show for `Timing::between_hands`. Leaving for good (`Leave`, the board's door button; not a lost
     connection, `Command::Disconnect`): in the lobby, or watching, the
     member is gone; during a game the stand-in takes over the seat, under
@@ -327,7 +331,10 @@ only builds it on start.
     `Rack`, `DiscardSpot`, `Overlay`, `Plans`: a rack tile double-clicked
     goes into a plan, any time, plans checked as plain Okey's sets with
     12-13-1, `plainSet`). Both Okey boards mark the tile last drawn
-    (`OkeyGame.drawn`, from the phase going draw to play in `useGame.ts`).
+    (`OkeyGame.drawn`, from the phase going draw to play in `useGame.ts`),
+    and have a slot beside the discard spot for the tile to discard next
+    (`NextSpot`), told to the server as it changes (`discardNext`); plans
+    and that tile are kept per tab for the hand.
     `?demo=plain`, `?demo=plain-scores`,
     `?demo=plain-marks`.
   - Planned: shadcn/ui for menus, `@heroiclabs/nakama-js` for

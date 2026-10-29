@@ -145,7 +145,8 @@
       "group": "Grupa",
       "pair": "Para",
       "withOkey": "Z okeyem",
-      "controlsTitle": "Sterowanie"
+      "controlsTitle": "Sterowanie",
+      "controlsNext": "Połóż kamień, który chcesz odrzucić następny, na małym miejscu obok miejsca odrzutu: gdy skończy ci się czas, to on zostanie odrzucony za ciebie (w Okey 101, o ile nie kosztuje kary). Wciąż liczy się do twoich kamieni."
     },
     "okey101": {
       "controlsDraw": "Naciśnij „{{draw}}” albo pulę, by dobrać kamień. Aby wziąć kamień odrzucony przez poprzedniego gracza, przeciągnij go na stojak (albo od razu na stół); przeciągnij go z powrotem, jeśli zmienisz zdanie.",
@@ -390,6 +391,8 @@
     "discardsOf": "Odrzucone przez: {{name}}",
     "emptyTable": "Stół jest pusty. Pierwsze otwarcie wymaga 101 punktów lub pięciu par.",
     "discardHere": "Upuść tu kamień, by go odrzucić i zakończyć turę",
+    "discardNext": "Do odrzucenia",
+    "discardNextDetail": "Kamień, który chcesz odrzucić następny: gdy skończy ci się czas, to on zostanie odrzucony (w Okey 101, o ile nie kosztuje kary).",
     "hand": "Rozdanie {{n}} z {{total}}",
     "yourTurnDraw": "Twoja tura: dobierz kamień.",
     "yourTurnDrawOrTake": "Twoja tura: dobierz kamień albo weź kamień odrzucony przez gracza {{name}}, jeśli możesz go teraz użyć.",
