@@ -445,6 +445,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a89322df9ebe1c1578d689c92318e070967d1042b512afbe49518723f4e6d5cd"
 
 [[package]]
+name = "platform"
+version = "0.1.0"
+dependencies = [
+ "rand 0.10.3",
+ "serde",
+ "tokio",
+]
+
+[[package]]
 name = "ppv-lite86"
 version = "0.2.21"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -646,6 +655,7 @@ version = "0.1.0"
 dependencies = [
  "axum",
  "futures-util",
+ "platform",
  "protocol",
  "rand 0.10.3",
  "serde",

@@ -6,7 +6,7 @@ use protocol::{RoomOptions, ServerMessage};
 use tile_rummy::BotLevel;
 
 use crate::contest::{Contest, RummyRules};
-use crate::shared::{self, Out, SharedMessage};
+use platform::shared::{self, Out, SharedMessage};
 
 /// A tile rummy room's options, as the room keeps them.
 pub type RummyOptions = shared::RoomOptions<RummyRules, BotLevel>;

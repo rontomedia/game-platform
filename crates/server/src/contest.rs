@@ -14,7 +14,7 @@ use protocol::{Notice, RuleSet, ServerMessage};
 use serde::{Deserialize, Serialize};
 
 use crate::clock::Bonus;
-use crate::engine::{placings_by, ClockInfo, GameEngine, TimedOut};
+use platform::engine::{placings_by, ClockInfo, GameEngine, TimedOut};
 
 /// The most tiles a player may set aside to discard next (the board's slot holds as many).
 const DISCARD_NEXT: usize = 3;

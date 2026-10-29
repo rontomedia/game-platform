@@ -5,10 +5,6 @@
 mod clock;
 mod connection;
 mod contest;
-mod engine;
-mod room;
-mod rooms;
-mod shared;
 #[cfg(test)]
 mod tests;
 mod wire;
@@ -24,8 +20,8 @@ use axum::Router;
 use clock::Bonus;
 use contest::{Contest, RummyConfig};
 use tile_rummy::Lookahead;
-use room::Timing;
-use rooms::{bot_pool, Rooms};
+use platform::room::{self, Timing};
+use platform::rooms::{bot_pool, Rooms};
 use tokio::net::TcpListener;
 
 /// How the server is set up, from the command line (see `config`).

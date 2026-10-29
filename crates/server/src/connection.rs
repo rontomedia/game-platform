@@ -9,9 +9,9 @@ use protocol::{ClientMessage, PROTOCOL_VERSION};
 use tokio::sync::mpsc;
 
 use crate::contest::{Contest, Discard, RummyMove};
-use crate::room::{self, Connection, PlayerId, Reply};
-use crate::rooms;
-use crate::shared::{Out, Refusal, SharedMessage};
+use platform::room::{self, Connection, PlayerId, Reply};
+use platform::rooms;
+use platform::shared::{Out, Refusal, SharedMessage};
 use crate::wire;
 
 type Command = room::Command<Contest>;

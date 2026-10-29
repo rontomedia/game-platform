@@ -6,6 +6,7 @@ edition = "2021"
 [dependencies]
 tile-rummy = { path = "../../games/tile-rummy" }
 protocol = { path = "../protocol" }
+platform = { path = "../platform" }
 axum = { version = "0.8.9", features = ["ws"] }
 rand = "0.10.3"
 serde = { version = "1", features = ["derive"] }
