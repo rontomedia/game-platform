@@ -299,11 +299,20 @@ only builds it on start.
     discard spot (checked first in the browser, `checkOkeyTurn`): draw
     (button or pool), or drag the previous player's discard in; drop tiles
     on a set to add them at its nearer end (or in an okey's place, taking
-    the okey back), or on "new set". Only this turn's tiles move again.
-    Double-click (on the turn, once drawn): a rack tile onto the table,
-    into the set last changed if it fits (ends only for sets already
-    there), else a new set; this turn's tile back to the rack. The rule
-    behind it, for other games: the second brain's
+    the okey back), or on empty table to start a set there. Only this
+    turn's tiles move again. The table is the classic board's grid
+    (`TableGrid`, `useTableMetrics`): sets move by their grip, any time,
+    for this player only; their places are kept by table index (the
+    table only grows at its end; a new set left empty keeps its slot in
+    `sets` until the turn is sent), per tab for the hand (`TABLE_KEY`).
+    Plans as in the classic game (`Plans`, kept with the rack order),
+    with what the valid ones would count towards opening. Double-click:
+    once the player may lay tiles down, a rack tile onto the table, into
+    the set last changed if it fits (ends only for sets already there),
+    else a new set, and a planned tile's whole plan onto the table;
+    otherwise a rack tile into a plan and a planned tile back; this
+    turn's tile on the table back to the rack. The rule behind it, for
+    other games: the second brain's
     `projects/rummy-game/notes/board-controls.md`.
     Indicator, okey and pool top left, everyone's discards top right, the
     opening total as it builds (`okeyProgress`), the scores between hands

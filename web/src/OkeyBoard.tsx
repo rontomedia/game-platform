@@ -9,6 +9,7 @@ import {
   useSensor,
   useSensors,
   type DragEndEvent,
+  type DragMoveEvent,
   type DragStartEvent,
 } from '@dnd-kit/core'
 import { arrayMove, rectSortingStrategy, SortableContext, sortableKeyboardCoordinates, useSortable } from '@dnd-kit/sortable'
@@ -17,21 +18,27 @@ import { AnimatePresence, motion } from 'motion/react'
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 
-import { compareTiles, joinAt, type RackSort } from './arrange.ts'
-import { TopBar, WatchBar, type Clock } from './Board.tsx'
+import { compareTiles, joinAt, keepPlans, without as withoutTiles, type RackSort } from './arrange.ts'
+import { TableGrid, TopBar, WatchBar, type Clock } from './Board.tsx'
+import { footprint, gridWithout, resolve, type Cell } from './grid.ts'
 import { noticeText, okeyError, problemText, type Problem } from './messages.ts'
 import type { Settings } from './settings.ts'
 import {
   collisions,
   DISCARD,
   FalseOkeyMark,
+  isPlanTarget,
+  isSetItem,
   isSetTarget,
+  NEW_PLAN,
   NEW_SET,
   OFFER,
   orderedRack,
+  planTarget,
   RACK,
   same,
   sameTile,
+  setItem,
   setTarget,
   TAKEN,
   tilesOf,
@@ -42,6 +49,7 @@ import { TileFace } from './TileView.tsx'
 import { Button } from './ui.tsx'
 import type { Draft, OkeyGame, Status } from './useGame.ts'
 import { useNow } from './useNow.ts'
+import { useTableMetrics, type Metrics } from './useTableMetrics.ts'
 import {
   checkOkeyTurn,
   okeyMeldKind,
@@ -63,8 +71,20 @@ import {
  * can't be rearranged, so only tiles put down this turn move again.
  */
 
-/** Remembered for the tab: the player's rack order in their current room. */
+/** Remembered for the tab: the player's rack order and plans in their current room. */
 const RACK_KEY = 'rummy.okeyRack'
+/** Remembered for the tab: where the player put the table's sets, by their place in it, this hand. */
+const TABLE_KEY = 'rummy.okeyTable'
+
+/** The board's tiles: the rack, the plans, and the table's sets (new ones left empty keep their place). */
+interface Tiles {
+  rack: Placed[]
+  plans: Placed[][]
+  sets: Placed[][]
+}
+
+/** `tile` put into `list` at its front or back. */
+const insertAt = (list: Placed[], tile: Placed, front: boolean) => (front ? [tile, ...list] : [...list, tile])
 
 /** Give it `key={okey.version}`: a new state starts the turn afresh. */
 export function OkeyBoard({
@@ -101,25 +121,40 @@ export function OkeyBoard({
   const previous = (hand.current + players - 1) % players
   const offer = hand.discards[previous]?.at(-1)
   const canTake = myTurn && hand.phase === 'draw' && offer !== undefined && !sameTile(offer, hand.okey)
+  const opened = !watching && hand.opened[you] !== 'no'
 
   const [sort, setSort] = useState<RackSort>(() => remembered<RackSort>('rummy.rackSort') ?? 'custom')
-  const [rack, setRack] = useState(() => orderedRack(RACK_KEY, room.code, hand.rack, sort))
-  const [sets, setSets] = useState<Placed[][]>(() =>
-    hand.table.map((set, s) => set.map((tile, i) => ({ id: `t${s}-${i}`, tile }))),
-  )
+  const [tiles, setTiles] = useState<Tiles>(() => {
+    const saved = remembered<{ code: string; plans?: Tile[][] }>(RACK_KEY, 'session')
+    const planned = keepPlans(saved?.code === room.code ? (saved.plans ?? []) : [], hand.rack)
+    let n = 0
+    return {
+      rack: orderedRack(RACK_KEY, room.code, withoutTiles(hand.rack, planned.flat()), sort),
+      plans: planned.map((plan) => plan.map((tile) => ({ id: `p${n++}`, tile }))),
+      sets: hand.table.map((set, s) => set.map((tile, i) => ({ id: `t${s}-${i}`, tile }))),
+    }
+  })
+  const { rack, plans, sets } = tiles
+  /** Where the player put each set, by its place on the table; unset, wherever it's shown. */
+  const [at, setAt] = useState<(Cell | undefined)[]>(() => {
+    const saved = remembered<{ code: string; played: number; at: (Cell | null)[] }>(TABLE_KEY, 'session')
+    return saved && saved.code === room.code && saved.played === view.played ? saved.at.map((cell) => cell ?? undefined) : []
+  })
   const [taken, setTaken] = useState(false)
   /** A turn refused here, before it was sent. */
   const [refused, setRefused] = useState<Problem | null>(null)
-  const [dragging, setDragging] = useState<Placed | null>(null)
+  const [dragging, setDragging] = useState<{ placed?: Placed; set?: number } | null>(null)
+  const [target, setTarget] = useState<{ cell: Cell; width: number } | null>(null)
   /** The tile last put on the table, by drag or double-click: a double-clicked tile joins its set if it fits. */
   const lastPlaced = useRef<string | null>(null)
+  /** The plan last changed, which a double-clicked tile joins if it fits. */
+  const lastPlan = useRef<number | null>(null)
+  const tableGrid = useRef<HTMLDivElement | null>(null)
+  const metrics = useTableMetrics(tableGrid)
 
-  // The rack order outlives the state.
-  useEffect(() => {
-    remember(RACK_KEY, { code: room.code, tiles: tilesOf(rack.filter((p) => p.id !== TAKEN)) }, 'session')
-  }, [rack, room.code])
-
-  const table = sets.map(tilesOf)
+  // A set left empty this turn keeps its place in `sets`, so the others keep theirs; it isn't played.
+  const kept = (all: Placed[][]) => all.filter((set) => set.length > 0)
+  const table = kept(sets).map(tilesOf)
   const changed = !same(table, hand.table) || taken
   // Shared after each change on the player's turn, as in the classic game.
   const sent = useRef(JSON.stringify(hand.table))
@@ -136,7 +171,39 @@ export function OkeyBoard({
   const turnOf = (discard: Tile): Turn => ({ takeDiscard: taken, table, discard })
   // The table as a turn, whichever tile is discarded: for the note.
   const verdict = canTable && rack.length > 0 ? checkOkeyTurn(hand, turnOf(rack[rack.length - 1].tile)) : undefined
-  const progress = myTurn && hand.opened[you!] === 'no' ? okeyProgress({ view: hand, table }) : undefined
+  const progress = myTurn && !opened ? okeyProgress({ view: hand, table }) : undefined
+  // What the valid plans would add up to if laid down now, before opening.
+  const planned = watching || opened || plans.length === 0
+    ? undefined
+    : okeyProgress({ view: hand, table: [...hand.table, ...plans.map(tilesOf).filter((plan) => okeyMeldKind(hand.okey, plan) !== undefined)] })
+
+  // Someone else's turn, shared live: their table so far. The table only
+  // grows at its end, so a set keeps its place (and its index) throughout.
+  const liveTable = !myTurn && draft && draft.by === hand.current && !hand.end ? draft.table : null
+  const shown: Placed[][] = myTurn
+    ? sets
+    : (liveTable ?? hand.table).map((set, s) => set.map((tile, i) => ({ id: `v${s}-${i}`, tile })))
+  const widths = shown.map((set) => footprint(set.length))
+  const cells = resolve(
+    shown.flatMap((set, s) => (set.length > 0 ? [{ key: s, width: widths[s], at: at[s] }] : [])),
+    metrics?.columns ?? 12,
+  )
+  /** Every shown set's place: where the player put it, else where it's shown now. */
+  const pinned = () => shown.map((_, s) => at[s] ?? cells.get(s))
+
+  // The rack order, plans and set places outlive the state. A set new to
+  // this player keeps the place it was first shown in.
+  useEffect(() => {
+    remember(
+      RACK_KEY,
+      { code: room.code, tiles: tilesOf(rack.filter((p) => p.id !== TAKEN)), plans: plans.map(tilesOf) },
+      'session',
+    )
+  }, [rack, plans, room.code])
+  const places = JSON.stringify(shown.flatMap((set, s) => (set.length > 0 ? [at[s] ?? cells.get(s) ?? null] : [])))
+  useEffect(() => {
+    if (metrics) remember(TABLE_KEY, { code: room.code, played: view.played, at: JSON.parse(places) }, 'session')
+  }, [metrics, places, room.code, view.played])
 
   const sensors = useSensors(
     useSensor(MouseSensor, { activationConstraint: { distance: 4 } }),
@@ -145,168 +212,261 @@ export function OkeyBoard({
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
   )
 
-  /** Where a tile is: the rack, a set (and its place), or the offer. */
-  const find = (id: string): { in: 'rack'; at: number } | { in: 'set'; set: number; at: number } | { in: 'offer' } | null => {
+  type Where =
+    | { in: 'rack'; at: number }
+    | { in: 'plan'; plan: number; at: number }
+    | { in: 'set'; set: number; at: number }
+    | { in: 'offer' }
+  /** Where a tile is: the rack, a plan, a set (and its place), or the offer. */
+  const find = (id: string, where: Tiles = tiles): Where | null => {
     if (id === OFFER) return { in: 'offer' }
-    const at = rack.findIndex((p) => p.id === id)
+    const at = where.rack.findIndex((p) => p.id === id)
     if (at >= 0) return { in: 'rack', at }
-    for (let s = 0; s < sets.length; s++) {
-      const i = sets[s].findIndex((p) => p.id === id)
-      if (i >= 0) return { in: 'set', set: s, at: i }
+    for (const [plan, tiles] of where.plans.entries()) {
+      const i = tiles.findIndex((p) => p.id === id)
+      if (i >= 0) return { in: 'plan', plan, at: i }
+    }
+    for (const [set, tiles] of where.sets.entries()) {
+      const i = tiles.findIndex((p) => p.id === id)
+      if (i >= 0) return { in: 'set', set, at: i }
     }
     return null
   }
 
   const placedOf = (id: string): Placed | undefined => {
     if (id === OFFER) return offer && { id: TAKEN, tile: offer }
-    return rack.find((p) => p.id === id) ?? sets.flat().find((p) => p.id === id)
+    return [...rack, ...plans.flat(), ...sets.flat()].find((p) => p.id === id)
   }
 
-  /** The board without tile `id`: taken out of the rack or its set (a new set left empty goes). */
-  const without = (id: string): { rack: Placed[]; sets: Placed[][] } => ({
+  /** The board without tile `id` (a plan left empty goes; a set keeps its place). */
+  const without = (id: string): Tiles => ({
     rack: rack.filter((p) => p.id !== id),
-    sets: sets
-      .map((set) => set.filter((p) => p.id !== id))
-      .filter((set, s) => set.length > 0 || s < hand.table.length),
+    plans: plans.map((plan) => plan.filter((p) => p.id !== id)).filter((plan) => plan.length > 0),
+    sets: sets.map((set) => set.filter((p) => p.id !== id)),
   })
+
+  /** Where a set `width` wide lands if let go at `cell`: there if it's free, else the nearest free place in that row. */
+  const landing = (cell: Cell, width: number, except?: number) => {
+    if (!metrics) return null
+    const shownCells = new Map([...cells].filter(([key]) => key !== except))
+    const grid = gridWithout(shownCells, new Map(widths.map((w, s) => [s, w])), metrics.columns)
+    const free = grid.fits(cell, width) ? cell : grid.nearestInRow(cell, width)
+    return free && { cell: free, width }
+  }
+
+  /** Where a set `width` wide goes when not dragged there: the first free place from the last row on. */
+  const freeCell = (width: number) => {
+    if (!metrics) return undefined
+    const lastRow = Math.max(0, ...[...cells.values()].map((cell) => cell.row))
+    return gridWithout(cells, new Map(widths.map((w, s) => [s, w])), metrics.columns).firstFree(width, lastRow)
+  }
+
+  /** `next`, with a new set of `set` added at `cell` (if known). */
+  const withNewSet = (next: Tiles, set: Placed[], cell?: Cell) => {
+    setAt([...pinned(), cell])
+    return { ...next, sets: [...next.sets, set] }
+  }
 
   const fits = (candidate: Placed[]) => okeyMeldKind(hand.okey, tilesOf(candidate)) !== undefined
   /** A tile as the classic sets read it: the okey wild, a false okey the okey's own tile. */
   const asClassic = (tile: Tile): Tile => (sameTile(tile, hand.okey) ? { kind: 'joker' } : tile.kind === 'joker' ? hand.okey : tile)
+  /** Where `tile` joins a set being built (`set`): as the classic board places it, or as a pair. */
+  const joinNew = (set: Placed[], tile: Placed): Placed[] | null => {
+    const pair = set.length === 1 && sameTile(set[0].tile, tile.tile)
+    const at = pair ? 1 : joinAt(set.map((p) => asClassic(p.tile)), asClassic(tile.tile))
+    return at === null ? null : [...set.slice(0, at), tile, ...set.slice(at)]
+  }
+
+  /** A plan put on the table whole, as a new set, once the player may lay tiles down. */
+  const playPlan = (plan: number) => {
+    const set = plans[plan]
+    if (!canTable || !set) return
+    lastPlaced.current = set[set.length - 1].id
+    setTiles(withNewSet({ ...tiles, plans: plans.filter((_, i) => i !== plan) }, set, freeCell(footprint(set.length))))
+  }
 
   /**
-   * A double-clicked tile, on the player's turn once they've drawn. From the
-   * rack: onto the table, joining the set last changed there if it fits (a
-   * set already on the table only at an end; a new one as the classic board
-   * does, or as a pair), else starting a new set. This turn's tile on the
-   * table: back to the rack.
+   * A double-clicked tile. From the rack: onto the table once the player may
+   * lay tiles down, joining the set last changed there if it fits (a set
+   * already on the table only at an end; a new one as the classic board
+   * does, or as a pair), else starting a new set; at other times into the
+   * plan last changed if it fits, else a new plan. A planned tile: its whole
+   * plan onto the table when it may go, else back to the rack. This turn's
+   * tile on the table: back to the rack.
    */
   const quickMove = (placed: Placed) => {
     const from = find(placed.id)
-    if (!canTable || !from || from.in === 'offer') return
+    if (watching || hand.end || !from || from.in === 'offer') return
     const left = without(placed.id)
+    if (from.in === 'plan') {
+      if (canTable) return playPlan(from.plan)
+      return setTiles({ ...left, rack: [...left.rack, placed] })
+    }
     if (from.in === 'set') {
-      if (fixed.has(placed.id)) return
-      setRack([...left.rack, placed])
-      setSets(left.sets)
-      return
+      if (!canTable || fixed.has(placed.id)) return
+      return setTiles({ ...left, rack: [...left.rack, placed] })
+    }
+    if (!canTable) {
+      if (placed.id === TAKEN) return
+      const p = lastPlan.current
+      const joined = p !== null && plans[p] ? joinNew(plans[p], placed) : null
+      if (joined) return setTiles({ ...left, plans: plans.map((plan, i) => (i === p ? joined : plan)) })
+      lastPlan.current = left.plans.length
+      return setTiles({ ...left, plans: [...left.plans, [placed]] })
     }
     const last = lastPlaced.current === null ? null : find(lastPlaced.current)
     const s = last?.in === 'set' ? last.set : -1
     const set = sets[s]
-    let joined: Placed[] | null = null
-    if (set && s < hand.table.length) {
-      joined = [[...set, placed], [placed, ...set]].find(fits) ?? null
-    } else if (set) {
-      const pair = set.length === 1 && sameTile(set[0].tile, placed.tile)
-      const at = pair ? 1 : joinAt(set.map((p) => asClassic(p.tile)), asClassic(placed.tile))
-      if (at !== null) joined = [...set.slice(0, at), placed, ...set.slice(at)]
-    }
+    const joined = !set ? null : s < hand.table.length ? ([[...set, placed], [placed, ...set]].find(fits) ?? null) : joinNew(set, placed)
     lastPlaced.current = placed.id
-    setRack(left.rack)
-    setSets(joined ? sets.map((other, i) => (i === s ? joined : other)) : [...sets, [placed]])
+    if (joined) return setTiles({ ...left, sets: left.sets.map((other, i) => (i === s ? joined : other)) })
+    setTiles(withNewSet(left, [placed], freeCell(footprint(1))))
   }
 
   const discard = (placed: Placed) => {
     const left = without(placed.id)
-    const turn: Turn = { takeDiscard: taken, table: left.sets.map(tilesOf), discard: placed.tile }
+    const turn: Turn = { takeDiscard: taken, table: kept(left.sets).map(tilesOf), discard: placed.tile }
     const check = checkOkeyTurn(hand, turn)
     if (check.verdict === 'rejected') return setRefused({ kind: 'okey', error: check.error })
-    setRack(left.rack)
-    setSets(left.sets)
+    setTiles(left)
     send({ type: 'discard', ...turn })
   }
 
   const onDragStart = ({ active }: DragStartEvent) => {
     setRefused(null)
-    setDragging(placedOf(String(active.id)) ?? null)
+    const id = String(active.id)
+    if (isSetItem(id)) return setDragging({ set: Number(id.slice('move-set-'.length)) })
+    setDragging({ placed: placedOf(id) })
+  }
+
+  // Where a set, or a tile over empty table, would land: shown as an outline.
+  const onDragMove = ({ active, over }: DragMoveEvent) => {
+    const id = String(active.id)
+    const rect = active.rect.current.translated
+    const grid = tableGrid.current
+    if (!rect || !grid || !metrics) return
+    const box = grid.getBoundingClientRect()
+    const row = Math.round((rect.top - box.top) / metrics.cellH)
+    const col = Math.round((rect.left - box.left) / metrics.cellW)
+    let next: { cell: Cell; width: number } | null = null
+    if (isSetItem(id)) {
+      const s = Number(id.slice('move-set-'.length))
+      next = landing({ row, col }, widths[s], s)
+    } else if (over?.id === NEW_SET) {
+      // The tile will be the set's first, after its grip.
+      next = landing({ row, col: col - 1 }, footprint(1))
+    }
+    setTarget((t) =>
+      t && next && t.width === next.width && t.cell.row === next.cell.row && t.cell.col === next.cell.col ? t : next,
+    )
   }
 
   const onDragEnd = ({ active, over }: DragEndEvent) => {
+    const landed = target
     setDragging(null)
-    if (!over) return
+    setTarget(null)
     const id = String(active.id)
+    if (isSetItem(id)) {
+      const s = Number(id.slice('move-set-'.length))
+      if (landed) setAt(pinned().map((cell, i) => (i === s ? landed.cell : cell)))
+      return
+    }
+    if (!over) return
     const to = String(over.id)
     const from = find(id)
     const placed = placedOf(id)
     if (!from || !placed) return
+    // A tile already on the table at the start of the turn stays there.
+    if (from.in === 'set' && fixed.has(id)) return
+    // Pointer left of a target's middle: its front.
+    const translated = active.rect.current.translated
+    const nearFront = translated !== null && translated.left + translated.width / 2 < over.rect.left + over.rect.width / 2
 
     // The discard taken goes back.
     if (to === OFFER) {
       if (id !== TAKEN) return
-      const left = without(TAKEN)
-      setRack(left.rack)
-      setSets(left.sets)
+      setTiles(without(TAKEN))
       setTaken(false)
       return
     }
     if (to === DISCARD) {
-      if (from.in === 'offer' || !(myTurn && (hand.phase === 'play' || taken))) return
+      if (from.in === 'offer' || !canTable) return
       return discard(placed)
     }
-    // Within the rack: reorder.
+    // The rack: put in order, or brought back from a plan or the table.
     const overRack = to === RACK || rack.some((p) => p.id === to)
     if (overRack) {
       if (from.in === 'rack') {
         const target = to === RACK ? rack.length - 1 : rack.findIndex((p) => p.id === to)
         setSort('custom')
-        return setRack(arrayMove(rack, from.at, target))
+        return setTiles({ ...tiles, rack: arrayMove(rack, from.at, target) })
       }
-      if (from.in === 'set' && fixed.has(id)) return
       if (from.in === 'offer') setTaken(true)
-      const left = from.in === 'offer' ? { rack, sets } : without(id)
-      const target = to === RACK ? left.rack.length : left.rack.findIndex((p) => p.id === to)
+      const left = from.in === 'offer' ? tiles : without(id)
+      const at = to === RACK ? left.rack.length : left.rack.findIndex((p) => p.id === to)
       const next = [...left.rack]
-      next.splice(target < 0 ? next.length : target, 0, placed)
-      setRack(next)
-      setSets(left.sets)
-      return
+      next.splice(at < 0 ? next.length : at, 0, placed)
+      return setTiles({ ...left, rack: next })
+    }
+    // The plans: any time, the player's own tiles (not the discard taken).
+    if (to === NEW_PLAN || isPlanTarget(to)) {
+      if (from.in === 'offer' || id === TAKEN || (from.in === 'set' && !canTable)) return
+      const left = without(id)
+      if (to === NEW_PLAN) {
+        lastPlan.current = left.plans.length
+        return setTiles({ ...left, plans: [...left.plans, [placed]] })
+      }
+      // The plan's place once the tile has left its old one, which goes if left empty.
+      let p = Number(to.slice('plan-'.length))
+      if (from.in === 'plan' && from.plan < p && plans[from.plan].length === 1) p--
+      if (!left.plans[p]) return setTiles({ ...left, plans: [...left.plans, [placed]] })
+      lastPlan.current = p
+      return setTiles({ ...left, plans: left.plans.map((plan, i) => (i === p ? insertAt(plan, placed, nearFront) : plan)) })
     }
     // Onto the table: only on the player's turn, and only tiles of this turn.
-    if (!myTurn || (from.in === 'set' && fixed.has(id))) return
+    if (!myTurn) return
     if (from.in === 'offer') {
       if (hand.phase !== 'draw') return
     } else if (!canTable) {
       return
     }
-    const left = from.in === 'offer' ? { rack, sets } : without(id)
+    const left = from.in === 'offer' ? tiles : without(id)
     if (from.in === 'offer') setTaken(true)
     lastPlaced.current = placed.id
-    if (to === NEW_SET) {
-      setRack(left.rack)
-      setSets([...left.sets, [placed]])
-      return
-    }
+    if (to === NEW_SET) return setTiles(withNewSet(left, [placed], landed?.cell))
     if (!isSetTarget(to)) return
     const s = Number(to.slice('set-'.length))
     const set = left.sets[s]
     if (!set) return
-    const tiles = tilesOf(set)
     // At the end it fits, the nearer one if both do; else in an okey's place,
     // taking the okey back to the rack; else at the nearer end, to fix.
-    const translated = active.rect.current.translated
-    const nearFront = translated !== null && translated.left + translated.width / 2 < over.rect.left + over.rect.width / 2
     const atFront = [placed, ...set]
     const atBack = [...set, placed]
-    const okeyAt = tiles.findIndex((tile, i) => {
-      if (!sameTile(tile, hand.okey) || !fixed.has(set[i].id)) return false
+    const okeyAt = set.findIndex((p, i) => {
+      if (!sameTile(p.tile, hand.okey) || !fixed.has(p.id)) return false
       return fits(set.map((other, j) => (j === i ? placed : other)))
     })
     let nextSet: Placed[]
     let nextRack = left.rack
     if (fits(nearFront ? atFront : atBack)) nextSet = nearFront ? atFront : atBack
     else if (fits(nearFront ? atBack : atFront)) nextSet = nearFront ? atBack : atFront
-    else if (okeyAt >= 0 && s < hand.table.length && hand.opened[you!] !== 'no') {
+    else if (okeyAt >= 0 && s < hand.table.length && opened) {
       nextSet = set.map((p, i) => (i === okeyAt ? placed : p))
       nextRack = [...left.rack, { id: `okey-${set[okeyAt].id}`, tile: set[okeyAt].tile }]
     } else nextSet = nearFront ? atFront : atBack
-    setRack(nextRack)
-    setSets(left.sets.map((other, i) => (i === s ? nextSet : other)))
+    setTiles({ ...left, rack: nextRack, sets: left.sets.map((other, i) => (i === s ? nextSet : other)) })
   }
 
+  // This turn's tiles back to the rack (the discard taken to its pile); plans stay.
   const reset = () => {
-    setRack(orderedRack(RACK_KEY, room.code, hand.rack, sort))
-    setSets(hand.table.map((set, s) => set.map((tile, i) => ({ id: `t${s}-${i}`, tile }))))
+    const laid = sets.flat().filter((p) => !fixed.has(p.id) && p.id !== TAKEN && !p.id.startsWith('okey-'))
+    const okeys = rack.filter((p) => p.id.startsWith('okey-'))
+    setTiles({
+      rack: [...rack.filter((p) => p.id !== TAKEN && !okeys.includes(p)), ...laid],
+      plans,
+      sets: hand.table.map((set, s) => set.map((tile, i) => ({ id: `t${s}-${i}`, tile }))),
+    })
+    setAt(at.slice(0, hand.table.length))
     setTaken(false)
     setRefused(null)
     lastPlaced.current = null
@@ -315,7 +475,7 @@ export function OkeyBoard({
   const sortRack = (by: 'number' | 'color') => {
     setSort(by)
     remember('rummy.rackSort', by)
-    setRack([...rack].sort((a, b) => compareTiles(a.tile, b.tile, by)))
+    setTiles({ ...tiles, rack: [...rack].sort((a, b) => compareTiles(a.tile, b.tile, by)) })
   }
 
   const name = (seat: number) => room.seats[seat]?.name ?? t('board.player', { n: seat + 1 })
@@ -329,12 +489,6 @@ export function OkeyBoard({
     const bank = bankMs === undefined ? undefined : Math.max(0, Math.ceil((current ? bankMs - overdue : bankMs) / 1000))
     return { turn, bank }
   }
-
-  // Someone else's turn, shared live: their table so far.
-  const liveTable = !myTurn && draft && draft.by === hand.current && !hand.end ? draft.table : null
-  const shown: Placed[][] = myTurn
-    ? sets
-    : (liveTable ?? hand.table).map((set, s) => set.map((tile, i) => ({ id: `v${s}-${i}`, tile })))
 
   const note = ((): { tone: 'neutral' | 'good' | 'bad'; text: string } => {
     const trouble = refused ?? problem
@@ -360,7 +514,7 @@ export function OkeyBoard({
         : { tone: 'neutral', text: t('okey.openingPoints', { points: progress.points, needed: hand.openingPoints }) }
     }
     if (changed && verdict?.verdict === 'allowed') return { tone: 'good', text: t('okey.ready') }
-    return { tone: 'neutral', text: hand.opened[you!] === 'no' ? t('okey.yourTurnFirst', { points: hand.openingPoints }) : t('okey.yourTurn') }
+    return { tone: 'neutral', text: opened ? t('okey.yourTurn') : t('okey.yourTurnFirst', { points: hand.openingPoints }) }
   })()
   const noteColor = { neutral: 'text-slate-300', good: 'text-emerald-300', bad: 'text-amber-300' }[note.tone]
 
@@ -368,7 +522,17 @@ export function OkeyBoard({
 
   return (
     <FalseOkeyMark value={room.options.falseOkeyMarks ? hand.okey : undefined}>
-      <DndContext sensors={sensors} collisionDetection={collisions} onDragStart={onDragStart} onDragEnd={onDragEnd} onDragCancel={() => setDragging(null)}>
+      <DndContext
+        sensors={sensors}
+        collisionDetection={collisions}
+        onDragStart={onDragStart}
+        onDragMove={onDragMove}
+        onDragEnd={onDragEnd}
+        onDragCancel={() => {
+          setDragging(null)
+          setTarget(null)
+        }}
+      >
         <div className="flex h-dvh flex-col gap-3 p-2 sm:gap-4 sm:p-4 short:gap-2 short:p-2">
           <TopBar
             room={room}
@@ -409,26 +573,48 @@ export function OkeyBoard({
                 </div>
               </div>
 
-              <div className="flex flex-1 flex-wrap content-start items-start gap-x-4 gap-y-3">
-                {shown.length === 0 && !canTable && (
-                  <p dir="auto" className="w-full py-6 text-center text-emerald-100/40">
-                    {t('okey.emptyTable')}
-                  </p>
-                )}
-                {shown.map((set, s) => (
-                  <TableSet
-                    key={s}
-                    index={s}
-                    tiles={set}
-                    okey={hand.okey}
-                    droppable={canTable || (canTake && !taken)}
-                    draggable={myTurn ? (id) => !fixed.has(id) : () => false}
-                    onQuick={quickMove}
-                    fresh={myTurn && (s >= hand.table.length || !same([tilesOf(set)], [hand.table[s]]))}
-                    live={liveTable !== null && (s >= hand.table.length || !same([tilesOf(set)], [hand.table[s] ?? []]))}
-                  />
-                ))}
-                {(canTable || (canTake && !taken)) && <NewSet />}
+              <div className="relative min-h-0 flex-1">
+                <TableGrid
+                  gridRef={tableGrid}
+                  droppable={canTable || (canTake && !taken)}
+                  height={metrics ? (Math.max(0, ...[...cells.values()].map((cell) => cell.row + 1)) + 1) * metrics.cellH : undefined}
+                >
+                  {kept(shown).length === 0 && (
+                    <p dir="auto" className="pointer-events-none absolute inset-0 grid place-items-center text-center text-emerald-100/40">
+                      {canTable || (canTake && !taken) ? t('board.dropToStart') : t('okey.emptyTable')}
+                    </p>
+                  )}
+                  {target && metrics && (
+                    <div
+                      className="pointer-events-none absolute rounded-lg border-2 border-dashed border-emerald-200/60 bg-emerald-200/10 transition-[left,top,width] duration-100"
+                      style={{
+                        left: target.cell.col * metrics.cellW,
+                        top: target.cell.row * metrics.cellH,
+                        width: target.width * metrics.cellW - 4,
+                        height: metrics.cellH - 14,
+                      }}
+                    />
+                  )}
+                  {metrics &&
+                    shown.map(
+                      (set, s) =>
+                        set.length > 0 && (
+                          <TableSet
+                            key={s}
+                            index={s}
+                            tiles={set}
+                            okey={hand.okey}
+                            at={cells.get(s)!}
+                            metrics={metrics}
+                            droppable={canTable || (canTake && !taken)}
+                            draggable={myTurn ? (id) => !fixed.has(id) : () => false}
+                            onQuick={quickMove}
+                            fresh={myTurn && (s >= hand.table.length || !same([tilesOf(set)], [hand.table[s]]))}
+                            live={liveTable !== null && (s >= hand.table.length || !same([tilesOf(set)], [hand.table[s] ?? []]))}
+                          />
+                        ),
+                    )}
+                </TableGrid>
               </div>
               <AnimatePresence>
                 {hand.end && !over && <HandScores okey={okey} name={name} now={now} />}
@@ -464,6 +650,7 @@ export function OkeyBoard({
                   </Button>
                 </div>
               </div>
+              <Plans plans={plans} okey={hand.okey} canTable={canTable} planned={planned} hand={hand} onQuick={quickMove} onPlay={playPlan} />
               <div className="flex items-stretch gap-3">
                 <Rack tiles={rack} sortable={!watching} okey={hand.okey} onQuick={quickMove} />
                 <DiscardSpot id={DISCARD} label={t('okey.discardHere')} active={myTurn && (hand.phase === 'play' || taken)} />
@@ -473,7 +660,15 @@ export function OkeyBoard({
         </div>
 
         <DragOverlay dropAnimation={{ duration: 180, easing: 'cubic-bezier(0.2, 0.8, 0.2, 1)' }}>
-          {dragging ? <TileFace tile={dragging.tile} size="rack" lifted /> : null}
+          {dragging?.placed ? (
+            <TileFace tile={dragging.placed.tile} size="rack" lifted />
+          ) : dragging?.set !== undefined && shown[dragging.set] ? (
+            <div dir="ltr" className="flex items-center gap-1 pl-4">
+              {shown[dragging.set].map((p) => (
+                <TileFace key={p.id} tile={p.tile} size="table" lifted />
+              ))}
+            </div>
+          ) : null}
         </DragOverlay>
       </DndContext>
     </FalseOkeyMark>
@@ -560,11 +755,17 @@ export function DiscardPile({ name, pile, offered, returnable }: { name: string;
   )
 }
 
-/** A set on the table: tiles may join it at either end; this turn's tiles move again. */
+/**
+ * A set on the table, at its cell: tiles may join it at either end; this
+ * turn's tiles move again; the whole set moves by its grip, any time (only
+ * for this player, as the table's order never changes).
+ */
 function TableSet({
   index,
   tiles,
   okey,
+  at,
+  metrics,
   droppable,
   draggable,
   onQuick,
@@ -574,6 +775,8 @@ function TableSet({
   index: number
   tiles: Placed[]
   okey: Tile
+  at: Cell
+  metrics: Metrics
   droppable: boolean
   draggable: (id: string) => boolean
   /** A double-clicked tile of this turn: back to the rack. */
@@ -581,23 +784,41 @@ function TableSet({
   fresh: boolean
   live: boolean
 }) {
-  const { setNodeRef, isOver } = useDroppable({ id: setTarget(index), disabled: !droppable })
+  const { t } = useTranslation()
+  const { attributes, listeners, setNodeRef, isDragging } = useDraggable({ id: setItem(index) })
+  const { setNodeRef: setHolderRef, isOver } = useDroppable({ id: setTarget(index), disabled: !droppable })
   const valid = okeyMeldKind(okey, tilesOf(tiles)) !== undefined
   const ring = !valid ? 'ring-2 ring-amber-400' : fresh ? 'ring-2 ring-emerald-300/80' : live ? 'ring-2 ring-sky-300/70 animate-pulse' : ''
   return (
     <div
       ref={setNodeRef}
-      className={`flex items-center gap-1 rounded-lg p-1 transition ${ring} ${isOver ? 'bg-white/15' : ''}`}
+      style={{ left: at.col * metrics.cellW, top: at.row * metrics.cellH }}
+      className={`absolute flex items-stretch rounded-lg transition-[left,top,background-color] duration-200 ${ring} ${
+        isDragging ? 'opacity-30' : ''
+      }`}
     >
-      {tiles.map((placed) => (
-        <TableTile
-          key={placed.id}
-          placed={placed}
-          draggable={draggable(placed.id)}
-          okey={okey}
-          onDoubleClick={draggable(placed.id) ? () => onQuick(placed) : undefined}
-        />
-      ))}
+      <button
+        {...attributes}
+        {...listeners}
+        aria-label={t('board.moveSet')}
+        aria-roledescription={t('board.setRole')}
+        className="grid w-4 cursor-grab touch-manipulation place-items-center rounded-l-lg text-emerald-100/25 transition hover:bg-white/5 hover:text-emerald-100/70 active:cursor-grabbing"
+      >
+        <svg viewBox="0 0 6 16" className="h-4 w-1.5" fill="currentColor" aria-hidden>
+          {[2, 8, 14].map((y) => [1, 5].map((x) => <circle key={`${x}-${y}`} cx={x} cy={y} r="1.1" />))}
+        </svg>
+      </button>
+      <div ref={setHolderRef} className={`flex items-center gap-1 rounded-r-lg py-1 pe-1 ${isOver ? 'bg-white/15' : ''}`}>
+        {tiles.map((placed) => (
+          <TableTile
+            key={placed.id}
+            placed={placed}
+            draggable={draggable(placed.id)}
+            okey={okey}
+            onDoubleClick={draggable(placed.id) ? () => onQuick(placed) : undefined}
+          />
+        ))}
+      </div>
     </div>
   )
 }
@@ -627,19 +848,97 @@ function TableTile({
   )
 }
 
-/** Where a tile dropped starts a new set. */
-function NewSet() {
+/**
+ * Sets the player plans from their rack, above it: built any time by
+ * dragging, or by double-clicking when they can't lay tiles down; put on the
+ * table whole once they can (its ↑ button, or a double-click). Before
+ * opening, what the valid ones would count towards it.
+ */
+function Plans({
+  plans,
+  okey,
+  canTable,
+  planned,
+  hand,
+  onQuick,
+  onPlay,
+}: {
+  plans: Placed[][]
+  okey: Tile
+  canTable: boolean
+  planned?: { points: number; pairs: number }
+  hand: { openingPoints: number; openingPairs: number }
+  onQuick: (placed: Placed) => void
+  onPlay: (plan: number) => void
+}) {
   const { t } = useTranslation()
-  const { setNodeRef, isOver } = useDroppable({ id: NEW_SET })
+  const { setNodeRef, isOver } = useDroppable({ id: NEW_PLAN })
   return (
     <div
       ref={setNodeRef}
-      dir="auto"
-      className={`grid h-[3.75rem] min-w-32 place-items-center rounded-lg border-2 border-dashed px-3 text-center text-xs text-emerald-100/60 sm:h-[4.5rem] short:h-12 ${
-        isOver ? 'border-emerald-200/80 bg-emerald-200/10' : 'border-emerald-100/25'
+      dir="ltr"
+      className={`mb-2 flex min-h-11 flex-wrap items-center gap-2 rounded-2xl border border-dashed px-2 py-1.5 transition short:mb-1.5 ${
+        isOver ? 'border-amber-100/50 bg-amber-100/10' : 'border-amber-100/15'
       }`}
     >
-      {t('okey.newSet')}
+      {plans.length === 0 && (
+        <p dir="auto" className="pointer-events-none px-1 text-xs text-amber-100/40">
+          {t('board.plansHint')}
+        </p>
+      )}
+      {plans.map((plan, p) => (
+        <Plan key={plan[0].id} index={p} tiles={plan} okey={okey} canTable={canTable} onQuick={onQuick} onPlay={onPlay} />
+      ))}
+      {planned && (planned.points > 0 || planned.pairs > 0) && (
+        <p dir="auto" className="ms-auto px-1 text-xs font-medium tabular-nums text-amber-100/70">
+          {planned.pairs > planned.points
+            ? t('okey.plannedPairs', { pairs: planned.pairs, needed: hand.openingPairs })
+            : t('okey.plannedPoints', { points: planned.points, needed: hand.openingPoints })}
+        </p>
+      )}
+    </div>
+  )
+}
+
+function Plan({
+  index,
+  tiles,
+  okey,
+  canTable,
+  onQuick,
+  onPlay,
+}: {
+  index: number
+  tiles: Placed[]
+  okey: Tile
+  canTable: boolean
+  onQuick: (placed: Placed) => void
+  onPlay: (plan: number) => void
+}) {
+  const { t } = useTranslation()
+  const { setNodeRef, isOver } = useDroppable({ id: planTarget(index) })
+  const valid = okeyMeldKind(okey, tilesOf(tiles)) !== undefined
+  return (
+    <div
+      ref={setNodeRef}
+      title={valid ? t('board.planValid') : t('board.planInvalid')}
+      className={`flex items-center gap-1 rounded-xl p-1 ring-1 ${valid ? 'bg-emerald-300/10 ring-emerald-300/50' : 'ring-amber-100/20'} ${
+        isOver ? 'bg-white/10' : ''
+      }`}
+    >
+      {tiles.map((placed) => (
+        <TableTile key={placed.id} placed={placed} draggable okey={okey} onDoubleClick={() => onQuick(placed)} />
+      ))}
+      {canTable && (
+        <button
+          className="ms-0.5 grid size-7 cursor-pointer place-items-center rounded-lg text-amber-100/70 hover:bg-white/10 hover:text-amber-50"
+          title={t('board.playPlan')}
+          aria-label={t('board.playPlan')}
+          onClick={() => onPlay(index)}
+        >
+          ↑
+        </button>
+      )}
     </div>
   )
 }

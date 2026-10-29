@@ -24,10 +24,22 @@ export const OFFER = 'offer'
 export const TAKEN = 'taken'
 export const setTarget = (index: number) => `set-${index}`
 export const isSetTarget = (id: string) => id.startsWith('set-')
+/** A set's grip, to move it around the table (this player's view only). */
+export const setItem = (index: number) => `move-set-${index}`
+export const isSetItem = (id: string) => id.startsWith('move-set-')
+/** The plans strip, where a tile dropped starts a plan; and one plan. */
+export const NEW_PLAN = 'new-plan'
+export const planTarget = (index: number) => `plan-${index}`
+export const isPlanTarget = (id: string) => id.startsWith('plan-')
 
 export const collisions: CollisionDetection = (args) => {
+  // A set lands wherever it's let go (see OkeyBoard's onDragMove), not on anything.
+  if (isSetItem(String(args.active.id))) return []
+  // Under the pointer, a set or plan before the empty table or strip around it.
   const within = pointerWithin(args)
-  return within.length > 0 ? within : closestCenter(args)
+  const wide = (id: string) => (id === NEW_SET || id === NEW_PLAN ? 1 : 0)
+  if (within.length > 0) return [...within].sort((a, b) => wide(String(a.id)) - wide(String(b.id)))
+  return closestCenter(args)
 }
 
 export const tilesOf = (placed: Placed[]) => placed.map((p) => p.tile)

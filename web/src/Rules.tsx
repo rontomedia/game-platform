@@ -333,6 +333,8 @@ function Okey101Rules() {
         <ul className="mt-1.5 list-disc space-y-1 ps-5 text-sm leading-relaxed text-slate-300 marker:text-teal-300/60">
           <li>{t('rules.okey101.controlsDraw', words)}</li>
           <li>{t('rules.okey101.controlsSets')}</li>
+          <li>{t('rules.classic.controlsSets')}</li>
+          <li>{t('rules.classic.controlsPlans')}</li>
           <li>{t('rules.okey101.controlsDiscard', words)}</li>
           <li>{t('rules.okey101.controlsTime')}</li>
         </ul>

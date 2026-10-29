@@ -54,6 +54,7 @@ import { remember, remembered } from './storage.ts'
 import { TileFace, type TileSize } from './TileView.tsx'
 import { Button } from './ui.tsx'
 import { useNow } from './useNow.ts'
+import { useTableMetrics, type Metrics } from './useTableMetrics.ts'
 import type { Draft, GameState, Status, TurnRecord } from './useGame.ts'
 import { checkTurn, classifySet, type ClientMessage, type Notice, type RoomInfo, type Tile } from './wasm/engine.js'
 
@@ -212,13 +213,6 @@ const collisions: CollisionDetection = (args) => {
   return closestCenter(args)
 }
 
-/** The size of a table cell, and how many fit across (set in index.css, `.table-grid`). */
-interface Metrics {
-  cellW: number
-  cellH: number
-  columns: number
-}
-
 /** A dragged set's (or a new set's) landing place, shown as an outline. */
 interface Target {
   cell: Cell
@@ -296,7 +290,7 @@ export function Board({
   const lastSet = useRef<number | null>(null)
   const lastPlan = useRef<number | null>(null)
   const tableGrid = useRef<HTMLDivElement | null>(null)
-  const [metrics, setMetrics] = useState<Metrics | null>(null)
+  const metrics = useTableMetrics(tableGrid)
   const ticking = useNow()
   // While the game is paused, the clocks stand still as they were.
   const [pausedAt, setPausedAt] = useState(() => (room.paused ? Date.now() : null))
@@ -442,23 +436,6 @@ export function Board({
     useSensor(TouchSensor, { activationConstraint: { delay: 150, tolerance: 8 } }),
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
   )
-
-  // The table's cell size and width, again whenever it's resized.
-  useLayoutEffect(() => {
-    const grid = tableGrid.current
-    if (!grid) return
-    const measure = () => {
-      const style = getComputedStyle(grid)
-      const cellW = parseFloat(style.getPropertyValue('--cell-w'))
-      const cellH = parseFloat(style.getPropertyValue('--cell-h'))
-      const columns = Math.max(4, Math.floor(grid.clientWidth / cellW))
-      setMetrics((m) => (m && m.cellW === cellW && m.cellH === cellH && m.columns === columns ? m : { cellW, cellH, columns }))
-    }
-    measure()
-    const observer = new ResizeObserver(measure)
-    observer.observe(grid)
-    return () => observer.disconnect()
-  }, [])
 
   // Each set's tiles at the start of the turn, to tell which the player changed.
   const startTiles = useMemo(
@@ -980,9 +957,9 @@ function SortableTile({
 /**
  * The table's grid. Its own component, as a drop target must be inside the
  * DndContext (which Board renders): a tile dropped on empty space starts a
- * set there.
+ * set there (the drop target `new-set`). The Okey 101 board uses it too.
  */
-function TableGrid({
+export function TableGrid({
   gridRef,
   droppable,
   height,
