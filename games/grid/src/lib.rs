@@ -1,0 +1,12 @@
+//! Grid placement: two players take turns putting their mark (X, then O)
+//! on a free cell of a grid, and the first with `line` marks in a row
+//! (across, down or diagonally; more count too) wins. A full grid with no
+//! line is a draw. Tic-Tac-Toe and Gomoku are its named rule sets, the
+//! grid's size and the line's length house rules.
+//!
+//! Pure, as `tile_rummy`: no I/O, clock or randomness from outside, so the
+//! server, the bots and the browser get the same answers.
+
+mod game;
+
+pub use game::{check_place, outcome_of, Cell, Game, GridError, GridRules, GridView, Outcome, RuleSet, Square};
