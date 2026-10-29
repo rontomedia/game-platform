@@ -17,7 +17,7 @@ import { AnimatePresence, motion } from 'motion/react'
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 
-import { compareTiles, type RackSort } from './arrange.ts'
+import { compareTiles, joinAt, type RackSort } from './arrange.ts'
 import { TopBar, WatchBar, type Clock } from './Board.tsx'
 import { noticeText, okeyError, problemText, type Problem } from './messages.ts'
 import type { Settings } from './settings.ts'
@@ -111,6 +111,8 @@ export function OkeyBoard({
   /** A turn refused here, before it was sent. */
   const [refused, setRefused] = useState<Problem | null>(null)
   const [dragging, setDragging] = useState<Placed | null>(null)
+  /** The tile last put on the table, by drag or double-click: a double-clicked tile joins its set if it fits. */
+  const lastPlaced = useRef<string | null>(null)
 
   // The rack order outlives the state.
   useEffect(() => {
@@ -167,6 +169,43 @@ export function OkeyBoard({
       .map((set) => set.filter((p) => p.id !== id))
       .filter((set, s) => set.length > 0 || s < hand.table.length),
   })
+
+  const fits = (candidate: Placed[]) => okeyMeldKind(hand.okey, tilesOf(candidate)) !== undefined
+  /** A tile as the classic sets read it: the okey wild, a false okey the okey's own tile. */
+  const asClassic = (tile: Tile): Tile => (sameTile(tile, hand.okey) ? { kind: 'joker' } : tile.kind === 'joker' ? hand.okey : tile)
+
+  /**
+   * A double-clicked tile, on the player's turn once they've drawn. From the
+   * rack: onto the table, joining the set last changed there if it fits (a
+   * set already on the table only at an end; a new one as the classic board
+   * does, or as a pair), else starting a new set. This turn's tile on the
+   * table: back to the rack.
+   */
+  const quickMove = (placed: Placed) => {
+    const from = find(placed.id)
+    if (!canTable || !from || from.in === 'offer') return
+    const left = without(placed.id)
+    if (from.in === 'set') {
+      if (fixed.has(placed.id)) return
+      setRack([...left.rack, placed])
+      setSets(left.sets)
+      return
+    }
+    const last = lastPlaced.current === null ? null : find(lastPlaced.current)
+    const s = last?.in === 'set' ? last.set : -1
+    const set = sets[s]
+    let joined: Placed[] | null = null
+    if (set && s < hand.table.length) {
+      joined = [[...set, placed], [placed, ...set]].find(fits) ?? null
+    } else if (set) {
+      const pair = set.length === 1 && sameTile(set[0].tile, placed.tile)
+      const at = pair ? 1 : joinAt(set.map((p) => asClassic(p.tile)), asClassic(placed.tile))
+      if (at !== null) joined = [...set.slice(0, at), placed, ...set.slice(at)]
+    }
+    lastPlaced.current = placed.id
+    setRack(left.rack)
+    setSets(joined ? sets.map((other, i) => (i === s ? joined : other)) : [...sets, [placed]])
+  }
 
   const discard = (placed: Placed) => {
     const left = without(placed.id)
@@ -232,6 +271,7 @@ export function OkeyBoard({
     }
     const left = from.in === 'offer' ? { rack, sets } : without(id)
     if (from.in === 'offer') setTaken(true)
+    lastPlaced.current = placed.id
     if (to === NEW_SET) {
       setRack(left.rack)
       setSets([...left.sets, [placed]])
@@ -246,17 +286,16 @@ export function OkeyBoard({
     // taking the okey back to the rack; else at the nearer end, to fix.
     const translated = active.rect.current.translated
     const nearFront = translated !== null && translated.left + translated.width / 2 < over.rect.left + over.rect.width / 2
-    const fits = (candidate: Tile[]) => okeyMeldKind(hand.okey, candidate) !== undefined
     const atFront = [placed, ...set]
     const atBack = [...set, placed]
     const okeyAt = tiles.findIndex((tile, i) => {
       if (!sameTile(tile, hand.okey) || !fixed.has(set[i].id)) return false
-      return fits(tiles.map((other, j) => (j === i ? placed.tile : other)))
+      return fits(set.map((other, j) => (j === i ? placed : other)))
     })
     let nextSet: Placed[]
     let nextRack = left.rack
-    if (fits(tilesOf(nearFront ? atFront : atBack))) nextSet = nearFront ? atFront : atBack
-    else if (fits(tilesOf(nearFront ? atBack : atFront))) nextSet = nearFront ? atBack : atFront
+    if (fits(nearFront ? atFront : atBack)) nextSet = nearFront ? atFront : atBack
+    else if (fits(nearFront ? atBack : atFront)) nextSet = nearFront ? atBack : atFront
     else if (okeyAt >= 0 && s < hand.table.length && hand.opened[you!] !== 'no') {
       nextSet = set.map((p, i) => (i === okeyAt ? placed : p))
       nextRack = [...left.rack, { id: `okey-${set[okeyAt].id}`, tile: set[okeyAt].tile }]
@@ -270,6 +309,7 @@ export function OkeyBoard({
     setSets(hand.table.map((set, s) => set.map((tile, i) => ({ id: `t${s}-${i}`, tile }))))
     setTaken(false)
     setRefused(null)
+    lastPlaced.current = null
   }
 
   const sortRack = (by: 'number' | 'color') => {
@@ -383,6 +423,7 @@ export function OkeyBoard({
                     okey={hand.okey}
                     droppable={canTable || (canTake && !taken)}
                     draggable={myTurn ? (id) => !fixed.has(id) : () => false}
+                    onQuick={quickMove}
                     fresh={myTurn && (s >= hand.table.length || !same([tilesOf(set)], [hand.table[s]]))}
                     live={liveTable !== null && (s >= hand.table.length || !same([tilesOf(set)], [hand.table[s] ?? []]))}
                   />
@@ -424,7 +465,7 @@ export function OkeyBoard({
                 </div>
               </div>
               <div className="flex items-stretch gap-3">
-                <Rack tiles={rack} sortable={!watching} okey={hand.okey} />
+                <Rack tiles={rack} sortable={!watching} okey={hand.okey} onQuick={quickMove} />
                 <DiscardSpot id={DISCARD} label={t('okey.discardHere')} active={myTurn && (hand.phase === 'play' || taken)} />
               </div>
             </section>
@@ -526,6 +567,7 @@ function TableSet({
   okey,
   droppable,
   draggable,
+  onQuick,
   fresh,
   live,
 }: {
@@ -534,6 +576,8 @@ function TableSet({
   okey: Tile
   droppable: boolean
   draggable: (id: string) => boolean
+  /** A double-clicked tile of this turn: back to the rack. */
+  onQuick: (placed: Placed) => void
   fresh: boolean
   live: boolean
 }) {
@@ -546,19 +590,36 @@ function TableSet({
       className={`flex items-center gap-1 rounded-lg p-1 transition ${ring} ${isOver ? 'bg-white/15' : ''}`}
     >
       {tiles.map((placed) => (
-        <TableTile key={placed.id} placed={placed} draggable={draggable(placed.id)} okey={okey} />
+        <TableTile
+          key={placed.id}
+          placed={placed}
+          draggable={draggable(placed.id)}
+          okey={okey}
+          onDoubleClick={draggable(placed.id) ? () => onQuick(placed) : undefined}
+        />
       ))}
     </div>
   )
 }
 
-function TableTile({ placed, draggable, okey }: { placed: Placed; draggable: boolean; okey: Tile }) {
+function TableTile({
+  placed,
+  draggable,
+  okey,
+  onDoubleClick,
+}: {
+  placed: Placed
+  draggable: boolean
+  okey: Tile
+  onDoubleClick?: () => void
+}) {
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({ id: placed.id, disabled: !draggable })
   const isOkey = sameTile(placed.tile, okey)
   return (
     <div
       ref={setNodeRef}
       {...(draggable ? { ...attributes, ...listeners } : {})}
+      onDoubleClick={onDoubleClick}
       className={`${draggable ? 'cursor-grab' : ''} ${isDragging ? 'opacity-30' : ''} ${isOkey ? 'rounded-md ring-2 ring-amber-300/70' : ''}`}
     >
       <TileFace tile={placed.tile} size="table" />
@@ -583,21 +644,31 @@ function NewSet() {
   )
 }
 
-/** The rack: one row that wraps, sorted by dragging. */
-export function Rack({ tiles, sortable, okey }: { tiles: Placed[]; sortable: boolean; okey: Tile }) {
+/** The rack: one row that wraps, sorted by dragging. `onQuick`: a tile double-clicked. */
+export function Rack({
+  tiles,
+  sortable,
+  okey,
+  onQuick,
+}: {
+  tiles: Placed[]
+  sortable: boolean
+  okey: Tile
+  onQuick?: (placed: Placed) => void
+}) {
   const { setNodeRef } = useDroppable({ id: RACK })
   return (
     <SortableContext items={tiles.map((p) => p.id)} strategy={rectSortingStrategy} disabled={!sortable}>
       <div ref={setNodeRef} dir="ltr" className="flex min-h-16 min-w-0 flex-1 flex-wrap content-start gap-1.5 sm:min-h-[4.75rem] short:min-h-12">
         {tiles.map((placed) => (
-          <RackTile key={placed.id} placed={placed} okey={okey} />
+          <RackTile key={placed.id} placed={placed} okey={okey} onDoubleClick={onQuick && (() => onQuick(placed))} />
         ))}
       </div>
     </SortableContext>
   )
 }
 
-function RackTile({ placed, okey }: { placed: Placed; okey: Tile }) {
+function RackTile({ placed, okey, onDoubleClick }: { placed: Placed; okey: Tile; onDoubleClick?: () => void }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: placed.id })
   const { t } = useTranslation()
   const isOkey = sameTile(placed.tile, okey)
@@ -607,6 +678,7 @@ function RackTile({ placed, okey }: { placed: Placed; okey: Tile }) {
       style={{ transform: CSS.Transform.toString(transform), transition }}
       {...attributes}
       {...listeners}
+      onDoubleClick={onDoubleClick}
       className={`cursor-grab touch-none rounded-lg ${isDragging ? 'opacity-30' : ''} ${
         placed.id === TAKEN ? 'ring-2 ring-teal-300' : isOkey ? 'ring-2 ring-amber-300/70' : ''
       }`}

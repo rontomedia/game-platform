@@ -300,6 +300,11 @@ only builds it on start.
     (button or pool), or drag the previous player's discard in; drop tiles
     on a set to add them at its nearer end (or in an okey's place, taking
     the okey back), or on "new set". Only this turn's tiles move again.
+    Double-click (on the turn, once drawn): a rack tile onto the table,
+    into the set last changed if it fits (ends only for sets already
+    there), else a new set; this turn's tile back to the rack. The rule
+    behind it, for other games: the second brain's
+    `projects/rummy-game/notes/board-controls.md`.
     Indicator, okey and pool top left, everyone's discards top right, the
     opening total as it builds (`okeyProgress`), the scores between hands
     and at the end. Shares `TopBar` and `WatchBar` with `Board.tsx`; the
