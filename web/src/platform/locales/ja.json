@@ -437,7 +437,8 @@
     "occupied": "そのマスは埋まっています。",
     "offBoard": "そのマスは盤上にありません。",
     "over": "ゲームは終了しました。",
-    "closed": "その盤はもう終わっています。"
+    "closed": "その盤はもう終わっています。",
+    "noLetter": "先に S か O を選んでください。"
   },
   "grid": {
     "ticTacToe": "三目並べ",
@@ -454,6 +455,15 @@
     "goalNotakto": "どちらも X を書きます。3 つ並ぶとその盤は終わり。最後の盤を終わらせた人の負けです。",
     "boards": "盤の数",
     "board": "盤 {{n}}",
-    "boardsCount_other": "{{count}} 面"
+    "boardsCount_other": "{{count}} 面",
+    "sos": "S.O.S",
+    "goalSos": "交互に空いたマスへ S か O を書きます。S-O-S ができるたびに 1 点ともう 1 手。点の多い人の勝ちです。",
+    "yourTurnSos": "あなたの番: S か O を選んで、空いたマスへ。",
+    "again": "S-O-S！もう 1 文字書けます。",
+    "drawSos": "引き分け: 同点です。",
+    "letter": "文字",
+    "letterKey": "{{letter}} を書く（{{letter}} キー）",
+    "points": "点",
+    "size": "{{width}} × {{height}}"
   }
 }

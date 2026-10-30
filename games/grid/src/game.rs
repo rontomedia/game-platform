@@ -18,6 +18,9 @@ pub enum RuleSet {
     /// Three 3 × 3 boards side by side; both players mark X, and a line
     /// finishes its board: whoever finishes the last one loses.
     Notakto,
+    /// 8 × 8; each writes S or O, and every S-O-S made in a line scores a
+    /// point and another turn; most points when the grid is full wins.
+    Sos,
 }
 
 /// The shortest and longest side a grid may have.
@@ -61,19 +64,21 @@ impl GridRules {
             RuleSet::TicTacToe => GridRules { rule_set, width: 3, height: 3, line: 3, boards: 1 },
             RuleSet::Gomoku => GridRules { rule_set, width: 15, height: 15, line: 5, boards: 1 },
             RuleSet::Notakto => GridRules { rule_set, width: 3, height: 3, line: 3, boards: 3 },
+            RuleSet::Sos => GridRules { rule_set, width: 8, height: 8, line: 3, boards: 1 },
         }
     }
 
     /// The rules with anything out of range brought into it: sides of
     /// `MIN_SIDE` to `MAX_SIDE`, a line of 3 up to the shorter side, one
-    /// board; Notakto's boards are 3 × 3, 1 to `MAX_BOARDS` of them.
+    /// board; Notakto's boards are 3 × 3, 1 to `MAX_BOARDS` of them; S.O.S
+    /// is always 3 letters in a row.
     pub fn checked(self) -> GridRules {
         if self.rule_set == RuleSet::Notakto {
             return GridRules { boards: self.boards.clamp(1, MAX_BOARDS), ..GridRules::named(RuleSet::Notakto) };
         }
         let width = self.width.clamp(MIN_SIDE, MAX_SIDE);
         let height = self.height.clamp(MIN_SIDE, MAX_SIDE);
-        let line = self.line.clamp(3, width.min(height));
+        let line = if self.rule_set == RuleSet::Sos { 3 } else { self.line.clamp(3, width.min(height)) };
         GridRules { width, height, line, boards: 1, ..self }
     }
 
@@ -106,12 +111,19 @@ impl GridRules {
         (cell.col / self.width) as usize
     }
 
-    /// The mark `seat` puts down: their own, or in Notakto X for both.
+    /// The mark `seat` puts down: their own, or in Notakto X for both
+    /// (S.O.S's letters are anyone's: `Placing::letter`).
     pub fn mark(&self, seat: usize) -> Square {
         match self.rule_set {
             RuleSet::Notakto => Square::X,
             _ => Square::of(seat),
         }
+    }
+
+    /// Whether a player writes a letter of their choice (S.O.S) rather
+    /// than their mark.
+    pub fn letters(&self) -> bool {
+        self.rule_set == RuleSet::Sos
     }
 }
 
@@ -123,7 +135,8 @@ pub struct Cell {
     pub col: u8,
 }
 
-/// What a cell holds. Seat 0 plays X and moves first, seat 1 plays O.
+/// What a cell holds. Seat 0 plays X and moves first, seat 1 plays O; in
+/// S.O.S a cell holds a letter, S or O, whoever wrote it.
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[cfg_attr(feature = "wasm", derive(Tsify))]
 #[serde(rename_all = "lowercase")]
@@ -132,6 +145,41 @@ pub enum Square {
     Empty,
     X,
     O,
+    S,
+}
+
+/// A letter to write in S.O.S.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[cfg_attr(feature = "wasm", derive(Tsify))]
+#[serde(rename_all = "lowercase")]
+pub enum Letter {
+    S,
+    O,
+}
+
+impl Letter {
+    pub fn square(self) -> Square {
+        match self {
+            Letter::S => Square::S,
+            Letter::O => Square::O,
+        }
+    }
+}
+
+/// A move: a cell, and in S.O.S the letter written there.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[cfg_attr(feature = "wasm", derive(Tsify))]
+pub struct Placing {
+    pub cell: Cell,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[cfg_attr(feature = "wasm", tsify(optional))]
+    pub letter: Option<Letter>,
+}
+
+impl From<Cell> for Placing {
+    fn from(cell: Cell) -> Placing {
+        Placing { cell, letter: None }
+    }
 }
 
 impl Square {
@@ -147,7 +195,7 @@ impl Square {
     /// The seat whose mark this is.
     pub fn seat(self) -> Option<usize> {
         match self {
-            Square::Empty => None,
+            Square::Empty | Square::S => None,
             Square::X => Some(0),
             Square::O => Some(1),
         }
@@ -167,6 +215,8 @@ pub enum GridError {
     Over,
     /// That board is finished (Notakto): it has a line.
     Closed,
+    /// S.O.S needs a letter, S or O.
+    NoLetter,
 }
 
 impl std::fmt::Display for GridError {
@@ -177,13 +227,14 @@ impl std::fmt::Display for GridError {
             GridError::OffBoard => "not a cell of the grid",
             GridError::Over => "the game is over",
             GridError::Closed => "that board is finished",
+            GridError::NoLetter => "write S or O",
         };
         f.write_str(text)
     }
 }
 
 /// A line made in the game, and who made it: in Notakto, each one
-/// finishes its board.
+/// finishes its board; in S.O.S, each S-O-S.
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[cfg_attr(feature = "wasm", derive(Tsify))]
 pub struct Line {
@@ -197,13 +248,14 @@ pub struct Line {
 #[cfg_attr(feature = "wasm", derive(Tsify))]
 #[serde(rename_all = "camelCase")]
 pub struct Outcome {
-    /// The seat that won; absent for a draw.
+    /// The seat that won (made a line, or the most S-O-Ss); absent for a
+    /// draw.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     #[cfg_attr(feature = "wasm", tsify(optional))]
     pub winner: Option<usize>,
     /// The line that ended the game, end to end (all of it, if it's
     /// longer than needed): the winning line, or in Notakto the loser's
-    /// last; empty for a draw.
+    /// last; empty for a draw, and in S.O.S.
     pub line: Vec<Cell>,
 }
 
@@ -224,8 +276,13 @@ pub struct GridView {
     pub current: usize,
     /// The marks put down so far, in order.
     pub moves: Vec<Cell>,
-    /// The lines made so far, in order (Notakto's finished boards).
+    /// The lines made so far, in order (Notakto's finished boards, S.O.S's
+    /// S-O-Ss).
     pub lines: Vec<Line>,
+    /// Each seat's S-O-Ss: S.O.S only.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[cfg_attr(feature = "wasm", tsify(optional))]
+    pub scores: Option<Vec<u32>>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     #[cfg_attr(feature = "wasm", tsify(optional))]
     pub outcome: Option<Outcome>,
@@ -282,9 +339,21 @@ impl Game {
 
     /// `seat` puts their mark on `cell`; a refused move changes nothing.
     pub fn place(&mut self, seat: usize, cell: Cell) -> Result<(), GridError> {
-        let index = check(&self.rules, &self.board, &self.lines, self.current, self.outcome.is_some(), Some(seat), cell)?;
-        self.board[index] = self.rules.mark(seat);
+        self.play(seat, cell.into())
+    }
+
+    /// `seat` makes their move: their mark, or in S.O.S the letter, on its
+    /// cell; a refused move changes nothing.
+    pub fn play(&mut self, seat: usize, placing: Placing) -> Result<(), GridError> {
+        let cell = placing.cell;
+        let index = check(&self.rules, &self.board, &self.lines, self.current, self.outcome.is_some(), Some(seat), placing)?;
         self.moves.push(cell);
+        if let Some(letter) = placing.letter.filter(|_| self.rules.letters()) {
+            self.board[index] = letter.square();
+            self.wrote(seat, cell);
+            return Ok(());
+        }
+        self.board[index] = self.rules.mark(seat);
         let line = line_through(&self.rules, &self.board, cell);
         if self.rules.rule_set == RuleSet::Notakto {
             if !line.is_empty() {
@@ -306,6 +375,30 @@ impl Game {
         Ok(())
     }
 
+    /// After `seat` wrote a letter on `cell`: its S-O-Ss scored, another
+    /// turn if it made any, the end once the grid is full.
+    fn wrote(&mut self, seat: usize, cell: Cell) {
+        let made = sos_through(&self.rules, &self.board, cell);
+        let scored = !made.is_empty();
+        self.lines.extend(made.into_iter().map(|cells| Line { seat, cells }));
+        if self.board.iter().all(|&s| s != Square::Empty) {
+            let [x, o] = self.scores();
+            let winner = (x != o).then_some(if x > o { 0 } else { 1 });
+            self.outcome = Some(Outcome { winner, line: Vec::new() });
+        } else if !scored {
+            self.current = 1 - seat;
+        }
+    }
+
+    /// Each seat's S-O-Ss.
+    fn scores(&self) -> [u32; 2] {
+        let mut scores = [0; 2];
+        for line in &self.lines {
+            scores[line.seat] += 1;
+        }
+        scores
+    }
+
     pub fn view(&self, seat: usize) -> GridView {
         GridView { you: Some(seat), ..self.watcher_view() }
     }
@@ -318,26 +411,28 @@ impl Game {
             current: self.current,
             moves: self.moves.clone(),
             lines: self.lines.clone(),
+            scores: self.rules.letters().then(|| self.scores().to_vec()),
             outcome: self.outcome.clone(),
         }
     }
 
     /// Each seat's place once the game is over, 0 best: the winner 0 and
-    /// the other 1, or both 0 for a draw.
+    /// the other 1, or both 0 for a draw (in S.O.S, equal points).
     pub fn placings(&self) -> Option<Vec<u32>> {
         let outcome = self.outcome.as_ref()?;
         Some((0..2).map(|seat| outcome.winner.is_some_and(|w| w != seat) as u32).collect())
     }
 }
 
-/// Whether the player who sees `view` may put their mark on `cell`, for
-/// instant feedback in the browser (the server checks again).
-pub fn check_place(view: &GridView, cell: Cell) -> Result<(), GridError> {
-    check(&view.rules, &view.board, &view.lines, view.current, view.outcome.is_some(), view.you, cell).map(|_| ())
+/// Whether the player who sees `view` may make this move, for instant
+/// feedback in the browser (the server checks again).
+pub fn check_place(view: &GridView, placing: Placing) -> Result<(), GridError> {
+    check(&view.rules, &view.board, &view.lines, view.current, view.outcome.is_some(), view.you, placing).map(|_| ())
 }
 
-/// The cell's index if `seat` may put their mark there.
-fn check(rules: &GridRules, board: &[Square], lines: &[Line], current: usize, over: bool, seat: Option<usize>, cell: Cell) -> Result<usize, GridError> {
+/// The cell's index if `seat` may make the move.
+fn check(rules: &GridRules, board: &[Square], lines: &[Line], current: usize, over: bool, seat: Option<usize>, placing: Placing) -> Result<usize, GridError> {
+    let cell = placing.cell;
     if over {
         return Err(GridError::Over);
     }
@@ -348,11 +443,43 @@ fn check(rules: &GridRules, board: &[Square], lines: &[Line], current: usize, ov
     if board[index] != Square::Empty {
         return Err(GridError::Occupied);
     }
+    if rules.letters() {
+        return placing.letter.map(|_| index).ok_or(GridError::NoLetter);
+    }
     let on = rules.board_of(cell);
     if lines.iter().any(|line| rules.board_of(line.cells[0]) == on) {
         return Err(GridError::Closed);
     }
     Ok(index)
+}
+
+/// The S-O-Ss through `cell`'s letter, each from S to S, as S.O.S
+/// counts them: as the middle O, or an S at either end, in any direction.
+pub(crate) fn sos_through(rules: &GridRules, board: &[Square], cell: Cell) -> Vec<Vec<Cell>> {
+    let at = |row: i32, col: i32| {
+        let cell = Cell { row: u8::try_from(row).ok()?, col: u8::try_from(col).ok()? };
+        rules.index(cell).map(|i| (cell, board[i]))
+    };
+    let (row, col) = (cell.row as i32, cell.col as i32);
+    let mut made = Vec::new();
+    match at(row, col).map(|(_, s)| s) {
+        Some(Square::O) => {
+            for (dr, dc) in DIRECTIONS {
+                if let (Some((a, Square::S)), Some((b, Square::S))) = (at(row - dr, col - dc), at(row + dr, col + dc)) {
+                    made.push(vec![a, cell, b]);
+                }
+            }
+        }
+        Some(Square::S) => {
+            for (dr, dc) in DIRECTIONS.iter().flat_map(|&(dr, dc)| [(dr, dc), (-dr, -dc)]) {
+                if let (Some((o, Square::O)), Some((end, Square::S))) = (at(row + dr, col + dc), at(row + 2 * dr, col + 2 * dc)) {
+                    made.push(vec![cell, o, end]);
+                }
+            }
+        }
+        _ => {}
+    }
+    made
 }
 
 /// The longest row of `cell`'s mark through it on its board, if it's a
@@ -478,12 +605,12 @@ mod tests {
         let game = play(GridRules::default(), &[(1, 1)]);
         let view = game.view(1);
         assert_eq!((view.you, view.current, view.moves.len()), (Some(1), 1, 1));
-        assert_eq!(check_place(&view, c(0, 0)), Ok(()));
-        assert_eq!(check_place(&view, c(1, 1)), Err(GridError::Occupied));
-        assert_eq!(check_place(&game.view(0), c(0, 0)), Err(GridError::NotYourTurn));
+        assert_eq!(check_place(&view, c(0, 0).into()), Ok(()));
+        assert_eq!(check_place(&view, c(1, 1).into()), Err(GridError::Occupied));
+        assert_eq!(check_place(&game.view(0), c(0, 0).into()), Err(GridError::NotYourTurn));
         let watcher = game.watcher_view();
         assert_eq!(watcher.you, None);
-        assert_eq!(check_place(&watcher, c(0, 0)), Err(GridError::NotYourTurn));
+        assert_eq!(check_place(&watcher, c(0, 0).into()), Err(GridError::NotYourTurn));
         assert!(game.placings().is_none());
     }
 
@@ -501,7 +628,7 @@ mod tests {
         game.place(1, c(0, 2)).unwrap();
         assert_eq!(game.lines(), [Line { seat: 1, cells: vec![c(0, 0), c(0, 1), c(0, 2)] }]);
         assert_eq!(game.place(0, c(1, 1)), Err(GridError::Closed));
-        assert_eq!(check_place(&game.view(0), c(2, 2)), Err(GridError::Closed));
+        assert_eq!(check_place(&game.view(0), c(2, 2).into()), Err(GridError::Closed));
         assert!(game.outcome().is_none());
     }
 
@@ -515,6 +642,53 @@ mod tests {
         assert_eq!(outcome.line, [c(0, 3), c(1, 3), c(2, 3)]);
         assert_eq!(game.lines().len(), 2);
         assert_eq!(game.placings(), Some(vec![0, 1]));
+    }
+
+    /// Writes `letters` ((row, col, letter)), each by whoever's turn it is.
+    fn write(game: &mut Game, letters: &[(u8, u8, Letter)]) {
+        for &(row, col, letter) in letters {
+            let seat = game.current();
+            game.play(seat, Placing { cell: c(row, col), letter: Some(letter) }).unwrap();
+        }
+    }
+
+    #[test]
+    fn sos_scores_and_plays_again() {
+        use Letter::*;
+        let rules = GridRules { width: 3, height: 3, ..GridRules::named(RuleSet::Sos) };
+        let mut game = Game::new(rules);
+        assert_eq!(game.place(0, c(0, 0)), Err(GridError::NoLetter));
+        write(&mut game, &[(0, 0, S), (0, 2, S)]);
+        assert_eq!(game.current(), 0);
+        // Seat 0 writes the O between: an S-O-S, and another turn.
+        write(&mut game, &[(0, 1, O)]);
+        assert_eq!(game.lines(), [Line { seat: 0, cells: vec![c(0, 0), c(0, 1), c(0, 2)] }]);
+        assert_eq!(game.current(), 0, "another turn");
+        assert_eq!(game.view(1).scores, Some(vec![1, 0]));
+        // Two Os, no S-O-S: seat 1's turn after the first.
+        write(&mut game, &[(1, 0, O), (1, 1, O)]);
+        assert_eq!(game.current(), 0);
+        // An S at 2,0 makes two: down from 0,0, and up the diagonal to 0,2.
+        write(&mut game, &[(2, 0, S)]);
+        assert_eq!(game.lines().len(), 3);
+        // Then one at 2,2 diagonally: all seat 0's.
+        write(&mut game, &[(2, 2, S)]);
+        assert_eq!(game.lines().last().unwrap().cells, [c(2, 2), c(1, 1), c(0, 0)]);
+        assert_eq!(game.view(0).scores, Some(vec![4, 0]));
+    }
+
+    #[test]
+    fn sos_most_points_win_when_full() {
+        use Letter::*;
+        let rules = GridRules { width: 3, height: 3, ..GridRules::named(RuleSet::Sos) };
+        let mut game = Game::new(rules);
+        // S, S, then O between (seat 0 scores, again), then the rest Ss: no more S-O-Ss.
+        write(&mut game, &[(0, 0, S), (0, 2, S), (0, 1, O), (1, 0, S), (1, 1, S), (1, 2, S), (2, 0, S), (2, 1, S), (2, 2, S)]);
+        assert_eq!(game.lines().len(), 1);
+        let outcome = game.outcome().expect("full");
+        assert_eq!(outcome.winner, Some(0));
+        assert_eq!(game.placings(), Some(vec![0, 1]));
+        assert_eq!(check_place(&game.view(0), Placing { cell: c(0, 0), letter: Some(S) }), Err(GridError::Over));
     }
 
     #[test]

@@ -9,7 +9,7 @@ use std::ops::RangeInclusive;
 use std::time::Duration;
 
 use grid::protocol::{GridMessage, GridRequest, GRID_PROTOCOL};
-use grid::{bot_move, bot_move_with, BotLevel, Cell, Game, GridRules, Square};
+use grid::{bot_move, bot_move_with, BotLevel, Game, GridRules, Letter, Placing, Square};
 use platform::engine::{ClockInfo, GameEngine, Request, TimedOut};
 
 #[derive(Clone)]
@@ -18,7 +18,7 @@ pub struct GridMatch(pub Game);
 impl GameEngine for GridMatch {
     type Rules = GridRules;
     type Request = GridRequest;
-    type Move = Cell;
+    type Move = Placing;
     type Level = BotLevel;
     type Config = ();
     type Message = GridMessage;
@@ -29,7 +29,7 @@ impl GameEngine for GridMatch {
 
     fn request(request: GridRequest) -> Request<GridMatch> {
         match request {
-            GridRequest::Place { cell } => Request::Move(cell),
+            GridRequest::Place { cell, letter } => Request::Move(Placing { cell, letter }),
         }
     }
 
@@ -62,31 +62,32 @@ impl GameEngine for GridMatch {
         self.0.outcome().is_some()
     }
 
-    fn apply(&mut self, seat: usize, cell: Cell) -> Result<(), GridMessage> {
-        self.0.place(seat, cell).map_err(|error| GridMessage::Rejected { error })
+    fn apply(&mut self, seat: usize, placing: Placing) -> Result<(), GridMessage> {
+        self.0.play(seat, placing).map_err(|error| GridMessage::Rejected { error })
     }
 
-    /// An Easy bot's mark.
+    /// An Easy bot's move.
     fn time_out(&mut self, _config: &(), _draft: Option<()>) -> TimedOut<GridMessage> {
         let seat = self.0.current();
-        let cell = bot_move(&self.0.view(seat), BotLevel::Easy);
-        if let Err(e) = self.0.place(seat, cell) {
+        let placing = bot_move(&self.0.view(seat), BotLevel::Easy);
+        if let Err(e) = self.0.play(seat, placing) {
             eprintln!("a mark put down when time ran out: {e}");
         }
         TimedOut { kept: Duration::ZERO, notice: None }
     }
 
-    fn bot_move(&self, level: BotLevel, _config: &(), spent: &dyn Fn() -> f64) -> Cell {
+    fn bot_move(&self, level: BotLevel, _config: &(), spent: &dyn Fn() -> f64) -> Placing {
         bot_move_with(&self.0.view(self.0.current()), level, spent)
     }
 
-    /// The first cell that may be marked.
+    /// The first cell that may be marked (with an S, in S.O.S).
     fn bot_fallback(&mut self) {
         let seat = self.0.current();
         let rules = *self.0.rules();
         let free: Vec<usize> = self.0.board().iter().enumerate().filter(|(_, &s)| s == Square::Empty).map(|(i, _)| i).collect();
         for cell in free {
-            if self.0.place(seat, rules.cell(cell)).is_ok() {
+            let letter = rules.letters().then_some(Letter::S);
+            if self.0.play(seat, Placing { cell: rules.cell(cell), letter }).is_ok() {
                 break;
             }
         }

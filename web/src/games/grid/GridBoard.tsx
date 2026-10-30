@@ -10,10 +10,10 @@ import { useNow } from '../../platform/useNow.ts'
 import type { Status } from '../../platform/useRoom.ts'
 import { WatchBar } from '../../platform/WatchBar.tsx'
 import type { GridOutgoing, GridRoom } from './protocol.ts'
-import { Mark } from './marks.tsx'
 import { StoneBoard, StoneFace, type PaperLines } from './StoneBoard.tsx'
 import type { GridGame } from './useGrid.ts'
-import { checkPlace, type Cell, type Line, type Square } from './wasm/engine.js'
+import { Mark, type Shape } from './marks.tsx'
+import { checkPlace, type Cell, type Letter, type Line, type Square } from './wasm/engine.js'
 
 /** Seconds left at which the clock turns amber. */
 const LOW_TIME = 10
@@ -57,13 +57,26 @@ export function GridBoard({
   const local = refused?.version === game.version ? refused.text : null
   // No second click while a mark is on its way.
   const sent = sentIn === game.version
+  // S.O.S: the letter the player writes, S or O (also the keys S and O).
+  const sos = rules.ruleSet === 'sos'
+  const [letter, setLetter] = useState<Letter>('s')
+  useEffect(() => {
+    if (!sos) return
+    const key = (event: KeyboardEvent) => {
+      const typed = event.key.toLowerCase()
+      if ((typed === 's' || typed === 'o') && !event.ctrlKey && !event.metaKey && !event.altKey) setLetter(typed)
+    }
+    window.addEventListener('keydown', key)
+    return () => window.removeEventListener('keydown', key)
+  }, [sos])
 
   const place = (cell: Cell) => {
     if (sent) return
-    const verdict = checkPlace(view, cell)
+    const placing = sos ? { cell, letter } : { cell }
+    const verdict = checkPlace(view, placing)
     if (verdict.verdict === 'rejected') return setRefused({ version: game.version, text: t(`gridError.${verdict.error.kind}`) })
     setSentIn(game.version)
-    send({ type: 'place', cell })
+    send({ type: 'place', ...placing })
   }
 
   /** Seconds left in `seat`'s turn, and in their bank. */
@@ -85,7 +98,7 @@ export function GridBoard({
   // a board of lines with stones on their intersections, drawn over the
   // paper's own lines (`paper`).
   const notakto = rules.ruleSet === 'notakto'
-  const stones = !notakto && rules.width * rules.height > 25
+  const stones = (rules.ruleSet === 'ticTacToe' || rules.ruleSet === 'gomoku') && rules.width * rules.height > 25
   const [paper, setPaper] = useState<PaperLines | null>(null)
   const onPaper = useCallback(
     (lines: PaperLines) =>
@@ -96,7 +109,7 @@ export function GridBoard({
     stones && paper
       ? { backgroundSize: `${paper.size}px ${paper.size}px`, backgroundPosition: `${paper.x}px ${paper.y}px` }
       : undefined
-  const preview = yourTurn && !sent ? (notakto || view.you === 0 ? 'x' : 'o') : undefined
+  const preview = yourTurn && !sent ? (sos ? letter : notakto || view.you === 0 ? 'x' : 'o') : undefined
   /** The squares of board `b` (of Notakto's), row by row, with their cells. */
   const boardCells = (b: number) =>
     Array.from({ length: rules.width * rules.height }, (_, i) => {
@@ -105,16 +118,18 @@ export function GridBoard({
       return { cell, index, square: view.board[index] }
     })
 
+  // In S.O.S, a player who just scored writes again.
+  const again = sos && yourTurn && view.lines.at(-1)?.seat === view.you && view.lines.at(-1)?.cells.some((c) => c.row === last?.row && c.col === last?.col)
   const note = outcome
     ? outcome.winner === undefined
-      ? t('grid.draw')
+      ? t(sos ? 'grid.drawSos' : 'grid.draw')
       : outcome.winner === view.you
         ? t('results.youWon')
         : t('results.won', { names: name(outcome.winner), count: 1 })
     : room.paused
       ? t('board.paused', { name: name(view.current) })
       : yourTurn
-        ? t(stones ? 'grid.yourTurnStone' : 'grid.yourTurn')
+        ? t(again ? 'grid.again' : sos ? 'grid.yourTurnSos' : stones ? 'grid.yourTurnStone' : 'grid.yourTurn')
         : t('board.playing', { name: name(view.current) })
   const shown = local ?? problem
 
@@ -133,6 +148,7 @@ export function GridBoard({
                 name={name(seat)}
                 mark={seat === 0 || notakto ? 'x' : 'o'}
                 stones={stones}
+                score={view.scores?.[seat]}
                 you={seat === view.you}
                 bot={room.seats[seat]?.bot !== undefined}
                 connected={room.seats[seat]?.connected ?? false}
@@ -173,17 +189,23 @@ export function GridBoard({
               onPlace={place}
             />
           ) : (
-            <MarkGrid
-              className="w-[min(100%,calc(100dvh-15rem))]"
-              width={rules.width}
-              height={rules.height}
-              cells={boardCells(0)}
-              preview={preview}
-              winning={winning}
-              lastIndex={lastIndex}
-              label={t(`grid.${rules.ruleSet}`)}
-              onPlace={place}
-            />
+            <div className="relative w-[min(100%,calc(100dvh-15rem))]">
+              <MarkGrid
+                className="w-full"
+                width={rules.width}
+                height={rules.height}
+                cells={boardCells(0)}
+                preview={preview}
+                winning={winning}
+                lastIndex={lastIndex}
+                label={t(`grid.${rules.ruleSet}`)}
+                letters={sos}
+                pen={sos ? 3 : 2.6}
+                ink={sos ? '2px solid var(--grid-ink)' : undefined}
+                onPlace={place}
+              />
+              {sos && <Strokes width={rules.width} height={rules.height} lines={view.lines} />}
+            </div>
           )}
         </main>
 
@@ -194,6 +216,7 @@ export function GridBoard({
             <p className="min-w-0 flex-1 text-sm font-medium" style={yourTurn ? { color: 'var(--pen-x)' } : undefined}>
               {note}
             </p>
+            {sos && !outcome && <LetterPicker letter={letter} onChange={setLetter} />}
             {shown && <Note tone="bad">{shown}</Note>}
             {outcome && (
               <Button look="primary" onClick={leave}>
@@ -226,13 +249,14 @@ function MarkGrid({
   pen = 2.6,
   ink = '4px solid var(--grid-ink)',
   closed = false,
+  letters = false,
   onPlace,
 }: {
   className: string
   width: number
   height: number
   cells: BoardCell[]
-  preview?: 'x' | 'o'
+  preview?: Shape
   winning: Set<number>
   lastIndex?: number
   label: string
@@ -240,6 +264,8 @@ function MarkGrid({
   ink?: string
   /** Finished: no cell may be marked. */
   closed?: boolean
+  /** S.O.S: the cells hold letters, in ink. */
+  letters?: boolean
   onPlace: (cell: Cell) => void
 }) {
   return (
@@ -259,6 +285,7 @@ function MarkGrid({
           key={index}
           square={square}
           closed={closed}
+          letters={letters}
           preview={square === 'empty' && !closed ? preview : undefined}
           winning={winning.has(index)}
           last={index === lastIndex}
@@ -291,7 +318,7 @@ function NotaktoBoards({
   boards: number
   finished: Line[]
   cells: (board: number) => BoardCell[]
-  preview?: 'x' | 'o'
+  preview?: Shape
   winning: Set<number>
   lastIndex?: number
   onPlace: (cell: Cell) => void
@@ -377,6 +404,7 @@ function StrikeThrough({ cells, offset }: { cells: Cell[]; offset: number }) {
 function GridCell({
   square,
   closed = false,
+  letters = false,
   preview,
   winning,
   last,
@@ -386,7 +414,8 @@ function GridCell({
 }: {
   square: Square
   closed?: boolean
-  preview?: 'x' | 'o'
+  letters?: boolean
+  preview?: Shape
   winning: boolean
   last: boolean
   /** The pen's width, in the mark's 24-unit box. */
@@ -406,12 +435,12 @@ function GridCell({
     >
       {square !== 'empty' ? (
         <span className="absolute inset-[15%]">
-          <Mark mark={square} pen={pen} draw />
+          <Mark mark={square} pen={pen} ink={letters} draw />
         </span>
       ) : (
         preview && (
           <span className="absolute inset-[15%] opacity-0 transition-opacity group-hover:opacity-25" aria-hidden>
-            <Mark mark={preview} pen={pen} />
+            <Mark mark={preview} pen={pen} ink={letters} />
           </span>
         )
       )}
@@ -419,11 +448,62 @@ function GridCell({
   )
 }
 
-/** A player: their mark, name, and clock while it's their turn. */
+/**
+ * S.O.S's S-O-Ss struck through in the pen of who made them, over a grid
+ * of `width` × `height` cells.
+ */
+function Strokes({ width, height, lines }: { width: number; height: number; lines: Line[] }) {
+  const at = (cell: Cell) => [cell.col * 10 + 5, cell.row * 10 + 5]
+  return (
+    <svg viewBox={`0 0 ${width * 10} ${height * 10}`} className="pointer-events-none absolute inset-0 size-full" aria-hidden>
+      {lines.map(({ seat, cells }) => {
+        const [x1, y1] = at(cells[0])
+        const [x2, y2] = at(cells[cells.length - 1])
+        const [dx, dy] = [(x2 - x1) * 0.14, (y2 - y1) * 0.14]
+        return (
+          <motion.path
+            key={cells.map((c) => `${c.row}.${c.col}`).join('-')}
+            d={`M${x1 - dx} ${y1 - dy}L${x2 + dx} ${y2 + dy}`}
+            stroke={seat === 0 ? 'var(--pen-x)' : 'var(--pen-o)'}
+            strokeOpacity={0.6}
+            strokeWidth={0.75}
+            strokeLinecap="round"
+            initial={{ pathLength: 0 }}
+            animate={{ pathLength: 1 }}
+            transition={{ duration: 0.35, delay: 0.3, ease: 'easeOut' }}
+          />
+        )
+      })}
+    </svg>
+  )
+}
+
+/** S.O.S: the letter the player writes, S or O. */
+function LetterPicker({ letter, onChange }: { letter: Letter; onChange: (letter: Letter) => void }) {
+  const { t } = useTranslation()
+  return (
+    <div className="flex items-center gap-1.5" role="group" aria-label={t('grid.letter')}>
+      {(['s', 'o'] as const).map((choice) => (
+        <button
+          key={choice}
+          onClick={() => onChange(choice)}
+          aria-pressed={letter === choice}
+          title={t('grid.letterKey', { letter: choice.toUpperCase() })}
+          className={`grid size-11 cursor-pointer place-items-center rounded-xl p-2 transition ${letter === choice ? 'bg-[var(--highlight)] ring-2 ring-[var(--ink)]' : 'hover:bg-[var(--touch)]'}`}
+        >
+          <Mark mark={choice} pen={3} ink />
+        </button>
+      ))}
+    </div>
+  )
+}
+
+/** A player: their mark (or S.O.S points), name, and clock while it's their turn. */
 function PlayerChip({
   name,
   mark,
   stones,
+  score,
   you,
   bot,
   connected,
@@ -436,6 +516,8 @@ function PlayerChip({
   mark: 'x' | 'o'
   /** Shown as a stone (Gomoku), black for X. */
   stones: boolean
+  /** S.O.S's points, shown in place of the mark. */
+  score?: number
   you: boolean
   bot: boolean
   connected: boolean
@@ -460,7 +542,15 @@ function PlayerChip({
       }
     >
       <span className="grid size-9 place-items-center p-1.5">
-        {stones ? <StoneFace stone={mark === 'x' ? 'black' : 'white'} /> : <Mark mark={mark} />}
+        {score !== undefined ? (
+          <span className="text-xl font-bold tabular-nums" style={{ color: mark === 'x' ? 'var(--pen-x)' : 'var(--pen-o)' }}>
+            {score}
+          </span>
+        ) : stones ? (
+          <StoneFace stone={mark === 'x' ? 'black' : 'white'} />
+        ) : (
+          <Mark mark={mark} />
+        )}
       </span>
       <div className="leading-tight">
         <div className="max-w-32 truncate text-sm font-semibold">
@@ -474,7 +564,7 @@ function PlayerChip({
               {banking ? t('board.bank', { time: minutes(seconds) }) : t('board.seconds', { n: seconds })}
             </span>
           ) : connected ? (
-            stones ? t(mark === 'x' ? 'grid.black' : 'grid.white') : mark.toUpperCase()
+            score !== undefined ? t('grid.points') : stones ? t(mark === 'x' ? 'grid.black' : 'grid.white') : mark.toUpperCase()
           ) : (
             t('board.away')
           )}

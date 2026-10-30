@@ -137,6 +137,26 @@ async fn notakto_on_two_boards_is_the_second_players() {
 }
 
 #[tokio::test]
+async fn sos_bots_fill_the_grid_and_score() {
+    let rules = GridRules { width: 5, height: 5, ..GridRules::named(RuleSet::Sos) };
+    let (_rooms, room) = open_room(FAST, rules);
+    let mut ann = Member::join(&room, "Ann", true).await;
+    for level in [BotLevel::Easy, BotLevel::Hard] {
+        room.send(Command::AddBot { player: ann.id, level }).await.unwrap();
+    }
+    room.send(Command::Start { player: ann.id }).await.unwrap();
+    let last = loop {
+        let view = ann.state().await;
+        if view.outcome.is_some() {
+            break view;
+        }
+    };
+    assert!(last.board.iter().all(|&s| matches!(s, Square::S | Square::O)), "letters everywhere");
+    let scores = last.scores.expect("scores");
+    assert_eq!(scores.iter().sum::<u32>() as usize, last.lines.len());
+}
+
+#[tokio::test]
 async fn a_person_against_a_bot() {
     let timing = Timing { turn: Duration::from_millis(800), ..FAST };
     let (_rooms, room) = open_room(timing, GridRules::default());
@@ -145,11 +165,11 @@ async fn a_person_against_a_bot() {
     room.send(Command::Start { player: ann.id }).await.unwrap();
     let view = ann.state().await;
     assert_eq!((view.you, view.current), (Some(0), 0), "X starts");
-    room.send(Command::Move { player: ann.id, mv: c(1, 1) }).await.unwrap();
+    room.send(Command::Move { player: ann.id, mv: c(1, 1).into() }).await.unwrap();
     // Her mark, then the bot's.
     while ann.state().await.moves.len() < 2 {}
     // A taken cell is refused, and it's still her turn...
-    room.send(Command::Move { player: ann.id, mv: c(1, 1) }).await.unwrap();
+    room.send(Command::Move { player: ann.id, mv: c(1, 1).into() }).await.unwrap();
     let error = loop {
         if let Out::<GridMatch>::Game { message: GridMessage::Rejected { error } } = ann.receive().await {
             break error;
@@ -196,7 +216,7 @@ async fn the_stand_in_plays_for_who_left() {
     room.send(Command::Leave { player: bob.id }).await.unwrap();
     let seats = ann.room().await.seats;
     assert_eq!((seats[1].name.as_str(), seats[1].bot), ("Bob", Some(BotLevel::Medium)));
-    room.send(Command::Move { player: ann.id, mv: c(0, 0) }).await.unwrap();
+    room.send(Command::Move { player: ann.id, mv: c(0, 0).into() }).await.unwrap();
     let view = loop {
         let view = ann.state().await;
         if view.moves.len() == 2 {

@@ -475,7 +475,8 @@
     "occupied": "Quella casella è occupata.",
     "offBoard": "Quella casella non è nella griglia.",
     "over": "La partita è finita.",
-    "closed": "Quella griglia è chiusa."
+    "closed": "Quella griglia è chiusa.",
+    "noLetter": "Scegli prima S o O."
   },
   "grid": {
     "ticTacToe": "Tris",
@@ -494,6 +495,15 @@
     "board": "Griglia {{n}}",
     "boardsCount_one": "{{count}} griglia",
     "boardsCount_many": "{{count}} griglie",
-    "boardsCount_other": "{{count}} griglie"
+    "boardsCount_other": "{{count}} griglie",
+    "sos": "S.O.S",
+    "goalSos": "A turno scrivete S o O in una casella libera. Ogni S-O-S formato vale un punto e un altro turno; vince chi ha più punti.",
+    "yourTurnSos": "Tocca a te: scegli S o O, poi una casella libera.",
+    "again": "S-O-S! Scrivi un’altra lettera.",
+    "drawSos": "Pareggio: stessi punti.",
+    "letter": "Lettera",
+    "letterKey": "Scrivi {{letter}} (tasto {{letter}})",
+    "points": "punti",
+    "size": "{{width}} × {{height}}"
   }
 }

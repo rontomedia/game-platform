@@ -437,7 +437,8 @@
     "occupied": "这个格子已经有子了。",
     "offBoard": "这个格子不在棋盘上。",
     "over": "游戏已结束。",
-    "closed": "这个棋盘已经结束了。"
+    "closed": "这个棋盘已经结束了。",
+    "noLetter": "请先选 S 或 O。"
   },
   "grid": {
     "ticTacToe": "井字棋",
@@ -454,6 +455,15 @@
     "goalNotakto": "双方都画 X。连成三个就结束该棋盘：结束最后一个棋盘的人输。",
     "boards": "棋盘数",
     "board": "棋盘 {{n}}",
-    "boardsCount_other": "{{count}} 个棋盘"
+    "boardsCount_other": "{{count}} 个棋盘",
+    "sos": "S.O.S",
+    "goalSos": "轮流在空格写 S 或 O。每连成一个 S-O-S 得一分并再走一步；得分多者获胜。",
+    "yourTurnSos": "轮到你：选 S 或 O，再点一个空格。",
+    "again": "S-O-S！再写一个字母。",
+    "drawSos": "平局：分数相同。",
+    "letter": "字母",
+    "letterKey": "写 {{letter}}（按键 {{letter}}）",
+    "points": "分",
+    "size": "{{width}} × {{height}}"
   }
 }

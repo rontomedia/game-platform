@@ -3,7 +3,7 @@
 //! so bad input from JS is an ordinary error instead of leaking WASM
 //! memory.
 
-use grid::{BotLevel, Cell, GridError, GridRules, GridView};
+use grid::{BotLevel, GridError, GridRules, GridView, Placing};
 use serde::{Deserialize, Serialize};
 use tsify::{Ts, Tsify};
 use wasm_bindgen::prelude::*;
@@ -29,21 +29,21 @@ pub enum PlaceVerdict {
     Rejected { error: GridError },
 }
 
-/// Checks a mark from the player's view, for instant feedback; the server
+/// Checks a move from the player's view, for instant feedback; the server
 /// checks it again.
 #[wasm_bindgen(js_name = checkPlace)]
-pub fn check_place(view: Ts<GridView>, cell: Ts<Cell>) -> Result<Ts<PlaceVerdict>, JsError> {
-    let verdict = match grid::check_place(&view.to_rust()?, cell.to_rust()?) {
+pub fn check_place(view: Ts<GridView>, placing: Ts<Placing>) -> Result<Ts<PlaceVerdict>, JsError> {
+    let verdict = match grid::check_place(&view.to_rust()?, placing.to_rust()?) {
         Ok(()) => PlaceVerdict::Allowed,
         Err(error) => PlaceVerdict::Rejected { error },
     };
     Ok(Ts::from_rust(&verdict)?)
 }
 
-/// See `grid::bot_move`: a bot's mark for the player whose turn it is, for
+/// See `grid::bot_move`: a bot's move for the player whose turn it is, for
 /// playing without the server. The game must not be over.
 #[wasm_bindgen(js_name = botMove)]
-pub fn bot_move(view: Ts<GridView>, level: Ts<BotLevel>) -> Result<Ts<Cell>, JsError> {
+pub fn bot_move(view: Ts<GridView>, level: Ts<BotLevel>) -> Result<Ts<Placing>, JsError> {
     let view = view.to_rust()?;
     if view.outcome.is_some() {
         return Err(JsError::new("the game is over"));

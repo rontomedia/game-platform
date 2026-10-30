@@ -475,7 +475,8 @@
     "occupied": "Cette case est prise.",
     "offBoard": "Cette case n’est pas sur la grille.",
     "over": "La partie est terminée.",
-    "closed": "Cette grille est terminée."
+    "closed": "Cette grille est terminée.",
+    "noLetter": "Choisis d’abord S ou O."
   },
   "grid": {
     "ticTacToe": "Morpion",
@@ -494,6 +495,15 @@
     "board": "Grille {{n}}",
     "boardsCount_one": "{{count}} grille",
     "boardsCount_many": "{{count}} grilles",
-    "boardsCount_other": "{{count}} grilles"
+    "boardsCount_other": "{{count}} grilles",
+    "sos": "S.O.S",
+    "goalSos": "Écrivez à tour de rôle S ou O dans une case libre. Chaque S-O-S formé rapporte un point et un tour de plus ; le plus de points gagne.",
+    "yourTurnSos": "À toi : choisis S ou O, puis une case libre.",
+    "again": "S-O-S ! Écris une autre lettre.",
+    "drawSos": "Égalité : autant de points.",
+    "letter": "Lettre",
+    "letterKey": "Écrire {{letter}} (touche {{letter}})",
+    "points": "points",
+    "size": "{{width}} × {{height}}"
   }
 }

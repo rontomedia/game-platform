@@ -456,7 +456,8 @@
     "occupied": "That cell is taken.",
     "offBoard": "That cell isn’t on the grid.",
     "over": "The game is over.",
-    "closed": "That board is finished."
+    "closed": "That board is finished.",
+    "noLetter": "Pick S or O first."
   },
   "grid": {
     "ticTacToe": "Tic-Tac-Toe",
@@ -474,6 +475,15 @@
     "boards": "Boards",
     "board": "Board {{n}}",
     "boardsCount_one": "{{count}} board",
-    "boardsCount_other": "{{count}} boards"
+    "boardsCount_other": "{{count}} boards",
+    "sos": "S.O.S",
+    "goalSos": "Take turns writing S or O in a free cell. Each S-O-S you make scores a point and another turn; most points wins.",
+    "yourTurnSos": "Your turn: pick S or O, then a free cell.",
+    "again": "S-O-S! Write another letter.",
+    "drawSos": "A draw: equal points.",
+    "letter": "Letter",
+    "letterKey": "Write {{letter}} (key {{letter}})",
+    "points": "points",
+    "size": "{{width}} × {{height}}"
   }
 }

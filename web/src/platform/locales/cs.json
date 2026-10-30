@@ -494,7 +494,8 @@
     "occupied": "To pole je obsazené.",
     "offBoard": "To pole není na mřížce.",
     "over": "Hra skončila.",
-    "closed": "Ta mřížka je už uzavřená."
+    "closed": "Ta mřížka je už uzavřená.",
+    "noLetter": "Nejdřív vyber S nebo O."
   },
   "grid": {
     "ticTacToe": "Piškvorky 3 × 3",
@@ -514,6 +515,15 @@
     "boardsCount_one": "{{count}} mřížka",
     "boardsCount_few": "{{count}} mřížky",
     "boardsCount_many": "{{count}} mřížky",
-    "boardsCount_other": "{{count}} mřížek"
+    "boardsCount_other": "{{count}} mřížek",
+    "sos": "S.O.S",
+    "goalSos": "Střídavě pište S nebo O do volného pole. Každé S-O-S je bod a další tah; vyhrává víc bodů.",
+    "yourTurnSos": "Jsi na tahu: vyber S nebo O, pak volné pole.",
+    "again": "S-O-S! Napiš další písmeno.",
+    "drawSos": "Remíza: stejně bodů.",
+    "letter": "Písmeno",
+    "letterKey": "Napsat {{letter}} (klávesa {{letter}})",
+    "points": "body",
+    "size": "{{width}} × {{height}}"
   }
 }

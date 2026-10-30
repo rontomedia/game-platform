@@ -494,7 +494,8 @@
     "occupied": "Эта клетка занята.",
     "offBoard": "Этой клетки нет на поле.",
     "over": "Игра окончена.",
-    "closed": "Это поле уже закрыто."
+    "closed": "Это поле уже закрыто.",
+    "noLetter": "Сначала выберите S или O."
   },
   "grid": {
     "ticTacToe": "Крестики-нолики",
@@ -514,6 +515,15 @@
     "boardsCount_one": "{{count}} поле",
     "boardsCount_few": "{{count}} поля",
     "boardsCount_many": "{{count}} полей",
-    "boardsCount_other": "{{count}} поля"
+    "boardsCount_other": "{{count}} поля",
+    "sos": "S.O.S",
+    "goalSos": "По очереди пишите S или O в свободную клетку. Каждое S-O-S даёт очко и ещё один ход; побеждает тот, у кого больше очков.",
+    "yourTurnSos": "Ваш ход: выберите S или O, затем свободную клетку.",
+    "again": "S-O-S! Напишите ещё одну букву.",
+    "drawSos": "Ничья: очков поровну.",
+    "letter": "Буква",
+    "letterKey": "Написать {{letter}} (клавиша {{letter}})",
+    "points": "очки",
+    "size": "{{width}} × {{height}}"
   }
 }

@@ -1110,7 +1110,7 @@ async fn grid_games_have_their_own_path() {
         }
     };
     assert_eq!((view.you, view.current), (Some(0), 0));
-    socket.send(send(GridClient::Game { message: GridRequest::Place { cell: Cell { row: 1, col: 1 } } })).await.unwrap();
+    socket.send(send(GridClient::Game { message: GridRequest::Place { cell: Cell { row: 1, col: 1 }, letter: None } })).await.unwrap();
     loop {
         if let GridServer::Game { message: GridMessage::State { view, .. } } = receive(&mut socket).await {
             if view.moves.len() == 2 {

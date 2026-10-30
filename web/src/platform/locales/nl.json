@@ -456,7 +456,8 @@
     "occupied": "Dat vakje is bezet.",
     "offBoard": "Dat vakje ligt niet in het raster.",
     "over": "Het spel is afgelopen.",
-    "closed": "Dat bord is al gesloten."
+    "closed": "Dat bord is al gesloten.",
+    "noLetter": "Kies eerst S of O."
   },
   "grid": {
     "ticTacToe": "Boter-kaas-en-eieren",
@@ -474,6 +475,15 @@
     "boards": "Borden",
     "board": "Bord {{n}}",
     "boardsCount_one": "{{count}} bord",
-    "boardsCount_other": "{{count}} borden"
+    "boardsCount_other": "{{count}} borden",
+    "sos": "S.O.S",
+    "goalSos": "Schrijf om de beurt S of O in een vrij vak. Elke S-O-S levert een punt en nog een beurt op; de meeste punten winnen.",
+    "yourTurnSos": "Jouw beurt: kies S of O, dan een vrij vak.",
+    "again": "S-O-S! Schrijf nog een letter.",
+    "drawSos": "Gelijkspel: evenveel punten.",
+    "letter": "Letter",
+    "letterKey": "{{letter}} schrijven (toets {{letter}})",
+    "points": "punten",
+    "size": "{{width}} × {{height}}"
   }
 }

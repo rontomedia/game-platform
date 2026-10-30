@@ -18,6 +18,8 @@ export function named(ruleSet: RuleSet): GridRules {
       return { ruleSet, width: 15, height: 15, line: 5, boards: 1 }
     case 'notakto':
       return { ruleSet, width: 3, height: 3, line: 3, boards: 3 }
+    case 'sos':
+      return { ruleSet, width: 8, height: 8, line: 3, boards: 1 }
     default:
       return { ruleSet, width: 3, height: 3, line: 3, boards: 1 }
   }

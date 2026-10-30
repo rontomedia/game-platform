@@ -475,7 +475,8 @@
     "occupied": "Esa casilla está ocupada.",
     "offBoard": "Esa casilla no está en la cuadrícula.",
     "over": "La partida ha terminado.",
-    "closed": "Ese tablero ya está cerrado."
+    "closed": "Ese tablero ya está cerrado.",
+    "noLetter": "Elige primero S u O."
   },
   "grid": {
     "ticTacToe": "Tres en raya",
@@ -494,6 +495,15 @@
     "board": "Tablero {{n}}",
     "boardsCount_one": "{{count}} tablero",
     "boardsCount_many": "{{count}} tableros",
-    "boardsCount_other": "{{count}} tableros"
+    "boardsCount_other": "{{count}} tableros",
+    "sos": "S.O.S",
+    "goalSos": "Por turnos, escribid S u O en una casilla libre. Cada S-O-S que formes da un punto y otro turno; gana quien tenga más puntos.",
+    "yourTurnSos": "Tu turno: elige S u O y luego una casilla libre.",
+    "again": "¡S-O-S! Escribe otra letra.",
+    "drawSos": "Empate: los mismos puntos.",
+    "letter": "Letra",
+    "letterKey": "Escribir {{letter}} (tecla {{letter}})",
+    "points": "puntos",
+    "size": "{{width}} × {{height}}"
   }
 }

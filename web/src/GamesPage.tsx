@@ -42,6 +42,7 @@ export function GamesPage() {
             ['/tic-tac-toe', t('grid.ticTacToe')],
             ['/gomoku', t('grid.gomoku')],
             ['/notakto', t('grid.notakto')],
+            ['/sos', t('grid.sos')],
           ]}
         />
       </div>

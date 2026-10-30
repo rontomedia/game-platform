@@ -475,7 +475,8 @@
     "occupied": "Essa casa está ocupada.",
     "offBoard": "Essa casa não está na grade.",
     "over": "A partida terminou.",
-    "closed": "Esse tabuleiro já está fechado."
+    "closed": "Esse tabuleiro já está fechado.",
+    "noLetter": "Escolha S ou O primeiro."
   },
   "grid": {
     "ticTacToe": "Jogo da velha",
@@ -494,6 +495,15 @@
     "board": "Tabuleiro {{n}}",
     "boardsCount_one": "{{count}} tabuleiro",
     "boardsCount_many": "{{count}} tabuleiros",
-    "boardsCount_other": "{{count}} tabuleiros"
+    "boardsCount_other": "{{count}} tabuleiros",
+    "sos": "S.O.S",
+    "goalSos": "Escrevam S ou O em uma casa livre, alternando. Cada S-O-S formado vale um ponto e mais uma jogada; vence quem tiver mais pontos.",
+    "yourTurnSos": "Sua vez: escolha S ou O, depois uma casa livre.",
+    "again": "S-O-S! Escreva outra letra.",
+    "drawSos": "Empate: mesmos pontos.",
+    "letter": "Letra",
+    "letterKey": "Escrever {{letter}} (tecla {{letter}})",
+    "points": "pontos",
+    "size": "{{width}} × {{height}}"
   }
 }

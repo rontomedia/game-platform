@@ -22,8 +22,8 @@ use serde::{Deserialize, Serialize};
 use tsify::Tsify;
 
 use crate::board::{mix, Board};
-use crate::game::{Cell, GridView, RuleSet};
-use crate::notakto;
+use crate::game::{GridView, Placing, RuleSet};
+use crate::{notakto, sos};
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[cfg_attr(feature = "wasm", derive(Tsify))]
@@ -55,22 +55,24 @@ const DEEPER: f64 = 0.3;
 /// A line: more than any position's score.
 const WIN: i64 = 1 << 40;
 
-/// The cell a bot of `level` plays for the player whose turn it is in
+/// The move a bot of `level` makes for the player whose turn it is in
 /// `view` (the game must not be over).
-pub fn bot_move(view: &GridView, level: BotLevel) -> Cell {
+pub fn bot_move(view: &GridView, level: BotLevel) -> Placing {
     bot_move_with(view, level, &|| 0.0)
 }
 
 /// As `bot_move`, with `spent` the share of its time used so far (the
 /// engine has no clock): Hard and Extra Hard stop looking when it
 /// reaches 1, and play the best they had found.
-pub fn bot_move_with(view: &GridView, level: BotLevel, spent: &dyn Fn() -> f64) -> Cell {
-    if view.rules.rule_set == RuleSet::Notakto {
-        return notakto::choose(view, level);
+pub fn bot_move_with(view: &GridView, level: BotLevel, spent: &dyn Fn() -> f64) -> Placing {
+    match view.rules.rule_set {
+        RuleSet::Notakto => return notakto::choose(view, level).into(),
+        RuleSet::Sos => return sos::choose(view, level),
+        RuleSet::TicTacToe | RuleSet::Gomoku => {}
     }
     let mut board = Board::from_view(view);
     let cell = choose(&mut board, view.current, level, spent);
-    view.rules.cell(cell)
+    view.rules.cell(cell).into()
 }
 
 fn choose(board: &mut Board, seat: usize, level: BotLevel, spent: &dyn Fn() -> f64) -> usize {
@@ -262,7 +264,7 @@ impl<'a> Search<'a> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::game::{Game, GridRules};
+    use crate::game::{Cell, Game, GridRules};
     use BotLevel::*;
 
     const LEVELS: [BotLevel; 4] = [Easy, Medium, Hard, ExtraHard];
@@ -285,8 +287,8 @@ mod tests {
     fn play_out(game: &mut Game, levels: [BotLevel; 2]) {
         while game.outcome().is_none() {
             let seat = game.current();
-            let cell = bot_move(&game.view(seat), levels[seat]);
-            game.place(seat, cell).unwrap();
+            let placing = bot_move(&game.view(seat), levels[seat]);
+            game.play(seat, placing).unwrap();
         }
     }
 
@@ -298,7 +300,7 @@ mod tests {
         }
         if game.current() == seat {
             let mut next = game.clone();
-            next.place(seat, bot_move(&game.view(seat), level)).unwrap();
+            next.play(seat, bot_move(&game.view(seat), level)).unwrap();
             return ever_loses(&next, level, seat);
         }
         let rules = *game.rules();
@@ -336,8 +338,8 @@ mod tests {
         let win = game(rules, &[(0, 0), (1, 0), (0, 1), (1, 1)]);
         let block = game(rules, &[(0, 0), (1, 0), (2, 2), (1, 1)]);
         for level in LEVELS {
-            assert_eq!(bot_move(&win.view(0), level), c(0, 2), "{level:?} wins");
-            assert_eq!(bot_move(&block.view(0), level), c(1, 2), "{level:?} blocks");
+            assert_eq!(bot_move(&win.view(0), level).cell, c(0, 2), "{level:?} wins");
+            assert_eq!(bot_move(&block.view(0), level).cell, c(1, 2), "{level:?} blocks");
         }
     }
 
@@ -355,9 +357,9 @@ mod tests {
         let start = std::time::Instant::now();
         let spent = || start.elapsed().as_secs_f64() / 2.0;
         for level in LEVELS {
-            let cell = bot_move_with(&five.view(0), level, &spent);
+            let cell = bot_move_with(&five.view(0), level, &spent).cell;
             assert!([c(7, 4), c(7, 9)].contains(&cell), "{level:?} makes five, not {cell:?}");
-            assert_eq!(bot_move_with(&four.view(0), level, &spent), c(6, 3), "{level:?} blocks the four");
+            assert_eq!(bot_move_with(&four.view(0), level, &spent).cell, c(6, 3), "{level:?} blocks the four");
         }
     }
 
@@ -367,7 +369,7 @@ mod tests {
         let three = gomoku(&[(0, 0), (6, 5), (0, 14), (7, 5), (14, 0), (8, 5)]);
         for level in [Medium, Hard, ExtraHard] {
             let start = std::time::Instant::now();
-            let cell = bot_move_with(&three.view(0), level, &|| start.elapsed().as_secs_f64() / 2.0);
+            let cell = bot_move_with(&three.view(0), level, &|| start.elapsed().as_secs_f64() / 2.0).cell;
             assert!([c(5, 5), c(9, 5), c(4, 5), c(10, 5)].contains(&cell), "{level:?} played {cell:?}");
         }
     }
@@ -375,10 +377,10 @@ mod tests {
     #[test]
     fn out_of_time_still_moves() {
         let mut game = gomoku(&[(7, 7), (7, 8)]);
-        let cell = bot_move_with(&game.view(0), ExtraHard, &|| 1.0);
-        assert!(game.place(0, cell).is_ok());
+        let placing = bot_move_with(&game.view(0), ExtraHard, &|| 1.0);
+        assert!(game.play(0, placing).is_ok());
         // An empty grid: the middle.
-        assert_eq!(bot_move(&gomoku(&[]).view(0), Hard), c(7, 7));
+        assert_eq!(bot_move(&gomoku(&[]).view(0), Hard).cell, c(7, 7));
     }
 
     #[test]
@@ -391,7 +393,8 @@ mod tests {
         assert!(game.outcome().is_some());
     }
 
-    /// How the levels fare against each other, and how long a move takes:
+    /// How the levels fare against each other on each rule set, and how
+    /// long a move takes:
     /// `cargo test -p grid --release -- --ignored --nocapture grid_strength`.
     /// `GRID_GAMES` games a pair (default 20), Extra Hard thinking up to
     /// `GRID_MS` a move (default 1000).
@@ -400,7 +403,7 @@ mod tests {
     fn grid_strength() {
         let var = |name: &str, default: u64| std::env::var(name).ok().and_then(|v| v.parse().ok()).unwrap_or(default);
         let (games, budget) = (var("GRID_GAMES", 20), var("GRID_MS", 1000) as f64 / 1000.0);
-        for rule_set in [RuleSet::TicTacToe, RuleSet::Gomoku] {
+        for rule_set in [RuleSet::TicTacToe, RuleSet::Gomoku, RuleSet::Notakto, RuleSet::Sos] {
             let rules = GridRules::named(rule_set);
             for (a, b) in [(Medium, Easy), (Hard, Easy), (Hard, Medium), (ExtraHard, Hard)] {
                 let (mut wins, mut draws) = ([0; 2], 0);
@@ -410,15 +413,16 @@ mod tests {
                     let levels = if g % 2 == 0 { [a, b] } else { [b, a] };
                     let first = rules.cell(mix(g) as usize % rules.cells());
                     let mut game = Game::new(rules);
-                    game.place(0, first).unwrap();
+                    let letter = rules.letters().then_some(crate::game::Letter::S);
+                    game.play(0, Placing { cell: first, letter }).unwrap();
                     while game.outcome().is_none() {
                         let seat = game.current();
                         let start = std::time::Instant::now();
-                        let cell = bot_move_with(&game.view(seat), levels[seat], &|| start.elapsed().as_secs_f64() / budget);
+                        let placing = bot_move_with(&game.view(seat), levels[seat], &|| start.elapsed().as_secs_f64() / budget);
                         let took = start.elapsed();
                         let who = (levels[seat] == b) as usize;
                         time[who] = (time[who].0 + took, time[who].1.max(took), time[who].2 + 1);
-                        game.place(seat, cell).unwrap();
+                        game.play(seat, placing).unwrap();
                     }
                     match game.outcome().unwrap().winner {
                         Some(w) => wins[(levels[w] == b) as usize] += 1,

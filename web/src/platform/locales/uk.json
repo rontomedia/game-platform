@@ -494,7 +494,8 @@
     "occupied": "Ця клітинка зайнята.",
     "offBoard": "Цієї клітинки немає на полі.",
     "over": "Гру закінчено.",
-    "closed": "Це поле вже закрите."
+    "closed": "Це поле вже закрите.",
+    "noLetter": "Спершу виберіть S або O."
   },
   "grid": {
     "ticTacToe": "Хрестики-нулики",
@@ -514,6 +515,15 @@
     "boardsCount_one": "{{count}} поле",
     "boardsCount_few": "{{count}} поля",
     "boardsCount_many": "{{count}} полів",
-    "boardsCount_other": "{{count}} поля"
+    "boardsCount_other": "{{count}} поля",
+    "sos": "S.O.S",
+    "goalSos": "По черзі пишіть S або O у вільну клітинку. Кожне S-O-S дає очко й ще один хід; перемагає той, у кого більше очок.",
+    "yourTurnSos": "Ваш хід: виберіть S або O, потім вільну клітинку.",
+    "again": "S-O-S! Напишіть ще одну літеру.",
+    "drawSos": "Нічия: очок порівну.",
+    "letter": "Літера",
+    "letterKey": "Написати {{letter}} (клавіша {{letter}})",
+    "points": "очки",
+    "size": "{{width}} × {{height}}"
   }
 }

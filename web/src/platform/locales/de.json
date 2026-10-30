@@ -456,7 +456,8 @@
     "occupied": "Dieses Feld ist besetzt.",
     "offBoard": "Dieses Feld liegt nicht im Raster.",
     "over": "Das Spiel ist vorbei.",
-    "closed": "Dieses Feld ist schon beendet."
+    "closed": "Dieses Feld ist schon beendet.",
+    "noLetter": "Wähle zuerst S oder O."
   },
   "grid": {
     "ticTacToe": "Tic-Tac-Toe",
@@ -474,6 +475,15 @@
     "boards": "Felder",
     "board": "Feld {{n}}",
     "boardsCount_one": "{{count}} Feld",
-    "boardsCount_other": "{{count}} Felder"
+    "boardsCount_other": "{{count}} Felder",
+    "sos": "S.O.S",
+    "goalSos": "Schreibt abwechselnd S oder O in ein freies Feld. Jedes S-O-S bringt einen Punkt und einen weiteren Zug; die meisten Punkte gewinnen.",
+    "yourTurnSos": "Du bist dran: wähle S oder O, dann ein freies Feld.",
+    "again": "S-O-S! Schreib noch einen Buchstaben.",
+    "drawSos": "Unentschieden: gleich viele Punkte.",
+    "letter": "Buchstabe",
+    "letterKey": "{{letter}} schreiben (Taste {{letter}})",
+    "points": "Punkte",
+    "size": "{{width}} × {{height}}"
   }
 }

@@ -456,7 +456,8 @@
     "occupied": "O kare dolu.",
     "offBoard": "O kare tahtada değil.",
     "over": "Oyun bitti.",
-    "closed": "O tahta kapandı."
+    "closed": "O tahta kapandı.",
+    "noLetter": "Önce S ya da O seç."
   },
   "grid": {
     "ticTacToe": "XOX",
@@ -474,6 +475,15 @@
     "boards": "Tahtalar",
     "board": "Tahta {{n}}",
     "boardsCount_one": "{{count}} tahta",
-    "boardsCount_other": "{{count}} tahta"
+    "boardsCount_other": "{{count}} tahta",
+    "sos": "S.O.S",
+    "goalSos": "Sırayla boş bir kareye S ya da O yazın. Her S-O-S bir puan ve bir hamle daha getirir; en çok puan kazanır.",
+    "yourTurnSos": "Sıra sende: S ya da O seç, sonra boş bir kare.",
+    "again": "S-O-S! Bir harf daha yaz.",
+    "drawSos": "Berabere: puanlar eşit.",
+    "letter": "Harf",
+    "letterKey": "{{letter}} yaz ({{letter}} tuşu)",
+    "points": "puan",
+    "size": "{{width}} × {{height}}"
   }
 }

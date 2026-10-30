@@ -475,7 +475,8 @@
     "occupied": "Căsuța e ocupată.",
     "offBoard": "Căsuța nu e pe grilă.",
     "over": "Jocul s-a terminat.",
-    "closed": "Tabla aceea e închisă."
+    "closed": "Tabla aceea e închisă.",
+    "noLetter": "Alege mai întâi S sau O."
   },
   "grid": {
     "ticTacToe": "X și 0",
@@ -494,6 +495,15 @@
     "board": "Tabla {{n}}",
     "boardsCount_one": "{{count}} tablă",
     "boardsCount_few": "{{count}} table",
-    "boardsCount_other": "{{count}} de table"
+    "boardsCount_other": "{{count}} de table",
+    "sos": "S.O.S",
+    "goalSos": "Scrieți pe rând S sau O într-o căsuță liberă. Fiecare S-O-S format aduce un punct și încă o mutare; câștigă cine are mai multe puncte.",
+    "yourTurnSos": "E rândul tău: alege S sau O, apoi o căsuță liberă.",
+    "again": "S-O-S! Mai scrie o literă.",
+    "drawSos": "Egalitate: aceleași puncte.",
+    "letter": "Literă",
+    "letterKey": "Scrie {{letter}} (tasta {{letter}})",
+    "points": "puncte",
+    "size": "{{width}} × {{height}}"
   }
 }

@@ -494,7 +494,8 @@
     "occupied": "To pole jest zajęte.",
     "offBoard": "Tego pola nie ma na planszy.",
     "over": "Gra się skończyła.",
-    "closed": "Ta plansza jest już zakończona."
+    "closed": "Ta plansza jest już zakończona.",
+    "noLetter": "Najpierw wybierz S albo O."
   },
   "grid": {
     "ticTacToe": "Kółko i krzyżyk",
@@ -514,6 +515,15 @@
     "boardsCount_one": "{{count}} plansza",
     "boardsCount_few": "{{count}} plansze",
     "boardsCount_many": "{{count}} plansz",
-    "boardsCount_other": "{{count}} planszy"
+    "boardsCount_other": "{{count}} planszy",
+    "sos": "S.O.S",
+    "goalSos": "Na zmianę wpisujcie S albo O w wolne pole. Każde ułożone S-O-S to punkt i dodatkowy ruch; wygrywa więcej punktów.",
+    "yourTurnSos": "Twój ruch: wybierz S albo O, potem wolne pole.",
+    "again": "S-O-S! Wpisz kolejną literę.",
+    "drawSos": "Remis: tyle samo punktów.",
+    "letter": "Litera",
+    "letterKey": "Wpisz {{letter}} (klawisz {{letter}})",
+    "points": "punkty",
+    "size": "{{width}} × {{height}}"
   }
 }

@@ -6,19 +6,24 @@ use serde::{Deserialize, Serialize};
 #[cfg(feature = "wasm")]
 use tsify::Tsify;
 
-use crate::game::{Cell, GridError, GridView};
+use crate::game::{Cell, GridError, GridView, Letter};
 
 /// Bumped when grid placement's messages change in a way an older client
 /// can't read (`Welcome { game }`).
-pub const GRID_PROTOCOL: u32 = 2;
+pub const GRID_PROTOCOL: u32 = 3;
 
 /// From a player to the game.
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[cfg_attr(feature = "wasm", derive(Tsify))]
 #[serde(tag = "type", rename_all = "camelCase", rename_all_fields = "camelCase")]
 pub enum GridRequest {
-    /// Put the player's mark on this cell.
-    Place { cell: Cell },
+    /// Put the player's mark on this cell, or in S.O.S write the letter.
+    Place {
+        cell: Cell,
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        #[cfg_attr(feature = "wasm", tsify(optional))]
+        letter: Option<Letter>,
+    },
 }
 
 /// From the game to a player.
@@ -49,7 +54,9 @@ mod tests {
     #[test]
     fn as_json() {
         let place = r#"{"type":"place","cell":{"row":1,"col":2}}"#;
-        assert_eq!(serde_json::from_str::<GridRequest>(place).unwrap(), GridRequest::Place { cell: Cell { row: 1, col: 2 } });
+        assert_eq!(serde_json::from_str::<GridRequest>(place).unwrap(), GridRequest::Place { cell: Cell { row: 1, col: 2 }, letter: None });
+        let write = r#"{"type":"place","cell":{"row":0,"col":0},"letter":"s"}"#;
+        assert_eq!(serde_json::from_str::<GridRequest>(write).unwrap(), GridRequest::Place { cell: Cell { row: 0, col: 0 }, letter: Some(Letter::S) });
         let rejected = GridMessage::Rejected { error: GridError::Occupied };
         assert_eq!(serde_json::to_string(&rejected).unwrap(), r#"{"type":"rejected","error":{"kind":"occupied"}}"#);
     }

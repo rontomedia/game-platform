@@ -437,7 +437,8 @@
     "occupied": "이미 표시된 칸입니다.",
     "offBoard": "격자 위의 칸이 아닙니다.",
     "over": "게임이 끝났습니다.",
-    "closed": "그 판은 이미 끝났습니다."
+    "closed": "그 판은 이미 끝났습니다.",
+    "noLetter": "먼저 S나 O를 고르세요."
   },
   "grid": {
     "ticTacToe": "틱택토",
@@ -454,6 +455,15 @@
     "goalNotakto": "두 사람 모두 X를 씁니다. 세 개가 한 줄이 되면 그 판은 끝나고, 마지막 판을 끝낸 사람이 집니다.",
     "boards": "판 수",
     "board": "판 {{n}}",
-    "boardsCount_other": "판 {{count}}개"
+    "boardsCount_other": "판 {{count}}개",
+    "sos": "S.O.S",
+    "goalSos": "번갈아 빈칸에 S나 O를 씁니다. S-O-S를 만들 때마다 1점과 한 번 더; 점수가 많은 사람이 이깁니다.",
+    "yourTurnSos": "내 차례: S나 O를 고르고 빈칸을 누르세요.",
+    "again": "S-O-S! 한 글자 더 쓰세요.",
+    "drawSos": "무승부: 점수가 같습니다.",
+    "letter": "글자",
+    "letterKey": "{{letter}} 쓰기 ({{letter}} 키)",
+    "points": "점",
+    "size": "{{width}} × {{height}}"
   }
 }

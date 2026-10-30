@@ -11,7 +11,8 @@ mod board;
 mod bot;
 mod game;
 mod notakto;
+mod sos;
 pub mod protocol;
 
 pub use bot::{bot_move, bot_move_with, BotLevel};
-pub use game::{check_place, Cell, Game, GridError, GridRules, GridView, Line, Outcome, RuleSet, Square, MAX_BOARDS};
+pub use game::{check_place, Cell, Game, GridError, GridRules, GridView, Letter, Line, Outcome, Placing, RuleSet, Square, MAX_BOARDS};

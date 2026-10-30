@@ -456,7 +456,8 @@
     "occupied": "Ez a mező foglalt.",
     "offBoard": "Ez a mező nincs a rácson.",
     "over": "A játék véget ért.",
-    "closed": "Az a tábla már lezárult."
+    "closed": "Az a tábla már lezárult.",
+    "noLetter": "Előbb válaszd az S-t vagy az O-t."
   },
   "grid": {
     "ticTacToe": "Tic-tac-toe",
@@ -474,6 +475,15 @@
     "boards": "Táblák",
     "board": "{{n}}. tábla",
     "boardsCount_one": "{{count}} tábla",
-    "boardsCount_other": "{{count}} tábla"
+    "boardsCount_other": "{{count}} tábla",
+    "sos": "S.O.S",
+    "goalSos": "Felváltva írjatok S-t vagy O-t egy üres mezőbe. Minden kirakott S-O-S egy pont és még egy lépés; a több pont nyer.",
+    "yourTurnSos": "Te jössz: válaszd az S-t vagy az O-t, aztán egy üres mezőt.",
+    "again": "S-O-S! Írj még egy betűt.",
+    "drawSos": "Döntetlen: ugyanannyi pont.",
+    "letter": "Betű",
+    "letterKey": "{{letter}} írása ({{letter}} billentyű)",
+    "points": "pont",
+    "size": "{{width}} × {{height}}"
   }
 }

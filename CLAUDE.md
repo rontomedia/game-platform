@@ -46,7 +46,7 @@ npm run wasm      # only rebuild every game's engine WASM (scripts/wasm.mjs; nee
 ```
 
 `http://localhost:5173/` is the games page; `/rummy`, `/okey-101`, `/okey`,
-`/tic-tac-toe`, `/gomoku` and `/notakto` a rule set's page each.
+`/tic-tac-toe`, `/gomoku`, `/notakto` and `/sos` a rule set's page each.
 `http://localhost:5173/?demo` shows the board with a made-up 4-player game
 and no server (`src/games/tile-rummy/demo.ts`): the place to work on the board's look.
 `?demo=racks` adds the open racks panel; `?demo=watcher` is a bots-only
@@ -58,7 +58,7 @@ translated.
 `cargo test -p tile-rummy --release -- --ignored --nocapture strength` plays
 the bot levels against each other and prints wins and time per move;
 `cargo test -p grid --release -- --ignored --nocapture grid_strength` the
-grid bots, on Tic-Tac-Toe and Gomoku (`GRID_GAMES`, `GRID_MS`).
+grid bots, on each rule set (`GRID_GAMES`, `GRID_MS`).
 
 Run the server and `npm run dev` together. After changing Rust in
 `games/tile-rummy*` or `games/grid*`, rerun `npm run wasm:dev` (Vite then reloads); `npm run dev`
@@ -151,9 +151,15 @@ only builds it on start.
   line 5, freestyle: a longer line wins too; sides 3-19 and the line as
   house rules, `checked()`; `Notakto`: `boards` 3×3 boards side by side,
   1-4, cells counted across them as one grid, `columns`, `board_of`),
-  `Game` (X, seat 0, first; `place`, `GridError`, `lines` made, the
-  outcome with its line, views, `placings`; in Notakto both mark X, a line
-  closes its board and who closes the last loses), `check_place`. Notakto's
+  `Sos`: 8×8, sides as house rules, each writes S or O (`Letter`, a
+  `Placing`'s `letter`; `Square::S`), every S-O-S scores and plays again,
+  most when full wins, `scores` in the view),
+  `Game` (X, seat 0, first; `play` a `Placing`, `place` a mark,
+  `GridError`, `lines` made, the outcome with its line, views,
+  `placings`; in Notakto both mark X, a line closes its board and who
+  closes the last loses), `check_place`. S.O.S's bots (`sos.rs`): take the
+  most, then a letter that leaves nothing to take, else (Hard) the one
+  giving least to a greedy reply; Extra Hard solves the last 10 cells. Notakto's
   bots (`notakto.rs`) search it to the end: boards as 9-bit sets in their
   least symmetric form (46 of them), Hard perfect, Medium perfect once
   few cells are safe, Easy any safe cell. Other bots (`bot.rs`, over `board.rs`'s windows
@@ -289,7 +295,9 @@ only builds it on start.
     mark (checked first, `checkPlace`). Tic-Tac-Toe: lines by hand, X and
     O drawn in pen in the cells (`marks.tsx`, Motion `pathLength`; rows
     fixed and the mark laid over its cell, so drawing never resizes it,
-    `MarkGrid`); Notakto's boards the same, side by side or in rows,
+    `MarkGrid`); S.O.S's letters in ink (`Mark` draws S too), each S-O-S
+    struck through in its scorer's pen, points in the player chips, S or
+    O picked below the board or by key; Notakto's boards the same, side by side or in rows,
     whichever makes them biggest (`useLayout`), a closed board struck
     through and faded. Gomoku
     (`StoneBoard.tsx`, any grid over 25 cells): black and white stones on

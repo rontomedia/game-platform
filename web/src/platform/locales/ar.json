@@ -532,7 +532,8 @@
     "occupied": "هذه الخانة مشغولة.",
     "offBoard": "هذه الخانة ليست على الشبكة.",
     "over": "انتهت اللعبة.",
-    "closed": "هذا اللوح مُغلق."
+    "closed": "هذا اللوح مُغلق.",
+    "noLetter": "اختر S أو O أولًا."
   },
   "grid": {
     "ticTacToe": "إكس أو",
@@ -554,6 +555,15 @@
     "boardsCount_two": "لوحان",
     "boardsCount_few": "{{count}} ألواح",
     "boardsCount_many": "{{count}} لوحًا",
-    "boardsCount_other": "{{count}} لوح"
+    "boardsCount_other": "{{count}} لوح",
+    "sos": "S.O.S",
+    "goalSos": "اكتبا بالتناوب S أو O في خانة فارغة. كل S-O-S تكوّنه يمنحك نقطة ودورًا إضافيًا؛ يفوز صاحب النقاط الأكثر.",
+    "yourTurnSos": "دورك: اختر S أو O، ثم خانة فارغة.",
+    "again": "S-O-S! اكتب حرفًا آخر.",
+    "drawSos": "تعادل: النقاط متساوية.",
+    "letter": "الحرف",
+    "letterKey": "اكتب {{letter}} (المفتاح {{letter}})",
+    "points": "نقاط",
+    "size": "{{width}} × {{height}}"
   }
 }

@@ -456,7 +456,8 @@
     "occupied": "Rutan är upptagen.",
     "offBoard": "Rutan finns inte i rutnätet.",
     "over": "Spelet är slut.",
-    "closed": "Det brädet är stängt."
+    "closed": "Det brädet är stängt.",
+    "noLetter": "Välj S eller O först."
   },
   "grid": {
     "ticTacToe": "Tre i rad",
@@ -474,6 +475,15 @@
     "boards": "Brädor",
     "board": "Bräde {{n}}",
     "boardsCount_one": "{{count}} bräde",
-    "boardsCount_other": "{{count}} brädor"
+    "boardsCount_other": "{{count}} brädor",
+    "sos": "S.O.S",
+    "goalSos": "Skriv S eller O i en ledig ruta, i tur och ordning. Varje S-O-S ger en poäng och ett drag till; flest poäng vinner.",
+    "yourTurnSos": "Din tur: välj S eller O, sedan en ledig ruta.",
+    "again": "S-O-S! Skriv en bokstav till.",
+    "drawSos": "Oavgjort: lika många poäng.",
+    "letter": "Bokstav",
+    "letterKey": "Skriv {{letter}} (tangent {{letter}})",
+    "points": "poäng",
+    "size": "{{width}} × {{height}}"
   }
 }

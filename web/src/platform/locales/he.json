@@ -475,7 +475,8 @@
     "occupied": "המשבצת תפוסה.",
     "offBoard": "המשבצת הזו לא על הלוח.",
     "over": "המשחק נגמר.",
-    "closed": "הלוח הזה כבר סגור."
+    "closed": "הלוח הזה כבר סגור.",
+    "noLetter": "בחרו קודם S או O."
   },
   "grid": {
     "ticTacToe": "איקס עיגול",
@@ -494,6 +495,15 @@
     "board": "לוח {{n}}",
     "boardsCount_one": "לוח אחד",
     "boardsCount_two": "{{count}} לוחות",
-    "boardsCount_other": "{{count}} לוחות"
+    "boardsCount_other": "{{count}} לוחות",
+    "sos": "S.O.S",
+    "goalSos": "כתבו לסירוגין S או O במשבצת פנויה. כל S-O-S שיוצרים שווה נקודה ותור נוסף; מי שצובר יותר נקודות מנצח.",
+    "yourTurnSos": "תורך: בחרו S או O, ואז משבצת פנויה.",
+    "again": "S-O-S! כתבו עוד אות.",
+    "drawSos": "תיקו: אותו מספר נקודות.",
+    "letter": "אות",
+    "letterKey": "כתבו {{letter}} (מקש {{letter}})",
+    "points": "נקודות",
+    "size": "{{width}} × {{height}}"
   }
 }
