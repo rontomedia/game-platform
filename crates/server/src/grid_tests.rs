@@ -8,10 +8,12 @@ use std::time::Duration;
 use grid::{BotLevel, Cell, GridError, GridRules, GridView, RuleSet, Square};
 use platform::room::{self, Command, Connection, PlayerId, Timing};
 use platform::rooms::{bot_pool, Rooms};
-use platform::shared::{Out, RoomInfo, RoomOptions, SharedMessage};
+use grid::protocol::GridMessage;
+use platform::room::Out;
+use protocol::{RoomInfo, RoomOptions};
 use tokio::sync::{mpsc, oneshot};
 
-use crate::grid::{GridMatch, GridMessage};
+use crate::grid::GridMatch;
 
 type Room = mpsc::Sender<Command<GridMatch>>;
 
@@ -59,7 +61,7 @@ impl Member {
     /// The next state, skipping other messages.
     async fn state(&mut self) -> GridView {
         loop {
-            if let Out::Game(GridMessage::State { view, .. }) = self.receive().await {
+            if let Out::<GridMatch>::Game { message: GridMessage::State { view, .. } } = self.receive().await {
                 return view;
             }
         }
@@ -67,7 +69,7 @@ impl Member {
 
     async fn room(&mut self) -> RoomInfo<GridRules, BotLevel> {
         loop {
-            if let Out::Shared(SharedMessage::Room { room }) = self.receive().await {
+            if let Out::<GridMatch>::Room { room } = self.receive().await {
                 return room;
             }
         }
@@ -79,8 +81,8 @@ impl Member {
         let (mut states, mut paused) = (Vec::new(), None);
         while let Ok(Some(message)) = tokio::time::timeout(wait, self.inbox.recv()).await {
             match message {
-                Out::Game(GridMessage::State { view, .. }) => states.push(view),
-                Out::Shared(SharedMessage::Room { room }) => paused = Some(room.paused),
+                Out::<GridMatch>::Game { message: GridMessage::State { view, .. } } => states.push(view),
+                Out::<GridMatch>::Room { room } => paused = Some(room.paused),
                 _ => {}
             }
         }
@@ -129,7 +131,7 @@ async fn a_person_against_a_bot() {
     // A taken cell is refused, and it's still her turn...
     room.send(Command::Move { player: ann.id, mv: c(1, 1) }).await.unwrap();
     let error = loop {
-        if let Out::Game(GridMessage::Rejected { error }) = ann.receive().await {
+        if let Out::<GridMatch>::Game { message: GridMessage::Rejected { error } } = ann.receive().await {
             break error;
         }
     };

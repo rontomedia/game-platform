@@ -3,12 +3,12 @@ name = "protocol"
 version = "0.1.0"
 edition = "2021"
 
-# The messages between the web client and the match server, sent as JSON
-# text frames. TypeScript types come from the `wasm` feature, through
-# games/tile-rummy-wasm's build.
+# The messages between the web client and the match server that every
+# game shares, sent as JSON text frames; a game's own ride inside as
+# `game` (each engine crate's `protocol` module). TypeScript types come
+# from the `wasm` feature, through each game's -wasm crate.
 
 [dependencies]
-tile-rummy = { path = "../../games/tile-rummy" }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 tsify = { version = "0.5.8", optional = true, default-features = false, features = ["js"] }
@@ -16,4 +16,4 @@ tsify = { version = "0.5.8", optional = true, default-features = false, features
 wasm-bindgen = { version = "0.2.129", optional = true }
 
 [features]
-wasm = ["dep:tsify", "dep:wasm-bindgen", "tile-rummy/wasm"]
+wasm = ["dep:tsify", "dep:wasm-bindgen"]

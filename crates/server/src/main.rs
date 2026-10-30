@@ -1,18 +1,17 @@
-//! The match server: rooms that 2 to 4 players join with a code, each
-//! running one game (games/tile-rummy) with a turn timer. Clients speak
-//! crates/protocol over a WebSocket at /ws.
+//! The match server: rooms that players join with a code, each running
+//! one game with a turn timer (crates/platform). Each game's clients speak
+//! crates/protocol, the game's messages inside, over a WebSocket at
+//! `/ws/<game>`: `/ws/tile-rummy` (games/tile-rummy, `contest.rs`) and
+//! `/ws/grid` (games/grid, `grid.rs`). Codes are a game's own.
 
 mod clock;
 mod connection;
 mod contest;
-// Not served yet: tested through the room's commands.
-#[cfg_attr(not(test), allow(dead_code))]
 mod grid;
 #[cfg(test)]
 mod grid_tests;
 #[cfg(test)]
 mod tests;
-mod wire;
 
 use std::net::SocketAddr;
 use std::sync::Arc;
@@ -24,6 +23,8 @@ use axum::routing::get;
 use axum::Router;
 use clock::Bonus;
 use contest::{Contest, RummyConfig};
+use grid::GridMatch;
+use platform::engine::GameEngine;
 use tile_rummy::Lookahead;
 use platform::room::{self, Timing};
 use platform::rooms::{bot_pool, Rooms};
@@ -41,6 +42,19 @@ pub struct Config {
     /// How many bots may think at once, across all rooms; the others wait
     /// their turn.
     pub bot_threads: usize,
+    /// The games this process serves.
+    pub games: Games,
+}
+
+/// Which games a server serves (`--games`), so a busy one can run on its own.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct Games {
+    pub tile_rummy: bool,
+    pub grid: bool,
+}
+
+impl Games {
+    pub const ALL: Games = Games { tile_rummy: true, grid: true };
 }
 
 /// All interfaces, so phones on the local network can connect.
@@ -49,8 +63,12 @@ const ADDRESS: &str = "0.0.0.0:3000";
 #[tokio::main]
 async fn main() {
     let listener = TcpListener::bind(ADDRESS).await.unwrap_or_else(|e| panic!("can't listen on {ADDRESS}: {e}"));
-    println!("Listening on ws://{ADDRESS}/ws");
     let config = config(std::env::args().skip(1).collect());
+    for (game, served) in [("tile-rummy", config.games.tile_rummy), ("grid", config.games.grid)] {
+        if served {
+            println!("Listening on ws://{ADDRESS}/ws/{game}");
+        }
+    }
     if config.open_racks {
         println!("--open-racks: every player sees every rack");
     }
@@ -69,6 +87,7 @@ async fn main() {
 /// - `--bot-time MS`: the longest a bot thinks about a move (default 1000).
 /// - `--bot-threads N`: how many bots think at once (default: one fewer
 ///   than the processor's threads, at least one).
+/// - `--games tile-rummy,grid`: the games served (default all).
 fn config(args: Vec<String>) -> Config {
     let value = |flag: &str| args.iter().position(|a| a == flag).and_then(|i| args.get(i + 1)).map(String::as_str);
     let bad = |flag: &str| -> ! { panic!("{flag}: see `config` in crates/server/src/main.rs for what it takes") };
@@ -89,21 +108,43 @@ fn config(args: Vec<String>) -> Config {
         Some(n) => n.parse().unwrap_or_else(|_| bad("--bot-threads")),
         None => cores.saturating_sub(1).max(1),
     };
-    Config { timing, open_racks: args.iter().any(|a| a == "--open-racks"), lookahead, bot_threads }
+    let games = match value("--games") {
+        Some(list) => {
+            let names: Vec<&str> = list.split(',').map(str::trim).collect();
+            if names.iter().any(|n| !["tile-rummy", "grid"].contains(n)) {
+                bad("--games");
+            }
+            Games { tile_rummy: names.contains(&"tile-rummy"), grid: names.contains(&"grid") }
+        }
+        None => Games::ALL,
+    };
+    Config { timing, open_racks: args.iter().any(|a| a == "--open-racks"), lookahead, bot_threads, games }
 }
 
 async fn serve(listener: TcpListener, config: Config) {
     let rooms = room::Config { timing: config.timing, open_racks: config.open_racks };
-    let rummy = RummyConfig { lookahead: config.lookahead, bonus: Bonus::default() };
-    let rooms = Rooms::new(rooms, rummy, bot_pool(config.bot_threads));
-    let app = Router::new().route("/ws", get(upgrade)).with_state(Arc::new(rooms));
+    // One pool of bot permits for every game's rooms.
+    let thinking = bot_pool(config.bot_threads);
+    let mut app = Router::new();
+    if config.games.tile_rummy {
+        let rummy = RummyConfig { lookahead: config.lookahead, bonus: Bonus::default() };
+        app = app.merge(route(Rooms::<Contest>::new(rooms, rummy, thinking.clone()), "/ws/tile-rummy"));
+    }
+    if config.games.grid {
+        app = app.merge(route(Rooms::<GridMatch>::new(rooms, (), thinking), "/ws/grid"));
+    }
     axum::serve(listener, app.into_make_service_with_connect_info::<SocketAddr>()).await.expect("server failed");
 }
 
-async fn upgrade(
+/// A game's WebSocket route, with its rooms.
+fn route<G: GameEngine>(rooms: Rooms<G>, path: &str) -> Router {
+    Router::new().route(path, get(upgrade::<G>)).with_state(Arc::new(rooms))
+}
+
+async fn upgrade<G: GameEngine>(
     ws: WebSocketUpgrade,
     ConnectInfo(address): ConnectInfo<SocketAddr>,
-    State(rooms): State<Arc<Rooms<Contest>>>,
+    State(rooms): State<Arc<Rooms<G>>>,
 ) -> Response {
     ws.on_upgrade(move |socket| connection::run(socket, rooms, address))
 }

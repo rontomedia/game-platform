@@ -27,7 +27,14 @@ import { remember, remembered } from './platform/storage.ts'
 import { problemText, type Problem } from './messages.ts'
 import { Button, inputClass, Note, Panel, Switch } from './platform/ui.tsx'
 import { SERVER_URL, useGame, type Draft, type Status } from './useGame.ts'
-import { protocolVersion, type ClientMessage, type Okey101Rules, type RoomInfo, type RoomOptions } from './games/tile-rummy/wasm/engine.js'
+import {
+  gameProtocolVersion,
+  protocolVersion,
+  type BotLevel,
+  type Okey101Rules,
+  type RuleSet,
+} from './games/tile-rummy/wasm/engine.js'
+import type { Outgoing, RummyOptions, RummyRoom } from './games/tile-rummy/protocol.ts'
 
 const statusDot: Record<Status, string> = {
   connecting: 'bg-amber-400 animate-pulse',
@@ -96,7 +103,10 @@ function OkeyDemo() {
 }
 
 /** A demo room with the false okeys marked (`falseOkeyMarks`). */
-const withMarks = (room: RoomInfo): RoomInfo => ({ ...room, options: { ...room.options, falseOkeyMarks: true } })
+const withMarks = (room: RummyRoom): RummyRoom => ({
+  ...room,
+  options: { ...room.options, game: { ...room.options.game, falseOkeyMarks: true } },
+})
 
 /**
  * The demo game. `?demo=watch`: it's Maya's turn instead, and she shares it
@@ -178,7 +188,7 @@ function Online() {
   const [arrangement, setArrangement] = useArrangement(room?.code)
   const { t } = useTranslation()
 
-  if (room?.started && plainOkey && room.options.rules?.kind === 'okey') {
+  if (room?.started && plainOkey && room.options.game.rules?.kind === 'okey') {
     return (
       <PlainOkeyBoard
         key={plainOkey.version}
@@ -195,7 +205,7 @@ function Online() {
     )
   }
 
-  if (room?.started && okey && room.options.rules?.kind === 'okey101') {
+  if (room?.started && okey && room.options.game.rules?.kind === 'okey101') {
     return (
       <OkeyBoard
         key={okey.version}
@@ -254,7 +264,7 @@ function Online() {
       </header>
       {mismatch !== null && (
         <p className="rounded-xl bg-rose-500/15 px-3 py-2 text-sm text-rose-200">
-          {t('app.mismatch', { server: mismatch, page: protocolVersion() })}
+          {t('app.mismatch', { server: mismatch, page: `${protocolVersion()}.${gameProtocolVersion()}` })}
         </p>
       )}
       {!room ? (
@@ -269,16 +279,16 @@ function Online() {
 /** The player's name, remembered on this device. */
 const NAME_KEY = 'rummy.name'
 
-function Home({ send, problem, ready }: { send: (m: ClientMessage) => void; problem: Problem | null; ready: boolean }) {
+function Home({ send, problem, ready }: { send: (m: Outgoing) => void; problem: Problem | null; ready: boolean }) {
   const { t } = useTranslation()
   const [name, setName] = useState(() => remembered<string>(NAME_KEY) ?? '')
   const [code, setCode] = useState('')
 
-  const [options, setOptions] = useState<Required<RoomOptions>>(() => ({
+  const [options, setOptions] = useState<Choices>(() => ({
     ...defaultOptions,
-    ...remembered<RoomOptions>(OPTIONS_KEY),
+    ...remembered<Partial<Choices>>(OPTIONS_KEY),
   }))
-  const change = (change: RoomOptions) => {
+  const change = (change: Partial<Choices>) => {
     const next = { ...options, ...change }
     remember(OPTIONS_KEY, next)
     setOptions(next)
@@ -290,7 +300,7 @@ function Home({ send, problem, ready }: { send: (m: ClientMessage) => void; prob
 
   const create = () => {
     remember(NAME_KEY, name.trim())
-    send({ type: 'createRoom', name, options })
+    send({ type: 'createRoom', name, options: roomOptions(options) })
   }
   const join = (watch: boolean) => {
     remember(NAME_KEY, name.trim())
@@ -459,8 +469,34 @@ function Home({ send, problem, ready }: { send: (m: ClientMessage) => void; prob
   )
 }
 
+/**
+ * The room's options as the home screen lets the player choose them (and
+ * remembers them): side by side, though tile rummy's are sent inside
+ * `game` (`roomOptions`).
+ */
+interface Choices {
+  turnSeconds: number
+  liveTurns: boolean
+  timeBank: boolean
+  tileBonus: boolean
+  standIn: BotLevel
+  falseOkeyMarks: boolean
+  rules: RuleSet
+}
+
+/** The choices as the server takes them. */
+function roomOptions({ turnSeconds, liveTurns, timeBank, standIn, rules, tileBonus, falseOkeyMarks }: Choices): RummyOptions {
+  return { turnSeconds, liveTurns, timeBank, standIn, game: { rules, tileBonus, falseOkeyMarks } }
+}
+
+/** A room's options as choices, the defaults for any left out. */
+function choices(options: RummyOptions): Choices {
+  const { game, ...room } = options
+  return { ...defaultOptions, ...room, ...game }
+}
+
 /** The room options to start from, as the server has them. */
-const defaultOptions: Required<RoomOptions> = {
+const defaultOptions: Choices = {
   turnSeconds: 60,
   liveTurns: true,
   timeBank: false,
@@ -479,7 +515,7 @@ const OKEY_POINTS = [4, 10, 20, 30]
 const STAND_INS = ['easy', 'medium', 'hard'] as const
 
 /** How many of the options under "Advanced" differ from the defaults. */
-function changedOptions(options: Required<RoomOptions>): number {
+function changedOptions(options: Choices): number {
   const shared = (['timeBank', 'liveTurns', 'standIn'] as const).filter((key) => options[key] !== defaultOptions[key]).length
   const marks = Number(options.falseOkeyMarks !== defaultOptions.falseOkeyMarks)
   if (options.rules.kind === 'okey101') {
@@ -500,8 +536,8 @@ function turnLength(t: TFunction, seconds: number): string {
 }
 
 /** The room's rules in a sentence, for the lobby. */
-function describe(t: TFunction, options: RoomOptions): string {
-  const rules = options.rules ?? { kind: 'classic' }
+function describe(t: TFunction, options: Choices): string {
+  const rules = options.rules
   const parts = [
     rules.kind === 'okey101'
       ? t('room.okey101', { hands: rules.hands ?? OKEY_DEFAULTS.hands })
@@ -509,14 +545,14 @@ function describe(t: TFunction, options: RoomOptions): string {
         ? t('room.okeyPlain', { points: rules.points ?? 20 })
         : t('room.classic'),
   ]
-  parts.push(t('room.turn', { time: turnLength(t, options.turnSeconds ?? 60) }))
+  parts.push(t('room.turn', { time: turnLength(t, options.turnSeconds) }))
   if (rules.kind === 'okey101' && rules.progressive) parts.push(t('room.progressive'))
   if (rules.kind === 'okey101' && rules.penalties === false) parts.push(t('room.noPenalties'))
   if (options.falseOkeyMarks && rules.kind !== 'classic') parts.push(t('room.falseOkeyMarks'))
   if (options.timeBank) parts.push(t('room.timeBank'))
   if (options.tileBonus && rules.kind === 'classic') parts.push(t('room.tileBonus'))
   parts.push(options.liveTurns ? t('room.liveTurns') : t('room.finishedTurns'))
-  parts.push(t(`room.standIn.${options.standIn ?? 'medium'}`))
+  parts.push(t(`room.standIn.${options.standIn}`))
   return t('room.summary', { parts: parts.join(t('room.separator')) })
 }
 
@@ -616,31 +652,28 @@ function Option({
   )
 }
 
-/** Seats in a room (the server's limit too). */
-const MAX_PLAYERS = 4
-
 function Lobby({
   room,
   problem,
   send,
   leave,
 }: {
-  room: RoomInfo
+  room: RummyRoom
   problem: Problem | null
-  send: (m: ClientMessage) => void
+  send: (m: Outgoing) => void
   leave: () => void
 }) {
   const { t } = useTranslation()
   const present = room.seats.filter((s) => s.connected).length
   const watching = room.watching !== undefined
   const isHost = (watching ? room.watchers[room.watching!] : room.seats[room.you ?? -1])?.host ?? false
-  const full = room.seats.length >= MAX_PLAYERS
+  const full = room.seats.length >= room.maxSeats
   return (
     <div className="w-full">
       <Panel className="mx-auto max-w-lg">
         <p className="text-sm text-slate-400">{t('lobby.code')}</p>
         <p className="mt-1 font-mono text-5xl font-bold tracking-[0.2em] text-teal-300">{room.code}</p>
-        <p className="mt-3 text-sm text-slate-400">{describe(t, room.options)}</p>
+        <p className="mt-3 text-sm text-slate-400">{describe(t, choices(room.options))}</p>
         <ul className="mt-6 space-y-2">
           {room.seats.map((seat, i) => (
             <li key={i} className="flex items-center gap-3 rounded-xl bg-white/5 px-3 py-2">
@@ -709,8 +742,8 @@ function Lobby({
         <div className="mt-6 flex gap-2">
           <Button onClick={leave}>{t('lobby.leave')}</Button>
           {isHost ? (
-            <Button look="primary" className="flex-1" disabled={present < 2} onClick={() => send({ type: 'start' })}>
-              {present < 2 ? t('lobby.waitingForPlayers') : t('lobby.start', { count: present })}
+            <Button look="primary" className="flex-1" disabled={present < room.minSeats} onClick={() => send({ type: 'start' })}>
+              {present < room.minSeats ? t('lobby.waitingForPlayers') : t('lobby.start', { count: present })}
             </Button>
           ) : (
             <p className="flex-1 self-center text-center text-sm text-slate-400">{t('lobby.waitingForHost')}</p>
@@ -723,7 +756,7 @@ function Lobby({
           </div>
         )}
       </Panel>
-      <HowToPlay kind={room.options.rules?.kind ?? 'classic'} />
+      <HowToPlay kind={room.options.game.rules?.kind ?? 'classic'} />
     </div>
   )
 }

@@ -1,6 +1,7 @@
 import type { TFunction } from 'i18next'
 
-import type { Notice, OkeyError, Refusal, TurnError } from './games/tile-rummy/wasm/engine.js'
+import type { OkeyError, Refusal, TurnError } from './games/tile-rummy/wasm/engine.js'
+import type { AnyNotice } from './games/tile-rummy/protocol.ts'
 
 /**
  * Something that went wrong, kept as what happened and worded when shown
@@ -77,7 +78,7 @@ export function clockTime(ms: number): string {
 }
 
 /** Something the server tells the player, worded. */
-export function noticeText(t: TFunction, notice: Notice): string {
+export function noticeText(t: TFunction, notice: AnyNotice): string {
   switch (notice.kind) {
     case 'timeRanOut':
       if (notice.played === 0) return t('notice.timeRanOutDrew')

@@ -1,5 +1,6 @@
 import type { GameState, OkeyGame, PlainOkeyGame, TurnRecord } from '../../useGame.ts'
-import type { HandView, PlainView, RoomInfo, Tile } from './wasm/engine.js'
+import type { HandView, PlainView, RummyRules, Tile } from './wasm/engine.js'
+import type { RummyOptions, RummyRoom } from './protocol.ts'
 
 /**
  * A game in progress with no server, for working on the board's look:
@@ -9,7 +10,10 @@ import type { HandView, PlainView, RoomInfo, Tile } from './wasm/engine.js'
 const n = (color: 'black' | 'blue' | 'orange' | 'red', value: number): Tile => ({ kind: 'number', color, value })
 const joker: Tile = { kind: 'joker' }
 
-export const demoRoom: RoomInfo = {
+/** A room's options, with tile rummy's `game` as given. */
+const options = (game: RummyRules = {}): RummyOptions => ({ liveTurns: true, standIn: 'medium', game })
+
+export const demoRoom: RummyRoom = {
   code: 'KQVT',
   seats: [
     { name: 'Alex', connected: true, host: true },
@@ -19,13 +23,15 @@ export const demoRoom: RoomInfo = {
   ],
   watchers: [],
   you: 0,
+  minSeats: 2,
+  maxSeats: 4,
   started: true,
   paused: false,
-  options: { liveTurns: true },
+  options: options(),
 }
 
 /** `?demo=watcher`: four bots playing, watched by their host. */
-export const demoWatcherRoom: RoomInfo = {
+export const demoWatcherRoom: RummyRoom = {
   ...demoRoom,
   seats: [
     { name: 'Ada', connected: true, bot: 'easy', host: false },
@@ -130,9 +136,9 @@ export function withOpenRacks(game: GameState): GameState {
 }
 
 /** `?demo=okey`: an Okey 101 room. */
-export const demoOkeyRoom: RoomInfo = {
+export const demoOkeyRoom: RummyRoom = {
   ...demoRoom,
-  options: { liveTurns: true, rules: { kind: 'okey101', hands: 7, progressive: false, penalties: true } },
+  options: options({ rules: { kind: 'okey101', hands: 7, progressive: false, penalties: true } }),
 }
 
 /**
@@ -184,9 +190,9 @@ export function demoOkey(scores = false): OkeyGame {
 }
 
 /** `?demo=plain`: a plain Okey room. */
-export const demoPlainOkeyRoom: RoomInfo = {
+export const demoPlainOkeyRoom: RummyRoom = {
   ...demoRoom,
-  options: { liveTurns: true, rules: { kind: 'okey', points: 20 } },
+  options: options({ rules: { kind: 'okey', points: 20 } }),
 }
 
 /**

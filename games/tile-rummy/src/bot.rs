@@ -33,11 +33,13 @@ mod extra;
 
 pub use extra::Lookahead;
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[cfg_attr(feature = "wasm", derive(Tsify))]
 #[serde(rename_all = "lowercase")]
 pub enum BotLevel {
     Easy,
+    /// The stand-in a room has unless it chooses another.
+    #[default]
     Medium,
     Hard,
     #[serde(rename = "extraHard")]

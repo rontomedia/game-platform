@@ -45,7 +45,8 @@ import { TileFace } from './TileView.tsx'
 import { Button } from '../../platform/ui.tsx'
 import type { PlainOkeyGame, Status } from '../../useGame.ts'
 import { useNow } from '../../platform/useNow.ts'
-import { okeyComplete, type ClientMessage, type Notice, type RoomInfo } from './wasm/engine.js'
+import { okeyComplete } from './wasm/engine.js'
+import type { AnyNotice, Outgoing, RummyRoom } from './protocol.ts'
 
 /**
  * Plain Okey's board: no table. The indicator, the okey and the pool, and
@@ -72,13 +73,13 @@ export function PlainOkeyBoard({
   leave,
 }: {
   game: PlainOkeyGame
-  room: RoomInfo
+  room: RummyRoom
   status: Status
   problem: Problem | null
-  notice: Notice | null
+  notice: AnyNotice | null
   settings: Settings
   onSettings: (change: Partial<Settings>) => void
-  send: (message: ClientMessage) => void
+  send: (message: Outgoing) => void
   leave: () => void
 }) {
   const { t } = useTranslation()
@@ -281,7 +282,7 @@ export function PlainOkeyBoard({
   const points = view.points.map((p, seat) => `${name(seat)} ${p}`).join(' · ')
 
   return (
-    <FalseOkeyMark value={room.options.falseOkeyMarks ? view.okey : undefined}>
+    <FalseOkeyMark value={room.options.game.falseOkeyMarks ? view.okey : undefined}>
       <DndContext sensors={sensors} collisionDetection={collisions} onDragStart={onDragStart} onDragEnd={onDragEnd} onDragCancel={() => setDragging(null)}>
         <div className="flex h-dvh flex-col gap-3 p-2 sm:gap-4 sm:p-4 short:gap-2 short:p-2">
           <TopBar

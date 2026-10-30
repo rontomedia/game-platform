@@ -24,11 +24,12 @@ use tsify::Tsify;
 use crate::board::{mix, Board};
 use crate::game::{Cell, GridView};
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[cfg_attr(feature = "wasm", derive(Tsify))]
 #[serde(rename_all = "lowercase")]
 pub enum BotLevel {
     Easy,
+    #[default]
     Medium,
     Hard,
     #[serde(rename = "extraHard")]

@@ -2,43 +2,40 @@
 //! and `grid::Game` both come from other crates. No drafts, asides or
 //! extra time; when time runs out an Easy bot's mark is put down.
 //!
-//! Not served yet: no route and no protocol messages until the grid board
-//! (migration step 4); `grid_tests.rs` runs it through the room's commands.
+//! Its messages are `grid::protocol`'s; `grid_tests.rs` also runs it
+//! through the room's commands.
 
 use std::ops::RangeInclusive;
 use std::time::Duration;
 
-use grid::{bot_move, bot_move_with, BotLevel, Cell, Game, GridError, GridRules, GridView, Square};
-use platform::engine::{ClockInfo, GameEngine, TimedOut};
-use serde::Serialize;
+use grid::protocol::{GridMessage, GridRequest, GRID_PROTOCOL};
+use grid::{bot_move, bot_move_with, BotLevel, Cell, Game, GridRules, Square};
+use platform::engine::{ClockInfo, GameEngine, Request, TimedOut};
 
 #[derive(Clone)]
 pub struct GridMatch(pub Game);
 
-/// What a grid room sends a player for the game.
-#[derive(Clone, Debug, PartialEq, Serialize)]
-#[serde(tag = "type", rename_all = "camelCase", rename_all_fields = "camelCase")]
-pub enum GridMessage {
-    /// The game as this player (or a watcher) sees it, after every change.
-    State {
-        view: GridView,
-        #[serde(skip_serializing_if = "Option::is_none")]
-        turn_ms: Option<u32>,
-        #[serde(skip_serializing_if = "Option::is_none")]
-        banks: Option<Vec<u32>>,
-    },
-    /// This player's mark can't go there; if it was their turn, it still is.
-    Rejected { error: GridError },
-}
-
 impl GameEngine for GridMatch {
     type Rules = GridRules;
+    type Request = GridRequest;
     type Move = Cell;
     type Level = BotLevel;
     type Config = ();
     type Message = GridMessage;
     type Draft = ();
     type Aside = ();
+
+    const PROTOCOL: u32 = GRID_PROTOCOL;
+
+    fn request(request: GridRequest) -> Request<GridMatch> {
+        match request {
+            GridRequest::Place { cell } => Request::Move(cell),
+        }
+    }
+
+    fn checked(rules: GridRules) -> GridRules {
+        rules.checked()
+    }
 
     /// Seat 0 moves first; the seed isn't needed.
     fn new(rules: &GridRules, _players: usize, _seed: u64) -> GridMatch {

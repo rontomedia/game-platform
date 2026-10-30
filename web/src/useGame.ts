@@ -4,17 +4,23 @@ import { newOrChanged, without } from './games/tile-rummy/arrange.ts'
 import type { Problem } from './messages.ts'
 
 import {
+  gameProtocolVersion,
   protocolVersion,
-  type ClientMessage,
   type MatchView,
-  type Notice,
   type Phase,
   type PlainView,
   type PlayerView,
-  type RoomInfo,
-  type ServerMessage,
+  type RummyMessage,
   type Tile,
 } from './games/tile-rummy/wasm/engine.js'
+import {
+  wire,
+  type AnyNotice,
+  type Outgoing,
+  type RummyClientMessage,
+  type RummyRoom,
+  type RummyServerMessage,
+} from './games/tile-rummy/protocol.ts'
 
 export type Status = 'connecting' | 'open' | 'closed'
 
@@ -184,8 +190,9 @@ function turnRecord(previous: GameState | null, view: PlayerView, racks: Tile[][
  * The match server's WebSocket. In development Vite proxies /ws on the
  * page's own origin to it (see vite.config.ts); VITE_SERVER_URL overrides.
  */
-export const SERVER_URL =
+export const SERVER_URL = `${
   import.meta.env.VITE_SERVER_URL ?? `${location.protocol === 'https:' ? 'wss' : 'ws'}://${location.host}/ws`
+}/tile-rummy`
 
 /**
  * This tab's seat: `{ code, token }` from `joined`, to take the seat back
@@ -221,10 +228,10 @@ function saveSeat(seat: SavedSeat | null) {
   }
 }
 
-/** The server's messages, typed from Rust (crates/protocol). */
-function parse(data: unknown): ServerMessage {
+/** The server's messages, typed from Rust (crates/protocol, games/tile-rummy's protocol). */
+function parse(data: unknown): RummyServerMessage {
   try {
-    return JSON.parse(String(data)) as ServerMessage
+    return JSON.parse(String(data)) as RummyServerMessage
   } catch {
     return { type: 'error', message: `unreadable message from the server: ${String(data).slice(0, 80)}` }
   }
@@ -233,7 +240,7 @@ function parse(data: unknown): ServerMessage {
 /** A connection to the match server: the room and game this tab is in. */
 export function useGame() {
   const [status, setStatus] = useState<Status>('connecting')
-  const [room, setRoom] = useState<RoomInfo | null>(null)
+  const [room, setRoom] = useState<RummyRoom | null>(null)
   const [game, setGame] = useState<GameState | null>(null)
   const [okey, setOkey] = useState<OkeyGame | null>(null)
   const [plainOkey, setPlainOkey] = useState<PlainOkeyGame | null>(null)
@@ -241,14 +248,14 @@ export function useGame() {
   /** The last refusal or error from the server, until the next change. */
   const [problem, setProblem] = useState<Problem | null>(null)
   /** The last notice from the server, for a while (`NOTICE_MS`). */
-  const [notice, setNotice] = useState<Notice | null>(null)
+  const [notice, setNotice] = useState<AnyNotice | null>(null)
   useEffect(() => {
     if (notice === null) return
     const timer = setTimeout(() => setNotice(null), NOTICE_MS)
     return () => clearTimeout(timer)
   }, [notice])
-  /** Set when the server speaks another protocol version than this page. */
-  const [mismatch, setMismatch] = useState<number | null>(null)
+  /** Set when the server speaks another protocol version than this page (the shared one's, or tile rummy's). */
+  const [mismatch, setMismatch] = useState<string | null>(null)
   // Bumped to connect again.
   const [attempt, setAttempt] = useState(0)
   const socket = useRef<WebSocket | null>(null)
@@ -256,9 +263,9 @@ export function useGame() {
   // Whether the last request was a Rejoin, whose failure means the seat is gone.
   const rejoining = useRef(false)
 
-  const send = useCallback((message: ClientMessage) => {
+  const send = useCallback((message: Outgoing) => {
     if (socket.current?.readyState !== WebSocket.OPEN) return
-    socket.current.send(JSON.stringify(message))
+    socket.current.send(JSON.stringify(wire(message)))
   }, [])
 
   useEffect(() => {
@@ -276,26 +283,9 @@ export function useGame() {
         }, RETRY_MS)
       }
     }
-    ws.onmessage = (e) => {
-      const message = parse(e.data)
+    /** Tile rummy's own messages (`game`). */
+    const onGame = (message: RummyMessage) => {
       switch (message.type) {
-        case 'welcome': {
-          setMismatch(message.protocol === protocolVersion() ? null : message.protocol)
-          const seat = savedSeat()
-          if (seat) {
-            rejoining.current = true
-            ws.send(JSON.stringify({ type: 'rejoin', ...seat } satisfies ClientMessage))
-          }
-          break
-        }
-        case 'joined':
-          rejoining.current = false
-          saveSeat({ code: message.code, token: message.token })
-          setProblem(null)
-          break
-        case 'room':
-          setRoom(message.room)
-          break
         case 'state': {
           const next = ++version.current
           const turnEnds = message.turnMs === undefined ? undefined : Date.now() + message.turnMs
@@ -363,6 +353,44 @@ export function useGame() {
         case 'okeyRejected':
           setProblem({ kind: 'okey', error: message.error })
           break
+        case 'draft':
+          setDraft({ by: message.by, table: message.table, version: version.current })
+          break
+        case 'rejected':
+          setProblem({ kind: 'turn', error: message.error })
+          break
+        case 'wrongRules':
+          setProblem({ kind: 'text', message: 'a move of another rule set than the room’s' })
+          break
+        case 'notice':
+          setNotice(message.notice)
+          break
+      }
+    }
+    ws.onmessage = (e) => {
+      const message = parse(e.data)
+      switch (message.type) {
+        case 'welcome': {
+          const same = message.protocol === protocolVersion() && message.game === gameProtocolVersion()
+          setMismatch(same ? null : `${message.protocol}.${message.game}`)
+          const seat = savedSeat()
+          if (seat) {
+            rejoining.current = true
+            ws.send(JSON.stringify({ type: 'rejoin', ...seat } satisfies RummyClientMessage))
+          }
+          break
+        }
+        case 'joined':
+          rejoining.current = false
+          saveSeat({ code: message.code, token: message.token })
+          setProblem(null)
+          break
+        case 'room':
+          setRoom(message.room)
+          break
+        case 'game':
+          onGame(message.message)
+          break
         case 'clock': {
           const now = Date.now()
           setGame((previous) => {
@@ -376,12 +404,6 @@ export function useGame() {
         }
         case 'notice':
           setNotice(message.notice)
-          break
-        case 'draft':
-          setDraft({ by: message.by, table: message.table, version: version.current })
-          break
-        case 'rejected':
-          setProblem({ kind: 'turn', error: message.error })
           break
         case 'refused':
         case 'error':

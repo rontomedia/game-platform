@@ -7,6 +7,7 @@ mod bot;
 mod game;
 pub mod okey101;
 pub mod plain_okey;
+pub mod protocol;
 mod rng;
 mod salvage;
 mod set;

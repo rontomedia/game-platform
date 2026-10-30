@@ -9,12 +9,18 @@ use serde::{Deserialize, Serialize};
 use tsify::{Ts, Tsify};
 use wasm_bindgen::prelude::*;
 
-/// The protocol version this client speaks, to compare with the server's
-/// `welcome`. (Using the protocol crate also brings its TypeScript types,
-/// `ClientMessage` and `ServerMessage`, into this build's .d.ts.)
+/// The shared protocol's version this client speaks, to compare with the
+/// server's `welcome`. (Using the protocol crate also brings its TypeScript
+/// types, `ClientMessage` and `ServerMessage`, into this build's .d.ts.)
 #[wasm_bindgen(js_name = protocolVersion)]
 pub fn protocol_version() -> u32 {
     protocol::PROTOCOL_VERSION
+}
+
+/// The version of tile rummy's own messages (`welcome`'s `game`).
+#[wasm_bindgen(js_name = gameProtocolVersion)]
+pub fn game_protocol_version() -> u32 {
+    tile_rummy::protocol::RUMMY_PROTOCOL
 }
 
 /// See `tile_rummy::classify`. `undefined` when the tiles aren't a valid set.
@@ -109,4 +115,23 @@ pub fn okey_meld_kind(okey: Ts<Tile>, tiles: Vec<Ts<Tile>>) -> Result<Option<Ts<
 pub fn okey_complete(okey: Ts<Tile>, tiles: Vec<Ts<Tile>>) -> Result<Option<Ts<tile_rummy::plain_okey::Finish>>, JsError> {
     let tiles = tiles.into_iter().map(|tile| tile.to_rust()).collect::<Result<Vec<_>, _>>()?;
     Ok(tile_rummy::plain_okey::complete(okey.to_rust()?, &tiles).map(|finish| Ts::from_rust(&finish)).transpose()?)
+}
+
+/// Reads a message from the server, as the client's own `JSON.parse` would,
+/// but checked against its type: for tests, and so the protocol's
+/// TypeScript types (`ServerMessage`, `RummyMessage`, ...) are in this
+/// build's .d.ts.
+#[wasm_bindgen(js_name = readServerMessage, unchecked_return_type = "ServerMessage<RummyRules, BotLevel, RummyMessage>")]
+pub fn read_server_message(text: &str) -> Result<JsValue, JsError> {
+    use tile_rummy::protocol::{RummyMessage, RummyRules};
+    let message: protocol::ServerMessage<RummyRules, tile_rummy::BotLevel, RummyMessage> = serde_json::from_str(text)?;
+    Ok(Ts::from_rust(&message)?.into())
+}
+
+/// As `readServerMessage`, for what a client sends.
+#[wasm_bindgen(js_name = readClientMessage, unchecked_return_type = "ClientMessage<RummyRules, BotLevel, RummyRequest>")]
+pub fn read_client_message(text: &str) -> Result<JsValue, JsError> {
+    use tile_rummy::protocol::{RummyRequest, RummyRules};
+    let message: protocol::ClientMessage<RummyRules, tile_rummy::BotLevel, RummyRequest> = serde_json::from_str(text)?;
+    Ok(Ts::from_rust(&message)?.into())
 }

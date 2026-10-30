@@ -6,12 +6,26 @@ use std::time::Duration;
 use tile_rummy::{PlayerView, TurnError};
 use futures_util::{SinkExt, StreamExt};
 use tile_rummy::BotLevel;
-use protocol::{ClientMessage, Notice, Refusal, RoomInfo, RoomOptions, Seat, ServerMessage, PROTOCOL_VERSION};
+use protocol::{Notice, Refusal, Seat, PROTOCOL_VERSION};
+use tile_rummy::protocol::{RuleSet, RummyMessage, RummyNotice, RummyRequest, RummyRules, RUMMY_PROTOCOL};
 use tokio::net::{TcpListener, TcpStream};
 use tokio_tungstenite::tungstenite::Message;
 use tokio_tungstenite::{MaybeTlsStream, WebSocketStream};
 
 use super::*;
+
+/// The shared messages, with tile rummy's inside.
+type ClientMessage = protocol::ClientMessage<RummyRules, BotLevel, RummyRequest>;
+type ServerMessage = protocol::ServerMessage<RummyRules, BotLevel, RummyMessage>;
+type RoomOptions = protocol::RoomOptions<RummyRules, BotLevel>;
+type RoomInfo = protocol::RoomInfo<RummyRules, BotLevel>;
+
+/// The options with tile rummy's rules changed by `change`.
+fn rummy(change: impl FnOnce(&mut RummyRules)) -> RoomOptions {
+    let mut options = RoomOptions::default();
+    change(&mut options.game);
+    options
+}
 
 /// Long enough never to run out during a test.
 const SLOW: Timing = Timing {
@@ -30,7 +44,7 @@ const SLOW: Timing = Timing {
 };
 
 async fn start_server(timing: Timing) -> SocketAddr {
-    start_server_with(Config { timing, open_racks: false, lookahead: tile_rummy::Lookahead::default(), bot_threads: 2 }).await
+    start_server_with(Config { timing, open_racks: false, lookahead: tile_rummy::Lookahead::default(), bot_threads: 2, games: Games::ALL }).await
 }
 
 async fn start_server_with(config: Config) -> SocketAddr {
@@ -44,8 +58,8 @@ struct Client(WebSocketStream<MaybeTlsStream<TcpStream>>);
 
 impl Client {
     async fn connect(server: SocketAddr) -> Client {
-        let mut client = Client(tokio_tungstenite::connect_async(format!("ws://{server}/ws")).await.unwrap().0);
-        assert_eq!(client.receive().await, ServerMessage::Welcome { protocol: PROTOCOL_VERSION });
+        let mut client = Client(tokio_tungstenite::connect_async(format!("ws://{server}/ws/tile-rummy")).await.unwrap().0);
+        assert_eq!(client.receive().await, ServerMessage::Welcome { protocol: PROTOCOL_VERSION, game: RUMMY_PROTOCOL });
         client
     }
 
@@ -84,7 +98,7 @@ impl Client {
     /// The next `State` message, skipping others.
     async fn state(&mut self) -> (PlayerView, Option<u32>) {
         loop {
-            if let ServerMessage::State { view, turn_ms, .. } = self.receive().await {
+            if let ServerMessage::Game { message: RummyMessage::State { view, turn_ms, .. } } = self.receive().await {
                 return (view, turn_ms);
             }
         }
@@ -110,7 +124,7 @@ impl Client {
     }
 
     async fn create_with(&mut self, name: &str, options: RoomOptions) -> (String, String) {
-        self.send(ClientMessage::CreateRoom { name: name.into(), options }).await;
+        self.send(ClientMessage::CreateRoom { name: name.into(), options: Some(options) }).await;
         let joined = self.receive().await;
         let ServerMessage::Joined { code, token } = joined else { panic!("expected Joined, got {joined:?}") };
         self.room().await;
@@ -162,7 +176,7 @@ async fn two_player_game_with(timing: Timing, options: RoomOptions) -> TwoPlayer
 async fn creating_and_joining_a_room() {
     let server = start_server(SLOW).await;
     let mut ann = Client::connect(server).await;
-    ann.send(ClientMessage::CreateRoom { name: "  Ann  ".into(), options: RoomOptions::default() }).await;
+    ann.send(ClientMessage::CreateRoom { name: "  Ann  ".into(), options: None }).await;
     let ServerMessage::Joined { code, .. } = ann.receive().await else { panic!() };
     assert_eq!(code.len(), 4);
     let room = ann.room().await;
@@ -186,7 +200,7 @@ async fn joining_can_fail() {
     assert_eq!(outsider.refusal().await, Refusal::NoSuchRoom { code: "ZZZZ".into() });
 
     let (code, _) = ann.create("Ann").await;
-    ann.send(ClientMessage::CreateRoom { name: "Ann".into(), options: RoomOptions::default() }).await;
+    ann.send(ClientMessage::CreateRoom { name: "Ann".into(), options: None }).await;
     assert_eq!(ann.refusal().await, Refusal::AlreadyInRoom);
 
     let mut others = Vec::new();
@@ -244,13 +258,13 @@ async fn each_player_sees_only_their_own_rack() {
 #[tokio::test]
 async fn moves_out_of_turn_or_invalid_are_rejected() {
     let TwoPlayers { mut ann, mut bob, .. } = two_player_game(SLOW).await;
-    bob.send(ClientMessage::Draw).await;
-    assert!(matches!(bob.receive().await, ServerMessage::Rejected { error: TurnError::NotYourTurn, .. }));
-    ann.send(ClientMessage::Play { table: vec![] }).await;
-    assert!(matches!(ann.receive().await, ServerMessage::Rejected { error: TurnError::NothingPlayed, .. }));
+    bob.send(ClientMessage::Game { message: RummyRequest::Draw }).await;
+    assert!(matches!(bob.receive().await, ServerMessage::Game { message: RummyMessage::Rejected { error: TurnError::NotYourTurn, .. } }));
+    ann.send(ClientMessage::Game { message: RummyRequest::Play { table: vec![] } }).await;
+    assert!(matches!(ann.receive().await, ServerMessage::Game { message: RummyMessage::Rejected { error: TurnError::NothingPlayed, .. } }));
 
     // Still Ann's turn: her draw goes through, and both see it.
-    ann.send(ClientMessage::Draw).await;
+    ann.send(ClientMessage::Game { message: RummyRequest::Draw }).await;
     let (a, _) = ann.state().await;
     let (b, _) = bob.state().await;
     assert_eq!((a.current, b.current), (1, 1));
@@ -291,7 +305,7 @@ async fn coming_back_after_a_lost_connection() {
     assert!(again.room().await.seats[0].connected);
     let (after, _) = again.state().await;
     assert_eq!(after.rack, before.rack, "the same seat and rack");
-    again.send(ClientMessage::Draw).await;
+    again.send(ClientMessage::Game { message: RummyRequest::Draw }).await;
     assert_eq!(again.state().await.0.rack.len(), 15, "and can play on");
 }
 
@@ -368,7 +382,7 @@ async fn a_game_of_draws_ends_with_scores() {
     let mut turns = 0;
     let outcome = loop {
         let mover = if turns % 2 == 0 { &mut ann } else { &mut bob };
-        mover.send(ClientMessage::Draw).await;
+        mover.send(ClientMessage::Game { message: RummyRequest::Draw }).await;
         let (view, turn_ms) = ann.state().await;
         bob.state().await;
         turns += 1;
@@ -380,8 +394,8 @@ async fn a_game_of_draws_ends_with_scores() {
     // 78 tiles in the pool, then a round of passes.
     assert_eq!(turns, 80);
     assert_eq!(outcome.scores.len(), 2);
-    ann.send(ClientMessage::Draw).await;
-    assert!(matches!(ann.receive().await, ServerMessage::Rejected { error: TurnError::GameOver, .. }));
+    ann.send(ClientMessage::Game { message: RummyRequest::Draw }).await;
+    assert!(matches!(ann.receive().await, ServerMessage::Game { message: RummyMessage::Rejected { error: TurnError::GameOver, .. } }));
 }
 
 #[tokio::test]
@@ -405,7 +419,7 @@ async fn bad_messages_get_an_error() {
     assert!(client.error().await.starts_with("not a message"));
     client.send_raw(Message::binary(vec![1, 2, 3])).await;
     assert_eq!(client.error().await, "messages are JSON text");
-    client.send(ClientMessage::Draw).await;
+    client.send(ClientMessage::Game { message: RummyRequest::Draw }).await;
     assert_eq!(client.refusal().await, Refusal::NotInRoom);
 }
 
@@ -419,40 +433,40 @@ fn draft(ann_view: &PlayerView) -> Vec<Vec<tile_rummy::Tile>> {
 #[tokio::test]
 async fn the_others_watch_the_current_players_table() {
     let TwoPlayers { mut ann, mut bob, ann_view, .. } = two_player_game(SLOW).await;
-    ann.send(ClientMessage::Draft { table: draft(&ann_view) }).await;
-    assert_eq!(bob.receive().await, ServerMessage::Draft { by: 0, table: draft(&ann_view) });
+    ann.send(ClientMessage::Game { message: RummyRequest::Draft { table: draft(&ann_view) } }).await;
+    assert_eq!(bob.receive().await, ServerMessage::Game { message: RummyMessage::Draft { by: 0, table: draft(&ann_view) } });
     // Ann gets nothing back: her next message is the state after her draw.
-    ann.send(ClientMessage::Draw).await;
-    assert!(matches!(ann.receive().await, ServerMessage::State { .. }));
+    ann.send(ClientMessage::Game { message: RummyRequest::Draw }).await;
+    assert!(matches!(ann.receive().await, ServerMessage::Game { message: RummyMessage::State { .. } }));
 }
 
 #[tokio::test]
 async fn no_live_turns_when_the_room_said_so() {
     let options = RoomOptions { live_turns: false, ..RoomOptions::default() };
     let TwoPlayers { mut ann, mut bob, ann_view, .. } = two_player_game_with(SLOW, options).await;
-    ann.send(ClientMessage::Draft { table: draft(&ann_view) }).await;
-    ann.send(ClientMessage::Draw).await;
-    assert!(matches!(bob.receive().await, ServerMessage::State { .. }), "no draft first");
+    ann.send(ClientMessage::Game { message: RummyRequest::Draft { table: draft(&ann_view) } }).await;
+    ann.send(ClientMessage::Game { message: RummyRequest::Draw }).await;
+    assert!(matches!(bob.receive().await, ServerMessage::Game { message: RummyMessage::State { .. } }), "no draft first");
 }
 
 #[tokio::test]
 async fn only_the_current_player_shares_a_draft_and_only_their_tiles() {
     let TwoPlayers { mut ann, mut bob, .. } = two_player_game(SLOW).await;
     // Not Bob's turn: ignored.
-    bob.send(ClientMessage::Draft { table: vec![] }).await;
+    bob.send(ClientMessage::Game { message: RummyRequest::Draft { table: vec![] } }).await;
     // Three jokers: Ann can't have them.
     let joker = tile_rummy::Tile::Joker;
-    ann.send(ClientMessage::Draft { table: vec![vec![joker, joker, joker]] }).await;
+    ann.send(ClientMessage::Game { message: RummyRequest::Draft { table: vec![vec![joker, joker, joker]] } }).await;
     assert_eq!(ann.refusal().await, Refusal::NotYourTiles);
-    ann.send(ClientMessage::Draw).await;
-    assert!(matches!(bob.receive().await, ServerMessage::State { .. }), "nothing passed on");
+    ann.send(ClientMessage::Game { message: RummyRequest::Draw }).await;
+    assert!(matches!(bob.receive().await, ServerMessage::Game { message: RummyMessage::State { .. } }), "nothing passed on");
 }
 
 #[tokio::test]
 async fn coming_back_mid_turn_shows_the_draft_until_the_turn_ends() {
     let TwoPlayers { server, mut ann, bob, code, bob_token, ann_view, .. } = two_player_game(SLOW).await;
     drop(bob);
-    ann.send(ClientMessage::Draft { table: draft(&ann_view) }).await;
+    ann.send(ClientMessage::Game { message: RummyRequest::Draft { table: draft(&ann_view) } }).await;
     let rejoin = || ClientMessage::Rejoin { code: code.clone(), token: bob_token.clone() };
 
     // Bob comes back during Ann's turn: the room, the state, then her draft.
@@ -460,18 +474,18 @@ async fn coming_back_mid_turn_shows_the_draft_until_the_turn_ends() {
     bob.send(rejoin()).await;
     assert!(matches!(bob.receive().await, ServerMessage::Joined { .. }));
     assert!(matches!(bob.receive().await, ServerMessage::Room { .. }));
-    assert!(matches!(bob.receive().await, ServerMessage::State { .. }));
-    assert_eq!(bob.receive().await, ServerMessage::Draft { by: 0, table: draft(&ann_view) });
+    assert!(matches!(bob.receive().await, ServerMessage::Game { message: RummyMessage::State { .. } }));
+    assert_eq!(bob.receive().await, ServerMessage::Game { message: RummyMessage::Draft { by: 0, table: draft(&ann_view) } });
 
     // After Ann's turn, the draft is gone.
-    ann.send(ClientMessage::Draw).await;
+    ann.send(ClientMessage::Game { message: RummyRequest::Draw }).await;
     bob.state().await;
     drop(bob);
     let mut bob = Client::connect(server).await;
     bob.send(rejoin()).await;
     bob.state().await;
-    bob.send(ClientMessage::Draw).await;
-    assert!(matches!(bob.receive().await, ServerMessage::State { .. }), "no draft before it");
+    bob.send(ClientMessage::Game { message: RummyRequest::Draw }).await;
+    assert!(matches!(bob.receive().await, ServerMessage::Game { message: RummyMessage::State { .. } }), "no draft before it");
 }
 
 #[tokio::test]
@@ -521,11 +535,11 @@ async fn against_bots(config: Config, levels: &[BotLevel]) -> (usize, PlayerView
     loop {
         let message = ann.receive().await;
         match &message {
-            ServerMessage::Draft { by, .. } => {
+            ServerMessage::Game { message: RummyMessage::Draft { by, .. } } => {
                 assert_ne!(*by, 0);
                 drafts += 1;
             }
-            ServerMessage::State { view, .. } => {
+            ServerMessage::Game { message: RummyMessage::State { view, .. } } => {
                 assert!(view.table.iter().all(|set| tile_rummy::classify(set).is_some()));
                 if let Some(_outcome) = &view.outcome {
                     let view = view.clone();
@@ -533,7 +547,7 @@ async fn against_bots(config: Config, levels: &[BotLevel]) -> (usize, PlayerView
                     return (drafts, view, states);
                 }
                 if view.current == 0 {
-                    ann.send(ClientMessage::Draw).await;
+                    ann.send(ClientMessage::Game { message: RummyRequest::Draw }).await;
                 }
             }
             _ => {}
@@ -544,19 +558,19 @@ async fn against_bots(config: Config, levels: &[BotLevel]) -> (usize, PlayerView
 
 #[tokio::test]
 async fn a_game_against_bots() {
-    let (drafts, last, states) = against_bots(Config { timing: SLOW, open_racks: false, lookahead: tile_rummy::Lookahead::default(), bot_threads: 2 }, &[BotLevel::Easy, BotLevel::Medium, BotLevel::Hard]).await;
+    let (drafts, last, states) = against_bots(Config { timing: SLOW, open_racks: false, lookahead: tile_rummy::Lookahead::default(), bot_threads: 2, games: Games::ALL }, &[BotLevel::Easy, BotLevel::Medium, BotLevel::Hard]).await;
     assert!(drafts > 0, "the bots' plays are shown live first");
     // Someone who never plays can't go out; the bots usually do.
     assert!(!last.outcome.unwrap().winners.is_empty());
     assert!(!last.table.is_empty(), "the bots played");
-    assert!(states.iter().all(|m| !matches!(m, ServerMessage::State { racks: Some(_), .. })), "racks stay hidden");
+    assert!(states.iter().all(|m| !matches!(m, ServerMessage::Game { message: RummyMessage::State { racks: Some(_), .. } })), "racks stay hidden");
 }
 
 #[tokio::test]
 async fn open_racks_show_every_rack() {
-    let (_, _, states) = against_bots(Config { timing: SLOW, open_racks: true, lookahead: tile_rummy::Lookahead::default(), bot_threads: 2 }, &[BotLevel::Easy]).await;
+    let (_, _, states) = against_bots(Config { timing: SLOW, open_racks: true, lookahead: tile_rummy::Lookahead::default(), bot_threads: 2, games: Games::ALL }, &[BotLevel::Easy]).await;
     for message in states {
-        if let ServerMessage::State { view, racks, .. } = message {
+        if let ServerMessage::Game { message: RummyMessage::State { view, racks, .. } } = message {
             let racks = racks.expect("every rack");
             assert_eq!(racks.iter().map(Vec::len).collect::<Vec<_>>(), view.rack_sizes);
             assert_eq!(racks[0], view.rack);
@@ -573,7 +587,7 @@ async fn a_valid_table_is_played_when_time_runs_out() {
     for _ in 0..40 {
         let TwoPlayers { mut ann, mut bob, ann_view, .. } = two_player_game_with(timing, options.clone()).await;
         let tile_rummy::Move::Play(table) = tile_rummy::bot_move(&ann_view, BotLevel::Hard) else { continue };
-        ann.send(ClientMessage::Draft { table: table.clone() }).await;
+        ann.send(ClientMessage::Game { message: RummyRequest::Draft { table: table.clone() } }).await;
         let (view, _) = bob.state().await;
         assert_eq!(view.table, table, "played as she left it");
         assert_eq!(view.current, 1);
@@ -587,7 +601,7 @@ async fn a_valid_table_is_played_when_time_runs_out() {
 async fn an_invalid_table_draws_when_time_runs_out() {
     let timing = Timing { turn: Duration::from_millis(300), ..SLOW };
     let TwoPlayers { mut ann, mut bob, ann_view, .. } = two_player_game(timing).await;
-    ann.send(ClientMessage::Draft { table: draft(&ann_view) }).await;
+    ann.send(ClientMessage::Game { message: RummyRequest::Draft { table: draft(&ann_view) } }).await;
     bob.receive().await; // the draft
     let (view, _) = bob.state().await;
     assert!(view.table.is_empty());
@@ -609,8 +623,8 @@ async fn the_bank_follows_the_turns_own_time() {
     };
     assert!(started.elapsed() >= Duration::from_millis(650), "{:?}", started.elapsed());
     assert_eq!(view.rack_sizes[0], 15, "then she drew");
-    bob.send(ClientMessage::Draw).await;
-    let ServerMessage::State { banks, .. } = bob.receive().await else { panic!() };
+    bob.send(ClientMessage::Game { message: RummyRequest::Draw }).await;
+    let ServerMessage::Game { message: RummyMessage::State { banks, .. } } = bob.receive().await else { panic!() };
     let banks = banks.unwrap();
     assert_eq!(banks[0], 0, "Ann's bank is spent");
     assert!((600..=700).contains(&banks[1]), "Bob's has his turn's time left over added: {banks:?}");
@@ -639,10 +653,10 @@ async fn next<T>(client: &mut Client, pick: impl Fn(ServerMessage) -> Option<T>)
 
 #[tokio::test]
 async fn tiles_put_down_earn_time_once() {
-    let options = RoomOptions { tile_bonus: true, ..RoomOptions::default() };
+    let options = rummy(|r| r.tile_bonus = true);
     let (TwoPlayers { mut ann, mut bob, .. }, table) = ann_can_meld(SLOW, options).await;
     let tiles = table.iter().flatten().count() as u32;
-    ann.send(ClientMessage::Draft { table: table.clone() }).await;
+    ann.send(ClientMessage::Game { message: RummyRequest::Draft { table: table.clone() } }).await;
     let clock = |m| match m {
         ServerMessage::Clock { by, added_ms, turn_ms } => Some((by, added_ms, turn_ms)),
         _ => None,
@@ -653,9 +667,9 @@ async fn tiles_put_down_earn_time_once() {
     assert_eq!(added_ms, tiles * 15_000 + table.len() as u32 * 20_000);
     assert!(turn_ms > 60_000 + added_ms - 2_000, "{turn_ms}");
     // Taken back and put down again: nothing more.
-    ann.send(ClientMessage::Draft { table: vec![] }).await;
-    ann.send(ClientMessage::Draft { table: table.clone() }).await;
-    ann.send(ClientMessage::Play { table }).await;
+    ann.send(ClientMessage::Game { message: RummyRequest::Draft { table: vec![] } }).await;
+    ann.send(ClientMessage::Game { message: RummyRequest::Draft { table: table.clone() } }).await;
+    ann.send(ClientMessage::Game { message: RummyRequest::Play { table } }).await;
     let (view, _) = bob.state().await;
     assert_eq!(view.current, 1, "no second Clock before the state");
 }
@@ -663,10 +677,10 @@ async fn tiles_put_down_earn_time_once() {
 #[tokio::test]
 async fn taking_back_tiles_given_time_for_warns_then_stops_it() {
     let timing = Timing { unearned_warning: Duration::from_secs(1), unearned_limit: Duration::from_secs(1000), ..SLOW };
-    let options = RoomOptions { tile_bonus: true, ..RoomOptions::default() };
+    let options = rummy(|r| r.tile_bonus = true);
     let (TwoPlayers { mut ann, .. }, table) = ann_can_meld(timing, options.clone()).await;
-    ann.send(ClientMessage::Draft { table }).await;
-    ann.send(ClientMessage::Draw).await;
+    ann.send(ClientMessage::Game { message: RummyRequest::Draft { table } }).await;
+    ann.send(ClientMessage::Game { message: RummyRequest::Draw }).await;
     let notice = |m| match m {
         ServerMessage::Notice { notice } => Some(notice),
         _ => None,
@@ -675,20 +689,20 @@ async fn taking_back_tiles_given_time_for_warns_then_stops_it() {
 
     let timing = Timing { unearned_limit: Duration::from_secs(1), ..SLOW };
     let (TwoPlayers { mut ann, mut bob, .. }, table) = ann_can_meld(timing, options).await;
-    ann.send(ClientMessage::Draft { table: table.clone() }).await;
-    ann.send(ClientMessage::Draw).await;
+    ann.send(ClientMessage::Game { message: RummyRequest::Draft { table: table.clone() } }).await;
+    ann.send(ClientMessage::Game { message: RummyRequest::Draw }).await;
     assert!(matches!(next(&mut ann, notice).await, Notice::NoMoreBonus { .. }));
     // Bob past the extra time Ann was given before, to his turn.
     while bob.state().await.0.current != 1 {}
-    bob.send(ClientMessage::Draw).await;
+    bob.send(ClientMessage::Game { message: RummyRequest::Draw }).await;
     // Her meld again on her next turn: no extra time now.
     ann.state().await;
-    ann.send(ClientMessage::Draft { table: table.clone() }).await;
-    ann.send(ClientMessage::Play { table }).await;
+    ann.send(ClientMessage::Game { message: RummyRequest::Draft { table: table.clone() } }).await;
+    ann.send(ClientMessage::Game { message: RummyRequest::Play { table } }).await;
     loop {
         match bob.receive().await {
             ServerMessage::Clock { .. } => panic!("extra time after it was stopped"),
-            ServerMessage::State { view, .. } if view.current == 1 => break,
+            ServerMessage::Game { message: RummyMessage::State { view, .. } } if view.current == 1 => break,
             _ => {}
         }
     }
@@ -712,8 +726,8 @@ async fn time_left_over_goes_into_the_bank() {
     let options = RoomOptions { time_bank: true, ..RoomOptions::default() };
     let TwoPlayers { mut ann, mut bob, .. } = two_player_game_with(timing, options).await;
     // Ann draws at once: nearly 2 s left, but the bank holds 800 ms at most.
-    ann.send(ClientMessage::Draw).await;
-    let ServerMessage::State { banks, .. } = next(&mut bob, |m| matches!(m, ServerMessage::State { .. }).then_some(m)).await else {
+    ann.send(ClientMessage::Game { message: RummyRequest::Draw }).await;
+    let ServerMessage::Game { message: RummyMessage::State { banks, .. } } = next(&mut bob, |m| matches!(m, ServerMessage::Game { message: RummyMessage::State { .. } }).then_some(m)).await else {
         unreachable!()
     };
     assert_eq!(banks.unwrap(), vec![800, 500]);
@@ -722,13 +736,13 @@ async fn time_left_over_goes_into_the_bank() {
 #[tokio::test]
 async fn time_given_for_tiles_taken_back_is_not_banked() {
     let timing = Timing { turn: Duration::from_secs(2), bank: Duration::ZERO, bank_cap: Duration::from_secs(1000), ..SLOW };
-    let options = RoomOptions { time_bank: true, tile_bonus: true, ..RoomOptions::default() };
+    let options = RoomOptions { time_bank: true, ..rummy(|r| r.tile_bonus = true) };
     let (TwoPlayers { mut ann, mut bob, .. }, table) = ann_can_meld(timing, options).await;
     // A meld earns her extra time; she takes it back and draws.
-    ann.send(ClientMessage::Draft { table }).await;
-    ann.send(ClientMessage::Draw).await;
+    ann.send(ClientMessage::Game { message: RummyRequest::Draft { table } }).await;
+    ann.send(ClientMessage::Game { message: RummyRequest::Draw }).await;
     let banks = next(&mut bob, |m| match m {
-        ServerMessage::State { banks, .. } => banks,
+        ServerMessage::Game { message: RummyMessage::State { banks, .. } } => banks,
         _ => None,
     })
     .await;
@@ -747,26 +761,26 @@ async fn the_valid_part_of_a_table_is_played_when_time_runs_out() {
     }
     let mut draft = meld.clone();
     draft.push(left[..2].to_vec());
-    ann.send(ClientMessage::Draft { table: draft }).await;
+    ann.send(ClientMessage::Game { message: RummyRequest::Draft { table: draft } }).await;
     let (view, _) = next(&mut bob, |m| match m {
-        ServerMessage::State { view, turn_ms, .. } => Some((view, turn_ms)),
+        ServerMessage::Game { message: RummyMessage::State { view, turn_ms, .. } } => Some((view, turn_ms)),
         _ => None,
     })
     .await;
     assert_eq!(view.table, meld, "the meld, without the pair");
     let notice = next(&mut ann, |m| match m {
-        ServerMessage::Notice { notice } => Some(notice),
+        ServerMessage::Game { message: RummyMessage::Notice { notice } } => Some(notice),
         _ => None,
     })
     .await;
-    assert!(matches!(notice, Notice::TimeRanOut { back: 2, .. }), "{notice:?}");
+    assert!(matches!(notice, RummyNotice::TimeRanOut { back: 2, .. }), "{notice:?}");
 }
 
 /// Asserts no new state comes within `ms`: the game stands still.
 async fn no_state_for(client: &mut Client, ms: u64) {
     let wait = tokio::time::timeout(Duration::from_millis(ms), async {
         loop {
-            if let ServerMessage::State { .. } = client.receive().await {
+            if let ServerMessage::Game { message: RummyMessage::State { .. } } = client.receive().await {
                 return;
             }
         }
@@ -790,7 +804,7 @@ async fn watching_a_game_only_bots_play_with_pause_and_step() {
     ann.send(ClientMessage::Start).await;
     ann.send(ClientMessage::Pause { paused: true }).await;
     let racks = next(&mut ann, |m| match m {
-        ServerMessage::State { view, racks, .. } => Some((view, racks)),
+        ServerMessage::Game { message: RummyMessage::State { view, racks, .. } } => Some((view, racks)),
         _ => None,
     })
     .await;
@@ -828,18 +842,18 @@ async fn watchers_of_a_game_with_people_see_no_racks_and_cannot_pause_it() {
     assert!(matches!(cy.receive().await, ServerMessage::Joined { .. }));
     let room = cy.room().await;
     assert_eq!((room.you, room.watching, room.seats.len()), (None, Some(0), 2));
-    let ServerMessage::State { view, racks, .. } = cy.receive().await else { panic!("the game so far") };
+    let ServerMessage::Game { message: RummyMessage::State { view, racks, .. } } = cy.receive().await else { panic!("the game so far") };
     assert_eq!((view.you, view.rack.len(), racks), (None, 0, None));
     assert_eq!(game.ann.room().await.watchers[0].name, "Cy");
 
     // Cy watches Ann's turn live.
     let table = vec![game.ann_view.rack[..1].to_vec()];
-    game.ann.send(ClientMessage::Draft { table: table.clone() }).await;
-    assert_eq!(cy.receive().await, ServerMessage::Draft { by: 0, table });
+    game.ann.send(ClientMessage::Game { message: RummyRequest::Draft { table: table.clone() } }).await;
+    assert_eq!(cy.receive().await, ServerMessage::Game { message: RummyMessage::Draft { by: 0, table } });
 
     game.ann.send(ClientMessage::Pause { paused: true }).await;
     assert_eq!(game.ann.refusal().await, Refusal::NotBotsOnly);
-    cy.send(ClientMessage::Draw).await;
+    cy.send(ClientMessage::Game { message: RummyRequest::Draw }).await;
     assert_eq!(cy.refusal().await, Refusal::Watching);
 }
 
@@ -854,6 +868,8 @@ fn the_command_line_sets_up_the_bots() {
     assert!(!set.open_racks);
     assert_eq!((set.lookahead, set.timing.bot_time), (tile_rummy::Lookahead::default(), Duration::from_secs(1)));
     assert!(set.bot_threads >= 1);
+    assert_eq!(set.games, Games::ALL);
+    assert_eq!(config(args("--games grid")).games, Games { tile_rummy: false, grid: true });
 }
 
 #[tokio::test]
@@ -878,7 +894,7 @@ async fn an_extra_hard_bot_moves_within_its_time() {
                 assert!(since.elapsed() < Duration::from_secs(3), "a bot turn took {:?}", since.elapsed());
             }
             turns += 1;
-            ann.send(ClientMessage::Draw).await;
+            ann.send(ClientMessage::Game { message: RummyRequest::Draw }).await;
             since = std::time::Instant::now();
         }
     }
@@ -888,14 +904,14 @@ async fn an_extra_hard_bot_moves_within_its_time() {
 /// An Okey 101 room's options: `hands` hands, the rest as given.
 fn okey_room(hands: u32) -> RoomOptions {
     let rules = tile_rummy::okey101::Okey101Rules { hands, ..Default::default() };
-    RoomOptions { rules: protocol::RuleSet::Okey101(rules), ..RoomOptions::default() }
+    rummy(|r| r.rules = RuleSet::Okey101(rules))
 }
 
 /// The next `OkeyState`: the view, the turn's time and the time to the
 /// next hand.
 async fn okey_state(client: &mut Client) -> (tile_rummy::okey101::MatchView, Option<u32>, Option<u32>) {
     next(client, |m| match m {
-        ServerMessage::OkeyState { view, turn_ms, next_hand_ms, .. } => Some((view, turn_ms, next_hand_ms)),
+        ServerMessage::Game { message: RummyMessage::OkeyState { view, turn_ms, next_hand_ms, .. } } => Some((view, turn_ms, next_hand_ms)),
         _ => None,
     })
     .await
@@ -907,10 +923,10 @@ async fn okey_draw_and_discard(ann: &mut Client, view: &tile_rummy::okey101::Mat
     use tile_rummy::okey101::{safe_discard, Phase};
     let hand = &view.hand;
     if hand.phase == Phase::Draw {
-        ann.send(ClientMessage::Draw).await;
+        ann.send(ClientMessage::Game { message: RummyRequest::Draw }).await;
     } else {
         let discard = safe_discard(hand.okey, &hand.table, &hand.rack);
-        ann.send(ClientMessage::Discard { take_discard: false, table: hand.table.clone(), discard, finish: false }).await;
+        ann.send(ClientMessage::Game { message: RummyRequest::Discard { take_discard: false, table: hand.table.clone(), discard, finish: false } }).await;
     }
 }
 
@@ -970,21 +986,21 @@ async fn okey_moves_that_arent_allowed() {
     let (view, _, _) = okey_state(&mut ann).await;
     assert_eq!(view.hand.rack.len(), 22, "Ann starts");
     // A classic play in an Okey room.
-    ann.send(ClientMessage::Play { table: vec![] }).await;
-    assert_eq!(ann.error().await, "not a move of this room's game");
+    ann.send(ClientMessage::Game { message: RummyRequest::Play { table: vec![] } }).await;
+    assert_eq!(ann.receive().await, ServerMessage::Game { message: RummyMessage::WrongRules });
     // Drawing: the starter only discards.
-    ann.send(ClientMessage::Draw).await;
+    ann.send(ClientMessage::Game { message: RummyRequest::Draw }).await;
     let rejected = next(&mut ann, |m| match m {
-        ServerMessage::OkeyRejected { error } => Some(error),
+        ServerMessage::Game { message: RummyMessage::OkeyRejected { error } } => Some(error),
         _ => None,
     })
     .await;
     assert_eq!(rejected, tile_rummy::okey101::OkeyError::AlreadyDrawn);
     // A tile she doesn't hold.
     let missing = tile_rummy::full_set().into_iter().find(|t| !view.hand.rack.contains(t)).unwrap();
-    ann.send(ClientMessage::Discard { take_discard: false, table: vec![], discard: missing, finish: false }).await;
+    ann.send(ClientMessage::Game { message: RummyRequest::Discard { take_discard: false, table: vec![], discard: missing, finish: false } }).await;
     let rejected = next(&mut ann, |m| match m {
-        ServerMessage::OkeyRejected { error } => Some(error),
+        ServerMessage::Game { message: RummyMessage::OkeyRejected { error } } => Some(error),
         _ => None,
     })
     .await;
@@ -1024,7 +1040,7 @@ async fn a_plain_okey_game_against_bots() {
     use tile_rummy::plain_okey::{plain_bot_move, PlainMove, PlainRules};
     let server = start_server(SLOW).await;
     let mut ann = Client::connect(server).await;
-    let options = RoomOptions { rules: protocol::RuleSet::Okey(PlainRules { points: 4 }), ..RoomOptions::default() };
+    let options = rummy(|r| r.rules = RuleSet::Okey(PlainRules { points: 4 }));
     ann.create_with("Ann", options).await;
     ann.send(ClientMessage::AddBot { level: BotLevel::Hard }).await;
     ann.room().await;
@@ -1032,7 +1048,7 @@ async fn a_plain_okey_game_against_bots() {
     let mut hands = 0;
     let last = loop {
         let view = next(&mut ann, |m| match m {
-            ServerMessage::PlainOkeyState { view, .. } => Some(view),
+            ServerMessage::Game { message: RummyMessage::PlainOkeyState { view, .. } } => Some(view),
             _ => None,
         })
         .await;
@@ -1049,14 +1065,57 @@ async fn a_plain_okey_game_against_bots() {
         // Ann plays as an Easy bot would.
         if view.current == 0 {
             match plain_bot_move(&view, BotLevel::Easy) {
-                PlainMove::Draw => ann.send(ClientMessage::Draw).await,
+                PlainMove::Draw => ann.send(ClientMessage::Game { message: RummyRequest::Draw }).await,
                 PlainMove::Turn(turn) => {
                     let (take_discard, discard, finish) = (turn.take_discard, turn.discard, turn.finish);
-                    ann.send(ClientMessage::Discard { take_discard, table: vec![], discard, finish }).await
+                    ann.send(ClientMessage::Game { message: RummyRequest::Discard { take_discard, table: vec![], discard, finish } }).await
                 }
             }
         }
     };
     assert!(last.points.iter().any(|&p| p <= 0), "someone ran out of points");
     assert!(hands >= 1);
+}
+
+/// Grid placement on its own path: its own welcome, rooms and messages.
+#[tokio::test]
+async fn grid_games_have_their_own_path() {
+    use ::grid::protocol::{GridMessage, GridRequest, GRID_PROTOCOL};
+    use ::grid::{Cell, GridRules};
+    type GridClient = protocol::ClientMessage<GridRules, ::grid::BotLevel, GridRequest>;
+    type GridServer = protocol::ServerMessage<GridRules, ::grid::BotLevel, GridMessage>;
+    let server = start_server(SLOW).await;
+    let mut rummy = Client::connect(server).await;
+    let (rummy_code, _) = rummy.create("Ann").await;
+
+    let mut socket = tokio_tungstenite::connect_async(format!("ws://{server}/ws/grid")).await.unwrap().0;
+    let receive = async |socket: &mut WebSocketStream<MaybeTlsStream<TcpStream>>| -> GridServer {
+        let frame = tokio::time::timeout(Duration::from_secs(5), socket.next()).await.unwrap().unwrap().unwrap();
+        serde_json::from_str(frame.to_text().unwrap()).unwrap()
+    };
+    let send = |message: GridClient| Message::text(serde_json::to_string(&message).unwrap());
+    assert_eq!(receive(&mut socket).await, GridServer::Welcome { protocol: PROTOCOL_VERSION, game: GRID_PROTOCOL });
+    socket.send(send(GridClient::JoinRoom { code: rummy_code.clone(), name: "Bo".into(), watch: false })).await.unwrap();
+    assert_eq!(receive(&mut socket).await, GridServer::Refused { refusal: Refusal::NoSuchRoom { code: rummy_code } });
+
+    socket.send(send(GridClient::CreateRoom { name: "Bo".into(), options: None })).await.unwrap();
+    assert!(matches!(receive(&mut socket).await, GridServer::Joined { .. }));
+    let GridServer::Room { room } = receive(&mut socket).await else { panic!("the room") };
+    assert_eq!((room.min_seats, room.max_seats, room.options.game), (2, 2, GridRules::default()));
+    socket.send(send(GridClient::AddBot { level: ::grid::BotLevel::Hard })).await.unwrap();
+    socket.send(send(GridClient::Start)).await.unwrap();
+    let view = loop {
+        if let GridServer::Game { message: GridMessage::State { view, .. } } = receive(&mut socket).await {
+            break view;
+        }
+    };
+    assert_eq!((view.you, view.current), (Some(0), 0));
+    socket.send(send(GridClient::Game { message: GridRequest::Place { cell: Cell { row: 1, col: 1 } } })).await.unwrap();
+    loop {
+        if let GridServer::Game { message: GridMessage::State { view, .. } } = receive(&mut socket).await {
+            if view.moves.len() == 2 {
+                break;
+            }
+        }
+    }
 }

@@ -59,12 +59,10 @@ import {
   checkOkeyTurn,
   okeyMeldKind,
   okeyProgress,
-  type ClientMessage,
-  type Notice,
-  type RoomInfo,
   type Tile,
   type Turn,
 } from './wasm/engine.js'
+import type { AnyNotice, Outgoing, RummyRoom } from './protocol.ts'
 
 /**
  * The Okey 101 board: players along the top; the indicator, the pool and
@@ -107,14 +105,14 @@ export function OkeyBoard({
   leave,
 }: {
   okey: OkeyGame
-  room: RoomInfo
+  room: RummyRoom
   status: Status
   problem: Problem | null
-  notice: Notice | null
+  notice: AnyNotice | null
   settings: Settings
   onSettings: (change: Partial<Settings>) => void
   draft: Draft | null
-  send: (message: ClientMessage) => void
+  send: (message: Outgoing) => void
   leave: () => void
 }) {
   const { t } = useTranslation()
@@ -563,7 +561,7 @@ export function OkeyBoard({
   const handNumber = Math.min(hand.rules.hands ?? view.played + 1, view.played + (hand.end ? 0 : 1))
 
   return (
-    <FalseOkeyMark value={room.options.falseOkeyMarks ? hand.okey : undefined}>
+    <FalseOkeyMark value={room.options.game.falseOkeyMarks ? hand.okey : undefined}>
       <DndContext
         sensors={sensors}
         collisionDetection={collisions}

@@ -24,9 +24,12 @@ use std::time::Duration;
 use tokio::sync::{mpsc, oneshot, Semaphore};
 use tokio::time::{sleep_until, Instant};
 
-use crate::engine::{ClockInfo, GameEngine, TimedOut};
+use crate::engine::{ClockInfo, GameEngine, Request, TimedOut};
 use crate::rooms::Rooms;
-use crate::shared::{Notice, Out, Refusal, RoomInfo, RoomOptions, Seat, SharedMessage};
+use protocol::{Notice, Refusal, RoomInfo, RoomOptions, Seat, ServerMessage};
+
+/// What a connection receives from a room of game `G`.
+pub type Out<G> = ServerMessage<<G as GameEngine>::Rules, <G as GameEngine>::Level, <G as GameEngine>::Message>;
 
 pub const MAX_WATCHERS: usize = 8;
 
@@ -118,6 +121,9 @@ pub enum Command<G: GameEngine> {
     Draft { player: PlayerId, draft: G::Draft },
     /// Something a seated player tells the game that isn't a move.
     Aside { player: PlayerId, aside: G::Aside },
+    /// A message for the game, as a player sent it: a move, a draft or an
+    /// aside (`GameEngine::request`).
+    Game { player: PlayerId, request: G::Request },
     /// A bot's move, worked out for turn number `turn`.
     BotMove { turn: u64, mv: G::Move },
 }
@@ -294,12 +300,20 @@ impl<G: GameEngine> Room<G> {
             Command::Step { player } => self.step(player),
             Command::Move { player, mv } => self.make_move(player, mv),
             Command::Draft { player, draft } => self.share_draft(player, draft),
-            Command::Aside { player, aside } => {
-                if let (Some(seat), Some(game)) = (self.seat(player), self.game.as_mut()) {
-                    game.aside(seat, aside);
-                }
-            }
+            Command::Aside { player, aside } => self.aside(player, aside),
+            Command::Game { player, request } => match G::request(request) {
+                Request::Move(mv) => self.make_move(player, mv),
+                Request::Draft(draft) => self.share_draft(player, draft),
+                Request::Aside(aside) => self.aside(player, aside),
+            },
             Command::BotMove { turn, mv } => self.bot_chose(turn, mv),
+        }
+    }
+
+    /// A seated player's aside, for the game.
+    fn aside(&mut self, player: PlayerId, aside: G::Aside) {
+        if let (Some(seat), Some(game)) = (self.seat(player), self.game.as_mut()) {
+            game.aside(seat, aside);
         }
     }
 
@@ -310,7 +324,7 @@ impl<G: GameEngine> Room<G> {
             self.check_seat_free()?;
         }
         let token = format!("{:032x}", rand::random::<u128>());
-        let _ = connection.outbox.send(Out::Shared(SharedMessage::Joined { code: self.code.clone(), token: token.clone() }));
+        let _ = connection.outbox.send(Out::<G>::Joined { code: self.code.clone(), token: token.clone() });
         let id = self.seat_player(name, token, Some(connection), None);
         if watch {
             let watcher = self.players.pop().expect("just seated");
@@ -352,8 +366,8 @@ impl<G: GameEngine> Room<G> {
 
     fn rejoin(&mut self, token: &str, connection: Connection<G>) -> Result<PlayerId, Refusal> {
         if let Some(watcher) = self.watchers.iter_mut().find(|w| w.token == token) {
-            let joined = SharedMessage::Joined { code: self.code.clone(), token: watcher.token.clone() };
-            let _ = connection.outbox.send(Out::Shared(joined));
+            let joined = Out::<G>::Joined { code: self.code.clone(), token: watcher.token.clone() };
+            let _ = connection.outbox.send(joined);
             watcher.connection = Some(connection);
             let id = watcher.id;
             self.connections_changed();
@@ -363,8 +377,8 @@ impl<G: GameEngine> Room<G> {
         }
         let seat = self.players.iter().position(|p| p.bot.is_none() && p.token == token).ok_or(Refusal::NoSuchSeat)?;
         let player = &mut self.players[seat];
-        let joined = SharedMessage::Joined { code: self.code.clone(), token: player.token.clone() };
-        let _ = connection.outbox.send(Out::Shared(joined));
+        let joined = Out::<G>::Joined { code: self.code.clone(), token: player.token.clone() };
+        let _ = connection.outbox.send(joined);
         // Replaces any connection the player still had.
         player.connection = Some(connection);
         let id = player.id;
@@ -387,7 +401,7 @@ impl<G: GameEngine> Room<G> {
         let by = game.current();
         if self.seat(player) != Some(by) {
             if let Some(message) = game.draft_message(by, draft) {
-                self.send_to(player, Out::Game(message));
+                self.send_to(player, Out::<G>::Game { message });
             }
         }
     }
@@ -603,7 +617,7 @@ impl<G: GameEngine> Room<G> {
         match self.game.as_mut().expect("checked above").apply(seat, mv) {
             Ok(()) if ends_turn => self.end_turn(seat, kept, left),
             Ok(()) => self.went_on(seat, left),
-            Err(message) => self.send(seat, Out::Game(message)),
+            Err(message) => self.send(seat, Out::<G>::Game { message }),
         }
     }
 
@@ -636,7 +650,7 @@ impl<G: GameEngine> Room<G> {
         self.start_turn();
         self.broadcast_state();
         if let Some(notice) = notice {
-            self.send(seat, Out::Shared(SharedMessage::Notice { notice }));
+            self.send(seat, Out::<G>::Notice { notice });
         }
     }
 
@@ -662,7 +676,7 @@ impl<G: GameEngine> Room<G> {
         self.turn_ends = self.turn_ends.map(|t| t + added);
         self.full_turn_ends = self.full_turn_ends.map(|t| t + added);
         let turn_ms = self.turn_ends.map_or(0, |t| t.saturating_duration_since(Instant::now()).as_millis() as u32);
-        self.broadcast(Out::Shared(SharedMessage::Clock { by: seat, added_ms: added.as_millis() as u32, turn_ms }));
+        self.broadcast(Out::<G>::Clock { by: seat, added_ms: added.as_millis() as u32, turn_ms });
     }
 
     /// Extra time `seat` was given this turn beyond what their play kept
@@ -731,7 +745,7 @@ impl<G: GameEngine> Room<G> {
     /// Keeps the current player's work so far, shown to the others in rooms
     /// with live turns.
     fn pass_on_draft(&mut self, by: usize, draft: G::Draft) {
-        let message = self.game.as_ref().and_then(|game| game.draft_message(by, &draft)).map(Out::Game);
+        let message = self.game.as_ref().and_then(|game| game.draft_message(by, &draft)).map(|message| Out::<G>::Game { message });
         if let Some(message) = message.filter(|_| self.options.live_turns) {
             for other in (0..self.players.len()).filter(|&other| other != by) {
                 self.send(other, message.clone());
@@ -823,7 +837,7 @@ impl<G: GameEngine> Room<G> {
         let TimedOut { kept, notice } = game.time_out(&self.game_config, self.draft.take());
         self.end_turn(seat, kept, Duration::ZERO);
         if let Some(notice) = notice {
-            self.send(seat, Out::Game(notice));
+            self.send(seat, Out::<G>::Game { message: notice });
         }
     }
 
@@ -895,7 +909,7 @@ impl<G: GameEngine> Room<G> {
 
     /// To a member, seated or watching.
     fn refuse(&self, player: PlayerId, refusal: Refusal) {
-        self.send_to(player, Out::Shared(SharedMessage::Refused { refusal }));
+        self.send_to(player, Out::<G>::Refused { refusal });
     }
 
     fn send_to(&self, player: PlayerId, message: Out<G>) {
@@ -926,17 +940,19 @@ impl<G: GameEngine> Room<G> {
             watchers: self.watchers.iter().map(seat).collect(),
             you: None,
             watching: None,
+            min_seats: *G::seats(&self.options.game).start(),
+            max_seats: *G::seats(&self.options.game).end(),
             started: self.game.is_some(),
             paused: self.paused.is_some(),
             options: self.options.clone(),
         };
         for you in 0..self.players.len() {
-            self.send(you, Out::Shared(SharedMessage::Room { room: RoomInfo { you: Some(you), ..room.clone() } }));
+            self.send(you, Out::<G>::Room { room: RoomInfo { you: Some(you), ..room.clone() } });
         }
         for (watching, watcher) in self.watchers.iter().enumerate() {
             if let Some(connection) = &watcher.connection {
                 let room = RoomInfo { watching: Some(watching), ..room.clone() };
-                let _ = connection.outbox.send(Out::Shared(SharedMessage::Room { room }));
+                let _ = connection.outbox.send(Out::<G>::Room { room });
             }
         }
     }
@@ -981,7 +997,7 @@ impl<G: GameEngine> Room<G> {
                 })
                 .collect()
         });
-        Some(Out::Game(game.state(seat, &ClockInfo { turn_ms, banks, next_hand_ms }, open)))
+        Some(Out::<G>::Game { message: game.state(seat, &ClockInfo { turn_ms, banks, next_hand_ms }, open) })
     }
 
     fn broadcast_state(&self) {

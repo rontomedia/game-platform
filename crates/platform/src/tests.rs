@@ -8,10 +8,12 @@ use std::time::Duration;
 
 use tokio::sync::{mpsc, oneshot};
 
-use crate::engine::{ClockInfo, GameEngine, TimedOut};
-use crate::room::{Command, Config, Connection, PlayerId, Timing};
+use protocol::RoomOptions;
+use serde::Serialize;
+
+use crate::engine::{ClockInfo, GameEngine, Request, TimedOut};
+use crate::room::{Command, Config, Connection, Out, PlayerId, Timing};
 use crate::rooms::{bot_pool, Rooms};
-use crate::shared::{Out, RoomOptions, SharedMessage};
 
 /// Players add 1 or 2 to a total in turn; the game is over at `Rules`.
 #[derive(Clone)]
@@ -22,7 +24,7 @@ struct Count {
     target: u32,
 }
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Serialize)]
 enum Said {
     State { total: u32, current: usize, turn_ms: Option<u32>, banks: Option<Vec<u32>> },
     TooMuch,
@@ -30,12 +32,19 @@ enum Said {
 
 impl GameEngine for Count {
     type Rules = u32;
+    type Request = u32;
     type Move = u32;
     type Level = u8;
     type Config = ();
     type Message = Said;
     type Draft = ();
     type Aside = ();
+
+    const PROTOCOL: u32 = 1;
+
+    fn request(by: u32) -> Request<Count> {
+        Request::Move(by)
+    }
 
     fn new(target: &u32, players: usize, _seed: u64) -> Count {
         Count { players, current: 0, total: 0, target: *target }
@@ -135,7 +144,7 @@ impl Member {
         room.send(Command::Join { name: name.into(), watch: false, connection, reply }).await.unwrap();
         let id = answer.await.unwrap().expect("a seat");
         let mut member = Member { id, token: String::new(), inbox };
-        let Out::Shared(SharedMessage::Joined { token, .. }) = member.receive().await else { panic!("Joined first") };
+        let Out::<Count>::Joined { token, .. } = member.receive().await else { panic!("Joined first") };
         member.token = token;
         member
     }
@@ -147,7 +156,7 @@ impl Member {
     /// The next state: the total, whose turn, its time and the banks.
     async fn state(&mut self) -> (u32, usize, Option<u32>, Option<Vec<u32>>) {
         loop {
-            if let Out::Game(Said::State { total, current, turn_ms, banks }) = self.receive().await {
+            if let Out::<Count>::Game { message: Said::State { total, current, turn_ms, banks } } = self.receive().await {
                 return (total, current, turn_ms, banks);
             }
         }
@@ -157,7 +166,7 @@ impl Member {
     async fn any_state(&mut self, wait: Duration) -> bool {
         let deadline = tokio::time::Instant::now() + wait;
         while let Ok(Some(message)) = tokio::time::timeout_at(deadline, self.inbox.recv()).await {
-            if matches!(message, Out::Game(Said::State { .. })) {
+            if matches!(message, Out::<Count>::Game { message: Said::State { .. } }) {
                 return true;
             }
         }
@@ -237,5 +246,5 @@ async fn a_refused_move_is_the_games_message() {
     let (_rooms, room) = open_room(TIMING, false);
     let (mut ann, _bob) = two_players(&room).await;
     room.send(Command::Move { player: ann.id, mv: 5 }).await.unwrap();
-    assert!(matches!(ann.receive().await, Out::Game(Said::TooMuch)));
+    assert!(matches!(ann.receive().await, Out::<Count>::Game { message: Said::TooMuch }));
 }

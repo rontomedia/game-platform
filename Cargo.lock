@@ -275,7 +275,9 @@ name = "grid-wasm"
 version = "0.1.0"
 dependencies = [
  "grid",
+ "protocol",
  "serde",
+ "serde_json",
  "tsify",
  "wasm-bindgen",
 ]
@@ -448,6 +450,7 @@ checksum = "a89322df9ebe1c1578d689c92318e070967d1042b512afbe49518723f4e6d5cd"
 name = "platform"
 version = "0.1.0"
 dependencies = [
+ "protocol",
  "rand 0.10.3",
  "serde",
  "tokio",
@@ -477,7 +480,6 @@ version = "0.1.0"
 dependencies = [
  "serde",
  "serde_json",
- "tile-rummy",
  "tsify",
  "wasm-bindgen",
 ]
@@ -774,6 +776,7 @@ version = "0.1.0"
 dependencies = [
  "protocol",
  "serde",
+ "serde_json",
  "tile-rummy",
  "tsify",
  "wasm-bindgen",

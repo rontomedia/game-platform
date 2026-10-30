@@ -10,27 +10,48 @@ use std::fmt::Debug;
 use std::ops::RangeInclusive;
 use std::time::Duration;
 
+use serde::de::DeserializeOwned;
+use serde::Serialize;
+
 /// A game's rules and state, as a room runs it. Cloned for a bot to think
 /// about on a thread of its own.
 pub trait GameEngine: Clone + Send + Sync + 'static {
     /// The game's part of the room's options: its rule set and house
     /// rules.
-    type Rules: Clone + Debug + PartialEq + Send + Sync + 'static;
+    type Rules: Clone + Debug + Default + PartialEq + Serialize + DeserializeOwned + Send + Sync + 'static;
+    /// What a player sends the game: a move, a draft or an aside (see
+    /// `request`).
+    type Request: DeserializeOwned + Send + 'static;
     /// A move, from a player or a bot.
     type Move: Send + 'static;
-    /// How well a bot plays.
-    type Level: Copy + Debug + Eq + Send + Sync + 'static;
+    /// How well a bot plays; the default is the room's stand-in unless
+    /// it chooses another.
+    type Level: Copy + Debug + Default + Eq + Serialize + DeserializeOwned + Send + Sync + 'static;
     /// The server's setup for this game's bots and clock.
     type Config: Copy + Send + Sync + 'static;
     /// What the room sends a player for this game: its states, its
     /// rejections, drafts and notices.
-    type Message: Clone + Debug + Send + 'static;
+    type Message: Clone + Debug + Serialize + Send + 'static;
     /// The current player's work in progress, which they send as they go
     /// (tile rummy: the table); `()` for a game without it.
     type Draft: Clone + Send + 'static;
     /// Something a seated player may tell the room any time that isn't a
     /// move (tile rummy: the tiles to discard next); `()` if none.
     type Aside: Send + 'static;
+
+    /// The version of the game's messages (`Welcome { game }`).
+    const PROTOCOL: u32;
+
+    /// What a player's message is for the room.
+    fn request(request: Self::Request) -> Request<Self>;
+    /// The rules with house rules out of range brought into it.
+    fn checked(rules: Self::Rules) -> Self::Rules {
+        rules
+    }
+    /// The bot that may take over a seat, given the one asked for.
+    fn stand_in(level: Self::Level) -> Self::Level {
+        level
+    }
 
     /// A game of `players`, dealt from `seed`.
     fn new(rules: &Self::Rules, players: usize, seed: u64) -> Self;
@@ -96,6 +117,13 @@ pub trait GameEngine: Clone + Send + Sync + 'static {
     }
     /// A seated player's aside.
     fn aside(&mut self, _seat: usize, _aside: Self::Aside) {}
+}
+
+/// A player's message for the game, sorted for the room.
+pub enum Request<G: GameEngine> {
+    Move(G::Move),
+    Draft(G::Draft),
+    Aside(G::Aside),
 }
 
 /// The clock, as a state message shows it.

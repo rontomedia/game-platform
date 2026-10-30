@@ -8,7 +8,7 @@ use tokio::sync::{mpsc, Semaphore};
 
 use crate::engine::GameEngine;
 use crate::room::{self, Command, Config};
-use crate::shared::RoomOptions;
+use protocol::RoomOptions;
 
 /// Letters of room codes: no I or O, which read as 1 and 0.
 const CODE_LETTERS: &[u8] = b"ABCDEFGHJKLMNPQRSTUVWXYZ";
@@ -33,8 +33,10 @@ impl<G: GameEngine> Rooms<G> {
         self.thinking.clone()
     }
 
-    /// Opens a room with a new code.
+    /// Opens a room with a new code, its options brought into range.
     pub fn create(self: &Arc<Self>, options: RoomOptions<G::Rules, G::Level>) -> mpsc::Sender<Command<G>> {
+        let options = options.checked_turn();
+        let options = RoomOptions { stand_in: G::stand_in(options.stand_in), game: G::checked(options.game), ..options };
         let mut rooms = self.rooms.lock().unwrap();
         let code = loop {
             let code: String =

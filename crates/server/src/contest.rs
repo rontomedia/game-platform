@@ -10,11 +10,10 @@ use std::time::Duration;
 use tile_rummy::okey101::{self, Match, OkeyMove, Phase, Turn};
 use tile_rummy::plain_okey::{plain_bot_move, PlainGame, PlainMove, PlainTurn};
 use tile_rummy::{bot_move_with, salvage, within_reach, BotLevel, Game, Lookahead, Move, Rules, Tile};
-use protocol::{Notice, RuleSet, ServerMessage};
-use serde::{Deserialize, Serialize};
+use tile_rummy::protocol::{self as wire, RuleSet, RummyMessage, RummyNotice, RummyRequest, RummyRules, RUMMY_PROTOCOL};
 
 use crate::clock::Bonus;
-use platform::engine::{placings_by, ClockInfo, GameEngine, TimedOut};
+use platform::engine::{placings_by, ClockInfo, GameEngine, Request, TimedOut};
 
 /// The most tiles a player may set aside to discard next (the board's slot holds as many).
 const DISCARD_NEXT: usize = 3;
@@ -35,15 +34,6 @@ enum Kind {
     Classic(Game),
     Okey(Match),
     Plain(PlainGame),
-}
-
-/// What a room's options say about its game (the rest is the room's).
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct RummyRules {
-    pub rules: RuleSet,
-    pub tile_bonus: bool,
-    pub false_okey_marks: bool,
 }
 
 /// How the server sets up tile rummy's bots and clock.
@@ -79,9 +69,9 @@ fn size(table: &[Vec<Tile>]) -> usize {
 
 /// The notice for a player whose time ran out with `put_down` tiles on the
 /// table, `played` of them played; none if they hadn't put any down.
-fn ran_out(put_down: usize, played: usize) -> Option<ServerMessage> {
-    let notice = Notice::TimeRanOut { played: played as u32, back: put_down.saturating_sub(played) as u32 };
-    (put_down > 0).then_some(ServerMessage::Notice { notice })
+fn ran_out(put_down: usize, played: usize) -> Option<RummyMessage> {
+    let notice = RummyNotice::TimeRanOut { played: played as u32, back: put_down.saturating_sub(played) as u32 };
+    (put_down > 0).then_some(RummyMessage::Notice { notice })
 }
 
 impl Contest {
@@ -104,12 +94,36 @@ impl Contest {
 
 impl GameEngine for Contest {
     type Rules = RummyRules;
+    type Request = RummyRequest;
     type Move = RummyMove;
     type Level = BotLevel;
     type Config = RummyConfig;
-    type Message = ServerMessage;
+    type Message = RummyMessage;
     type Draft = Vec<Vec<Tile>>;
     type Aside = Vec<Tile>;
+
+    const PROTOCOL: u32 = RUMMY_PROTOCOL;
+
+    fn request(request: RummyRequest) -> Request<Contest> {
+        match request {
+            RummyRequest::Play { table } => Request::Move(RummyMove::Play(table)),
+            RummyRequest::Draw => Request::Move(RummyMove::Draw),
+            RummyRequest::Discard { take_discard, table, discard, finish } => {
+                Request::Move(RummyMove::Discard(Discard { take_discard, table, discard, finish }))
+            }
+            RummyRequest::Draft { table } => Request::Draft(table),
+            RummyRequest::DiscardNext { tiles } => Request::Aside(tiles),
+        }
+    }
+
+    fn checked(rules: RummyRules) -> RummyRules {
+        rules.checked()
+    }
+
+    /// Never Extra Hard.
+    fn stand_in(level: BotLevel) -> BotLevel {
+        wire::stand_in(level)
+    }
 
     fn new(rules: &RummyRules, players: usize, seed: u64) -> Contest {
         let game = match &rules.rules {
@@ -162,9 +176,9 @@ impl GameEngine for Contest {
         !matches!((&self.game, mv), (Kind::Okey(_) | Kind::Plain(_), RummyMove::Draw))
     }
 
-    fn apply(&mut self, seat: usize, mv: RummyMove) -> Result<(), ServerMessage> {
-        let rejected = |error| ServerMessage::Rejected { error };
-        let okey_rejected = |error| ServerMessage::OkeyRejected { error };
+    fn apply(&mut self, seat: usize, mv: RummyMove) -> Result<(), RummyMessage> {
+        let rejected = |error| RummyMessage::Rejected { error };
+        let okey_rejected = |error| RummyMessage::OkeyRejected { error };
         match (&mut self.game, mv) {
             (Kind::Classic(game), RummyMove::Play(table)) => game.play(seat, table).map_err(rejected),
             (Kind::Classic(game), RummyMove::Draw) => game.draw(seat).map(drop).map_err(rejected),
@@ -177,7 +191,7 @@ impl GameEngine for Contest {
                 game.play(seat, PlainTurn { take_discard, discard, finish }).map_err(okey_rejected)
             }
             (Kind::Classic(_), RummyMove::Discard(_)) | (Kind::Okey(_) | Kind::Plain(_), RummyMove::Play(_)) => {
-                Err(ServerMessage::Error { message: "not a move of this room's game".into() })
+                Err(RummyMessage::WrongRules)
             }
         }
     }
@@ -190,7 +204,7 @@ impl GameEngine for Contest {
     /// discarded. Plain Okey: they draw if they hadn't, then finish if their
     /// hand wins, else discard the tile they set aside, else as an Easy bot
     /// would.
-    fn time_out(&mut self, config: &RummyConfig, draft: Option<Vec<Vec<Tile>>>) -> TimedOut<ServerMessage> {
+    fn time_out(&mut self, config: &RummyConfig, draft: Option<Vec<Vec<Tile>>>) -> TimedOut<RummyMessage> {
         let seat = self.current();
         let nothing = TimedOut { kept: Duration::ZERO, notice: None };
         if let Kind::Classic(game) = &self.game {
@@ -304,21 +318,21 @@ impl GameEngine for Contest {
         }
     }
 
-    fn state(&self, seat: Option<usize>, clock: &ClockInfo, open: bool) -> ServerMessage {
+    fn state(&self, seat: Option<usize>, clock: &ClockInfo, open: bool) -> RummyMessage {
         let ClockInfo { turn_ms, banks, next_hand_ms } = clock.clone();
         let racks = open.then(|| (0..self.players()).map(|p| self.rack(p).to_vec()).collect());
         match &self.game {
             Kind::Classic(game) => {
                 let view = seat.map_or_else(|| game.watcher_view(), |seat| game.view(seat));
-                ServerMessage::State { view, turn_ms, banks, racks }
+                RummyMessage::State { view, turn_ms, banks, racks }
             }
             Kind::Okey(game) => {
                 let view = seat.map_or_else(|| game.watcher_view(), |seat| game.view(seat));
-                ServerMessage::OkeyState { view, turn_ms, banks, racks, next_hand_ms }
+                RummyMessage::OkeyState { view, turn_ms, banks, racks, next_hand_ms }
             }
             Kind::Plain(game) => {
                 let view = seat.map_or_else(|| game.watcher_view(), |seat| game.view(seat));
-                ServerMessage::PlainOkeyState { view, turn_ms, banks, racks, next_hand_ms }
+                RummyMessage::PlainOkeyState { view, turn_ms, banks, racks, next_hand_ms }
             }
         }
     }
@@ -354,8 +368,8 @@ impl GameEngine for Contest {
         }
     }
 
-    fn draft_message(&self, by: usize, draft: &Vec<Vec<Tile>>) -> Option<ServerMessage> {
-        Some(ServerMessage::Draft { by, table: draft.clone() })
+    fn draft_message(&self, by: usize, draft: &Vec<Vec<Tile>>) -> Option<RummyMessage> {
+        Some(RummyMessage::Draft { by, table: draft.clone() })
     }
 
     /// Extra time for tiles, in classic rooms with `tile_bonus`.

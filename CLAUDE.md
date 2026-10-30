@@ -25,11 +25,12 @@ a game's boards and engine WASM; `App.tsx`, `useGame.ts` and
 From the repo root:
 
 ```sh
-cargo run -p server                 # match server, ws://0.0.0.0:3000/ws
+cargo run -p server                 # match server, ws://0.0.0.0:3000/ws/<game>
 cargo run -p server -- --open-racks # the same, every rack shown to everyone (judging bots)
 # also: --lookahead OPTIONS,GAMES,ROUNDS (Extra Hard, default 1,24,2),
 # --bot-time MS (longest a bot thinks, default 1000), --bot-threads N
-# (bots thinking at once, default cores - 1); see `config` in main.rs
+# (bots thinking at once, default cores - 1), --games tile-rummy,grid
+# (the games served, default all); see `config` in main.rs
 cargo test --workspace              # one test: cargo test -p tile-rummy runs
 cargo clippy --workspace --all-targets
 cargo build -p grid-wasm --target wasm32-unknown-unknown  # not yet used by web/
@@ -116,20 +117,32 @@ only builds it on start.
   `tsify::Tsify` on the types that cross into JS; serde attributes define the
   TS shape (e.g. `Tile` is `{ kind: "number", color, value } | { kind:
   "joker" }`), and JSON field names are camelCase.
-- **`crates/protocol`**: `ClientMessage` / `ServerMessage`, one JSON text
-  frame each, tagged by `type`. Never serialize `null`: tsify types say
+- **`crates/protocol`**: the shared messages, `ClientMessage<R, L, M>` /
+  `ServerMessage<R, L, M>` (`R` the game's rules in `RoomOptions.game`,
+  `L` its bot levels, `M` its messages), one JSON text frame each, tagged
+  by `type`; a game's own ride inside as `{ type: "game", message }`,
+  defined in its engine crate (`tile_rummy::protocol`: `RummyRules`,
+  `RummyRequest`, `RummyMessage`; `grid::protocol`). Depends on no game.
+  `Welcome { protocol, game }`: `PROTOCOL_VERSION` (the shared messages)
+  and the game's own (`RUMMY_PROTOCOL`, `GRID_PROTOCOL`); bump the one
+  whose messages change incompatibly. Never serialize `null`: tsify types say
   `field?: T` for an `Option`, so use `skip_serializing_if = "Option::is_none"`
-  with `#[tsify(optional)]`. Bump `PROTOCOL_VERSION` on incompatible changes.
+  with `#[tsify(optional)]`.
   Messages say what happened, never a sentence for players: `Notice`,
   `Refusal` and `TurnError` are enums the client words in the player's
-  language (`web/src/messages.ts`); `Error { message }` is only for
+  language (`web/src/messages.ts`; tile rummy's `RummyNotice`,
+  `TurnError` and the like inside `game`); `Error { message }` is only for
   messages the server couldn't read. A new thing to tell players is a new
   variant, not text.
 - **`games/tile-rummy-wasm`**: the browser API (`wasm-bindgen`): engine
-  functions plus `protocolVersion`. wasm-pack writes JS glue and `.d.ts` into
+  functions plus `protocolVersion` and `gameProtocolVersion`. wasm-pack writes JS glue and `.d.ts` into
   `web/src/games/tile-rummy/wasm/` (gitignored), so TypeScript types for the engine *and* the
-  protocol come from Rust. A crate's tsify types only reach the `.d.ts` if the
-  crate is actually used by tile-rummy-wasm. Engine types cross as
+  protocol come from Rust. A tsify type only reaches the `.d.ts` if an
+  exported function uses it: `readServerMessage` / `readClientMessage`
+  (with `unchecked_return_type` naming the generic types filled in) bring
+  the protocol's. `web/src/games/tile-rummy/protocol.ts` names them
+  filled in (`RummyRoom`, `RummyOptions`, ...) and `wire` puts a board's
+  game requests inside `game`. Engine types cross as
   `tsify::Ts<T>` and are converted inside the function; don't use tsify's
   `into_wasm_abi`/`from_wasm_abi` (deprecated, they leak on bad input).
 - **`games/grid`** (crate `grid`): grid placement, pure like `tile_rummy`:
@@ -146,10 +159,12 @@ only builds it on start.
 - **`games/grid-wasm`**: `checkPlace`, `outcome`, `botMove`, as
   tile-rummy-wasm; not yet built into `web/`.
 - **`crates/platform`**: what every game's rooms share; depends on no
-  game and not on `protocol`.
+  game.
   - `engine.rs`: the `GameEngine` trait a game implements for the room:
-    `Rules` (the game's part of the room options), `Move`, `Level`,
-    `Config` (server setup for its bots and clock), `Message`; `new`,
+    `Rules` (the game's part of the room options), `Request` (what a
+    player sends, sorted by `request` into a move, draft or aside),
+    `Move`, `Level`, `Config` (server setup for its bots and clock),
+    `Message`, `PROTOCOL`; `checked`, `stand_in`; `new`,
     `seats`, `current`/`in_turn`/`over`, `ends_turn` (asked before
     applying, so the bank is settled first), `apply`, `time_out`
     (`TimedOut`: extra time kept, a notice), `bot_move` with `spent`,
@@ -158,10 +173,10 @@ only builds it on start.
     `placings`. Hooks with defaults, for games with live turns and extra
     time: `Draft`, `Aside`, `draft_allowed`, `draft_message`, `worth`,
     `move_draft`, `shown`, `aside`.
-  - `shared.rs`: what the room says whatever the game (`SharedMessage`:
-    joined, room, clock, notices, refusals; `RoomOptions<R, L>` with the
-    game's part flattened in), serialized as `protocol`'s; a connection
-    receives `Out<G>`, the room's message or the game's.
+  - Speaks `protocol`'s shared messages: a connection receives `Out<G>`,
+    `ServerMessage` filled in with the game's types. `Rooms::create`
+    checks the options (`checked_turn`, the game's `checked` and
+    `stand_in`); `RoomInfo` carries the game's `min_seats`/`max_seats`.
   - `rooms.rs`: open rooms of a game by 4-letter code (no I or O);
     `Rooms::new` takes the bot permits (`bot_pool`), so games can share
     them.
@@ -169,20 +184,20 @@ only builds it on start.
     players, the game and the turn timer; connections send it
     `Command<G>`s over a channel, so game state has no locks.
   - Tested with a counting game (`tests.rs`, a paused clock).
-- **`crates/server`**: tokio + axum match server, `/ws` WebSocket route,
-  serving tile rummy's rooms (`Rooms<Contest>`). `contest.rs` is tile
-  rummy's `GameEngine` (`RummyRules`, `RummyMove`, `RummyConfig`: Extra
-  Hard's `Lookahead` and `clock.rs`'s `Bonus`); `wire.rs` turns the
-  room's messages and options into `protocol`'s, one to one. `grid.rs`
-  is grid placement's (`GridMatch`, a newtype: the trait and
-  `grid::Game` are both foreign there), not served yet: `grid_tests.rs`
-  drives it through the room's commands.
+- **`crates/server`**: tokio + axum match server, a WebSocket route per
+  game (`/ws/tile-rummy`, `/ws/grid`; `--games` picks which), each with
+  its own `Rooms<G>` (room codes are a game's own) and one shared bot
+  pool. `connection.rs` is generic over the game. `contest.rs` is tile
+  rummy's `GameEngine` (`RummyMove`, `RummyConfig`: Extra Hard's
+  `Lookahead` and `clock.rs`'s `Bonus`); `grid.rs` grid placement's
+  (`GridMatch`, a newtype: the trait and `grid::Game` are both foreign
+  there); `grid_tests.rs` drives it through the room's commands.
   - The room (`platform`'s `room.rs`, as tile rummy uses it): players
     are identified by a stable `PlayerId` (seats shift when those who
     left are dropped at the start)
     and keep their seat across lost connections with a token (`rejoin`).
     `RoomOptions` (chosen on the home screen): turn length (30 s to 3 min,
-    default 1 min; `checked()` keeps it to `TURN_SECONDS`), a time bank
+    default 1 min; `checked_turn()` keeps it to `TURN_SECONDS`), a time bank
     (2 min a player, used once a turn's own time runs out; not while away;
     `settle_bank` charges it before each move; time left when a player ends
     their turn is added, up to 3 min, less any extra time they were given
@@ -399,7 +414,7 @@ only builds it on start.
   - Planned: shadcn/ui for menus, `@heroiclabs/nakama-js` for
     accounts/matchmaking.
 
-The client reaches the server at `/ws` on its own origin: Vite proxies it to
-port 3000 in development (`vite.config.ts`), and `VITE_SERVER_URL`
+The client reaches the server at `/ws/<game>` on its own origin: Vite proxies `/ws` to
+port 3000 in development (`vite.config.ts`), and `VITE_SERVER_URL` (up to `/ws`)
 overrides it. Vite listens on all interfaces, so a phone on the LAN can open
 `http://<pc-ip>:5173`.

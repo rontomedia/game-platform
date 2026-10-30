@@ -56,7 +56,8 @@ import { Button } from '../../platform/ui.tsx'
 import { useNow } from '../../platform/useNow.ts'
 import { useTableMetrics, type Metrics } from './useTableMetrics.ts'
 import type { Draft, GameState, Status, TurnRecord } from '../../useGame.ts'
-import { checkTurn, classifySet, type ClientMessage, type Notice, type RoomInfo, type Tile } from './wasm/engine.js'
+import { checkTurn, classifySet, type Tile } from './wasm/engine.js'
+import type { AnyNotice, Outgoing, RummyRoom } from './protocol.ts'
 
 /**
  * The game screen: players along the top, the table in the middle, the rack
@@ -252,18 +253,18 @@ export function Board({
   leave,
 }: {
   game: GameState
-  room: RoomInfo
+  room: RummyRoom
   status: Status
   problem: Problem | null
   /** A warning from the server, for a while. */
-  notice: Notice | null
+  notice: AnyNotice | null
   settings: Settings
   onSettings: (change: Partial<Settings>) => void
   arrangement: Arrangement
   onArrange: (arrangement: Arrangement) => void
   /** The current player's table so far, if they share it and this player watches. */
   draft: Draft | null
-  send: (message: ClientMessage) => void
+  send: (message: Outgoing) => void
   leave: () => void
 }) {
   const { t } = useTranslation()
@@ -1255,7 +1256,7 @@ export function TopBar({
   onSettings,
   leave,
 }: {
-  room: RoomInfo
+  room: RummyRoom
   view: TopBarView
   clock: (seat: number) => Clock
   status: Status
@@ -1624,11 +1625,11 @@ export function WatchBar({
   noteColor,
   send,
 }: {
-  room: RoomInfo
+  room: RummyRoom
   over: boolean
   note: string
   noteColor: string
-  send: (message: ClientMessage) => void
+  send: (message: Outgoing) => void
 }) {
   const { t } = useTranslation()
   const host = room.watching !== undefined && room.watchers[room.watching]?.host
