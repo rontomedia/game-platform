@@ -473,6 +473,9 @@
     "yourTurn": "Jste na tahu: vyberte volné pole.",
     "draw": "Remíza: mřížka je plná.",
     "rules": "{{line}} v řadě na {{width}} × {{height}}",
-    "goal": "Střídavě označujete volné pole: vyhrává ten, kdo první spojí {{line}} v řadě."
+    "goal": "Střídavě označujete volné pole: vyhrává ten, kdo první spojí {{line}} v řadě.",
+    "yourTurnStone": "Jste na tahu: položte kámen na volný průsečík.",
+    "black": "Černý",
+    "white": "Bílý"
   }
 }

@@ -435,6 +435,9 @@
     "yourTurn": "Your turn: choose a free cell.",
     "draw": "A draw: the grid is full.",
     "rules": "{{line}} in a row on {{width}} × {{height}}",
-    "goal": "Take turns marking a free cell: the first with {{line}} in a row wins."
+    "goal": "Take turns marking a free cell: the first with {{line}} in a row wins.",
+    "yourTurnStone": "Your turn: place a stone on a free point.",
+    "black": "Black",
+    "white": "White"
   }
 }

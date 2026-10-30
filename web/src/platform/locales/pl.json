@@ -473,6 +473,9 @@
     "yourTurn": "Twój ruch: wybierz wolne pole.",
     "draw": "Remis: plansza jest pełna.",
     "rules": "{{line}} w rzędzie na planszy {{width}} × {{height}}",
-    "goal": "Na zmianę zaznaczacie wolne pola: wygrywa pierwszy, kto ułoży {{line}} w rzędzie."
+    "goal": "Na zmianę zaznaczacie wolne pola: wygrywa pierwszy, kto ułoży {{line}} w rzędzie.",
+    "yourTurnStone": "Twój ruch: postaw kamień na wolnym przecięciu.",
+    "black": "Czarne",
+    "white": "Białe"
   }
 }

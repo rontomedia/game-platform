@@ -454,6 +454,9 @@
     "yourTurn": "Tocca a te: scegli una casella libera.",
     "draw": "Pareggio: la griglia è piena.",
     "rules": "{{line}} in fila su {{width}} × {{height}}",
-    "goal": "A turno si segna una casella libera: vince chi mette per primo {{line}} in fila."
+    "goal": "A turno si segna una casella libera: vince chi mette per primo {{line}} in fila.",
+    "yourTurnStone": "Tocca a te: metti una pietra su un incrocio libero.",
+    "black": "Nero",
+    "white": "Bianco"
   }
 }

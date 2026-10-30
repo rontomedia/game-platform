@@ -1,5 +1,5 @@
 import { motion } from 'motion/react'
-import { useState, type CSSProperties } from 'react'
+import { useCallback, useState, type CSSProperties } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import { LeaveMenu } from '../../platform/LeaveMenu.tsx'
@@ -10,6 +10,7 @@ import { useNow } from '../../platform/useNow.ts'
 import type { Status } from '../../platform/useRoom.ts'
 import { WatchBar } from '../../platform/WatchBar.tsx'
 import type { GridOutgoing, GridRoom } from './protocol.ts'
+import { StoneBoard, StoneFace, type PaperLines } from './StoneBoard.tsx'
 import type { GridGame } from './useGrid.ts'
 import { checkPlace, type Cell, type Square } from './wasm/engine.js'
 
@@ -77,9 +78,21 @@ export function GridBoard({
   const winning = new Set(outcome?.line.map((cell) => cell.row * rules.width + cell.col))
   const last = view.moves.at(-1)
   const lastIndex = last && last.row * rules.width + last.col
-  // Tic-Tac-Toe's grid is drawn as by hand, inner lines only; a big one ruled through.
-  const small = rules.width * rules.height <= 25
-  const ink = small ? '4px solid var(--grid-ink)' : '1px solid color-mix(in srgb, var(--grid-ink) 35%, transparent)'
+  // Tic-Tac-Toe's grid is drawn as by hand, inner lines only, marks in its
+  // cells; a big one (Gomoku) is a board of lines with stones on their
+  // intersections, drawn over the paper's own lines (`paper`).
+  const stones = rules.width * rules.height > 25
+  const ink = '4px solid var(--grid-ink)'
+  const [paper, setPaper] = useState<PaperLines | null>(null)
+  const onPaper = useCallback(
+    (lines: PaperLines) =>
+      setPaper((old) => (old && old.size === lines.size && old.x === lines.x && old.y === lines.y ? old : lines)),
+    [],
+  )
+  const sheet: CSSProperties | undefined =
+    stones && paper
+      ? { backgroundSize: `${paper.size}px ${paper.size}px`, backgroundPosition: `${paper.x}px ${paper.y}px` }
+      : undefined
 
   const note = outcome
     ? outcome.winner === undefined
@@ -90,12 +103,12 @@ export function GridBoard({
     : room.paused
       ? t('board.paused', { name: name(view.current) })
       : yourTurn
-        ? t('grid.yourTurn')
+        ? t(stones ? 'grid.yourTurnStone' : 'grid.yourTurn')
         : t('board.playing', { name: name(view.current) })
   const shown = local ?? problem
 
   return (
-    <div className={`paper paper-${settings.paper}`}>
+    <div className={`paper paper-${settings.paper}`} style={sheet}>
       <div className="mx-auto flex h-dvh max-w-5xl flex-col gap-3 p-3 sm:gap-4 sm:p-4">
         <header className="flex items-center gap-3">
           <div className="hidden shrink-0 items-baseline gap-2 md:flex">
@@ -108,6 +121,7 @@ export function GridBoard({
                 key={seat}
                 name={name(seat)}
                 mark={seat === 0 ? 'x' : 'o'}
+                stones={stones}
                 you={seat === view.you}
                 bot={room.seats[seat]?.bot !== undefined}
                 connected={room.seats[seat]?.connected ?? false}
@@ -128,6 +142,16 @@ export function GridBoard({
         </header>
 
         <main className="grid min-h-0 flex-1 place-items-center p-2 sm:p-6">
+          {stones ? (
+            <StoneBoard
+              view={view}
+              preview={yourTurn && !sent ? (view.you === 0 ? 'black' : 'white') : undefined}
+              winning={outcome?.line ?? []}
+              last={last}
+              onPaper={onPaper}
+              onPlace={place}
+            />
+          ) : (
           <div
             className="grid w-[min(100%,calc(100dvh-15rem))]"
             style={{ gridTemplateColumns: `repeat(${rules.width}, minmax(0, 1fr))`, aspectRatio: `${rules.width} / ${rules.height}` }}
@@ -137,12 +161,10 @@ export function GridBoard({
           >
             {view.board.map((square, index) => {
               const cell = { row: Math.floor(index / rules.width), col: index % rules.width }
-              // By hand: no lines along the edge; ruled: every cell's.
+              // By hand: no lines along the edge.
               const lines: CSSProperties = {
-                borderRight: !small || cell.col < rules.width - 1 ? ink : undefined,
-                borderBottom: !small || cell.row < rules.height - 1 ? ink : undefined,
-                borderLeft: !small && cell.col === 0 ? ink : undefined,
-                borderTop: !small && cell.row === 0 ? ink : undefined,
+                borderRight: cell.col < rules.width - 1 ? ink : undefined,
+                borderBottom: cell.row < rules.height - 1 ? ink : undefined,
               }
               return (
                 <GridCell
@@ -151,13 +173,14 @@ export function GridBoard({
                   preview={yourTurn && square === 'empty' && !sent ? (view.you === 0 ? 'x' : 'o') : undefined}
                   winning={winning.has(index)}
                   last={index === lastIndex}
-                  pen={small ? 2.6 : 3.4}
+                  pen={2.6}
                   style={lines}
                   onClick={() => place(cell)}
                 />
               )
             })}
           </div>
+          )}
         </main>
 
         {view.you === undefined ? (
@@ -252,6 +275,7 @@ function Mark({ mark, pen = 2.6, draw = false }: { mark: 'x' | 'o'; pen?: number
 function PlayerChip({
   name,
   mark,
+  stones,
   you,
   bot,
   connected,
@@ -262,6 +286,8 @@ function PlayerChip({
 }: {
   name: string
   mark: 'x' | 'o'
+  /** Shown as a stone (Gomoku), black for X. */
+  stones: boolean
   you: boolean
   bot: boolean
   connected: boolean
@@ -281,12 +307,12 @@ function PlayerChip({
         winner
           ? { background: 'var(--highlight)' }
           : current
-            ? { boxShadow: `0 0 0 2px ${mark === 'x' ? 'var(--pen-x)' : 'var(--pen-o)'}` }
+            ? { boxShadow: `0 0 0 2px ${stones ? 'var(--ink)' : mark === 'x' ? 'var(--pen-x)' : 'var(--pen-o)'}` }
             : undefined
       }
     >
       <span className="grid size-9 place-items-center p-1.5">
-        <Mark mark={mark} />
+        {stones ? <StoneFace stone={mark === 'x' ? 'black' : 'white'} /> : <Mark mark={mark} />}
       </span>
       <div className="leading-tight">
         <div className="max-w-32 truncate text-sm font-semibold">
@@ -300,7 +326,7 @@ function PlayerChip({
               {banking ? t('board.bank', { time: minutes(seconds) }) : t('board.seconds', { n: seconds })}
             </span>
           ) : connected ? (
-            mark.toUpperCase()
+            stones ? t(mark === 'x' ? 'grid.black' : 'grid.white') : mark.toUpperCase()
           ) : (
             t('board.away')
           )}

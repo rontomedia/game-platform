@@ -435,6 +435,9 @@
     "yourTurn": "Din tur: välj en ledig ruta.",
     "draw": "Oavgjort: rutnätet är fullt.",
     "rules": "{{line}} i rad på {{width}} × {{height}}",
-    "goal": "Markera en ledig ruta i tur och ordning: först med {{line}} i rad vinner."
+    "goal": "Markera en ledig ruta i tur och ordning: först med {{line}} i rad vinner.",
+    "yourTurnStone": "Din tur: lägg en sten på en ledig korsning.",
+    "black": "Svart",
+    "white": "Vit"
   }
 }

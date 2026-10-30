@@ -454,6 +454,9 @@
     "yourTurn": "Tu turno: elige una casilla libre.",
     "draw": "Empate: la cuadrícula está llena.",
     "rules": "{{line}} en línea en {{width}} × {{height}}",
-    "goal": "Marcad por turnos una casilla libre: gana el primero con {{line}} en línea."
+    "goal": "Marcad por turnos una casilla libre: gana el primero con {{line}} en línea.",
+    "yourTurnStone": "Tu turno: coloca una piedra en una intersección libre.",
+    "black": "Negras",
+    "white": "Blancas"
   }
 }

@@ -454,6 +454,9 @@
     "yourTurn": "Sua vez: escolha uma casa livre.",
     "draw": "Empate: a grade está cheia.",
     "rules": "{{line}} em linha em {{width}} × {{height}}",
-    "goal": "Marquem uma casa livre por vez: vence quem fizer {{line}} em linha primeiro."
+    "goal": "Marquem uma casa livre por vez: vence quem fizer {{line}} em linha primeiro.",
+    "yourTurnStone": "Sua vez: coloque uma pedra num cruzamento livre.",
+    "black": "Pretas",
+    "white": "Brancas"
   }
 }

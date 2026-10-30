@@ -454,6 +454,9 @@
     "yourTurn": "À vous : choisissez une case libre.",
     "draw": "Match nul : la grille est pleine.",
     "rules": "{{line}} alignés sur {{width}} × {{height}}",
-    "goal": "Chacun à son tour marque une case libre : le premier à en aligner {{line}} gagne."
+    "goal": "Chacun à son tour marque une case libre : le premier à en aligner {{line}} gagne.",
+    "yourTurnStone": "À vous : posez une pierre sur une intersection libre.",
+    "black": "Noirs",
+    "white": "Blancs"
   }
 }

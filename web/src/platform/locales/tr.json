@@ -435,6 +435,9 @@
     "yourTurn": "Sıra sende: boş bir kare seç.",
     "draw": "Berabere: tahta doldu.",
     "rules": "{{width}} × {{height}} tahtada {{line}} sıra",
-    "goal": "Sırayla boş bir kareyi işaretleyin: ilk {{line}} tanesini sıraya dizen kazanır."
+    "goal": "Sırayla boş bir kareyi işaretleyin: ilk {{line}} tanesini sıraya dizen kazanır.",
+    "yourTurnStone": "Sıra sende: boş bir kesişime taş koy.",
+    "black": "Siyah",
+    "white": "Beyaz"
   }
 }

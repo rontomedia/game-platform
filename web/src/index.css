@@ -297,6 +297,9 @@ body {
   --touch: rgb(70 120 210 / 0.09);
   --card: rgb(255 255 255 / 0.75);
   --card-line: rgb(31 42 68 / 0.12);
+  /* Gomoku's stones: a rim so each shows on the sheet. */
+  --rim-black: rgb(0 0 0 / 0.3);
+  --rim-white: rgb(31 42 68 / 0.45);
 }
 .paper-dark {
   --paper: #1b1e25;
@@ -310,6 +313,8 @@ body {
   --touch: rgb(255 255 255 / 0.05);
   --card: rgb(255 255 255 / 0.05);
   --card-line: rgb(255 255 255 / 0.1);
+  --rim-black: rgb(255 255 255 / 0.5);
+  --rim-white: rgb(0 0 0 / 0.35);
 }
 /* A card on the paper: the player chips, the line under the board, the watch bar. */
 .paper .paper-card,

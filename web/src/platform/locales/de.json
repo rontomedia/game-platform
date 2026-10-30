@@ -435,6 +435,9 @@
     "yourTurn": "Du bist dran: wähle ein freies Feld.",
     "draw": "Unentschieden: das Feld ist voll.",
     "rules": "{{line}} in einer Reihe auf {{width}} × {{height}}",
-    "goal": "Abwechselnd wird ein freies Feld markiert: Wer zuerst {{line}} in einer Reihe hat, gewinnt."
+    "goal": "Abwechselnd wird ein freies Feld markiert: Wer zuerst {{line}} in einer Reihe hat, gewinnt.",
+    "yourTurnStone": "Du bist dran: setz einen Stein auf einen freien Schnittpunkt.",
+    "black": "Schwarz",
+    "white": "Weiß"
   }
 }

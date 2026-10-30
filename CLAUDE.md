@@ -280,10 +280,16 @@ only builds it on start.
     `protocol.ts` (the generic types filled in), `messages.ts`, the boards.
   - `games/grid/`: `GridApp.tsx`, `useGrid.ts`, `GridBoard.tsx`: the grid
     on paper (`.paper` in `index.css`; light, or dark as a setting,
-    `Settings.paper`), Tic-Tac-Toe's lines by hand, Gomoku's ruled, marks
-    drawn in pen (Motion `pathLength`), the winning line highlighted; a
-    click places a mark (checked first, `checkPlace`). Paper games keep
-    this look; the tile games keep the felt and tray.
+    `Settings.paper`), the winning line highlighted; a click places a
+    mark (checked first, `checkPlace`). Tic-Tac-Toe: lines by hand, X and
+    O drawn in pen in the cells (Motion `pathLength`). Gomoku
+    (`StoneBoard.tsx`, any grid over 25 cells): black and white stones on
+    the intersections (black first; a rim, `--rim-*`, shows each on either
+    sheet), star points, the last stone dotted; its lines are the paper's
+    own drawn thicker: the board's spacing is a whole even number of
+    pixels and the page's paper takes that spacing and offset
+    (`onPaper`), re-measured as the board's area changes. Paper games
+    keep this look; the tile games keep the felt and tray.
   - Room options on the home screen: only turn time is always shown; the
     rest are under "Advanced settings" (`Advanced` in `platform/RoomScreens.tsx`, folded,
     showing how many differ from the defaults). A new room option goes

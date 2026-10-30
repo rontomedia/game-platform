@@ -454,6 +454,9 @@
     "yourTurn": "E rândul tău: alege o căsuță liberă.",
     "draw": "Egalitate: grila e plină.",
     "rules": "{{line}} în linie pe {{width}} × {{height}}",
-    "goal": "Pe rând, marcați o căsuță liberă: câștigă primul care are {{line}} în linie."
+    "goal": "Pe rând, marcați o căsuță liberă: câștigă primul care are {{line}} în linie.",
+    "yourTurnStone": "E rândul tău: pune o piatră pe o intersecție liberă.",
+    "black": "Negru",
+    "white": "Alb"
   }
 }

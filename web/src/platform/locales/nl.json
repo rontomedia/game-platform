@@ -435,6 +435,9 @@
     "yourTurn": "Jij bent aan de beurt: kies een vrij vakje.",
     "draw": "Gelijkspel: het raster is vol.",
     "rules": "{{line}} op een rij op {{width}} × {{height}}",
-    "goal": "Om de beurt markeer je een vrij vakje: wie het eerst {{line}} op een rij heeft, wint."
+    "goal": "Om de beurt markeer je een vrij vakje: wie het eerst {{line}} op een rij heeft, wint.",
+    "yourTurnStone": "Jij bent aan de beurt: leg een steen op een vrij snijpunt.",
+    "black": "Zwart",
+    "white": "Wit"
   }
 }
