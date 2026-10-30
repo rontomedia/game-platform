@@ -438,7 +438,8 @@
     "offBoard": "격자 위의 칸이 아닙니다.",
     "over": "게임이 끝났습니다.",
     "closed": "그 판은 이미 끝났습니다.",
-    "noLetter": "먼저 S나 O를 고르세요."
+    "noLetter": "먼저 S나 O를 고르세요.",
+    "wrongBoard": "강조된 판에 두세요."
   },
   "grid": {
     "ticTacToe": "틱택토",
@@ -464,6 +465,11 @@
     "letter": "글자",
     "letterKey": "{{letter}} 쓰기 ({{letter}} 키)",
     "points": "점",
-    "size": "{{width}} × {{height}}"
+    "size": "{{width}} × {{height}}",
+    "ultimate": "얼티밋 틱택토",
+    "goalUltimate": "아홉 판이 하나로: 내가 둔 칸의 위치가 상대가 둘 판이 됩니다. 세 개를 한 줄로 놓으면 그 판을 얻고, 판 세 개를 한 줄로 얻으면 이깁니다.",
+    "yourTurnBoard": "내 차례: 강조된 판의 빈칸을 고르세요.",
+    "yourTurnAnyBoard": "내 차례: 열린 판 어디든 빈칸을 고르세요.",
+    "nineBoards": "3 × 3 판 9개"
   }
 }

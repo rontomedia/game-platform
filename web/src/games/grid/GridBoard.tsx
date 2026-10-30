@@ -13,7 +13,7 @@ import type { GridOutgoing, GridRoom } from './protocol.ts'
 import { StoneBoard, StoneFace, type PaperLines } from './StoneBoard.tsx'
 import type { GridGame } from './useGrid.ts'
 import { Mark, type Shape } from './marks.tsx'
-import { checkPlace, type Cell, type Letter, type Line, type Square } from './wasm/engine.js'
+import { checkPlace, type Cell, type GridView, type Letter, type Line, type Square } from './wasm/engine.js'
 
 /** Seconds left at which the clock turns amber. */
 const LOW_TIME = 10
@@ -89,7 +89,7 @@ export function GridBoard({
     return { turn, bank }
   }
 
-  const columns = rules.width * rules.boards
+  const columns = rules.width * (rules.ruleSet === 'ultimate' ? 3 : rules.boards)
   const winning = new Set(outcome?.line.map((cell) => cell.row * columns + cell.col))
   const last = view.moves.at(-1)
   const lastIndex = last && last.row * columns + last.col
@@ -98,6 +98,7 @@ export function GridBoard({
   // a board of lines with stones on their intersections, drawn over the
   // paper's own lines (`paper`).
   const notakto = rules.ruleSet === 'notakto'
+  const ultimate = rules.ruleSet === 'ultimate'
   const stones = (rules.ruleSet === 'ticTacToe' || rules.ruleSet === 'gomoku') && rules.width * rules.height > 25
   const [paper, setPaper] = useState<PaperLines | null>(null)
   const onPaper = useCallback(
@@ -110,10 +111,11 @@ export function GridBoard({
       ? { backgroundSize: `${paper.size}px ${paper.size}px`, backgroundPosition: `${paper.x}px ${paper.y}px` }
       : undefined
   const preview = yourTurn && !sent ? (sos ? letter : notakto || view.you === 0 ? 'x' : 'o') : undefined
-  /** The squares of board `b` (of Notakto's), row by row, with their cells. */
+  /** The squares of board `b` (of Notakto's, side by side, or Ultimate's, 3 × 3), row by row, with their cells. */
   const boardCells = (b: number) =>
     Array.from({ length: rules.width * rules.height }, (_, i) => {
-      const cell = { row: Math.floor(i / rules.width), col: b * rules.width + (i % rules.width) }
+      const [across, down] = ultimate ? [b % 3, Math.floor(b / 3)] : [b, 0]
+      const cell = { row: down * rules.height + Math.floor(i / rules.width), col: across * rules.width + (i % rules.width) }
       const index = cell.row * columns + cell.col
       return { cell, index, square: view.board[index] }
     })
@@ -129,7 +131,19 @@ export function GridBoard({
     : room.paused
       ? t('board.paused', { name: name(view.current) })
       : yourTurn
-        ? t(again ? 'grid.again' : sos ? 'grid.yourTurnSos' : stones ? 'grid.yourTurnStone' : 'grid.yourTurn')
+        ? t(
+            again
+              ? 'grid.again'
+              : sos
+                ? 'grid.yourTurnSos'
+                : ultimate
+                  ? view.nextBoard === undefined
+                    ? 'grid.yourTurnAnyBoard'
+                    : 'grid.yourTurnBoard'
+                  : stones
+                    ? 'grid.yourTurnStone'
+                    : 'grid.yourTurn',
+          )
         : t('board.playing', { name: name(view.current) })
   const shown = local ?? problem
 
@@ -176,6 +190,14 @@ export function GridBoard({
               winning={outcome?.line ?? []}
               last={last}
               onPaper={onPaper}
+              onPlace={place}
+            />
+          ) : ultimate ? (
+            <UltimateBoard
+              view={view}
+              cells={boardCells}
+              preview={preview}
+              lastIndex={lastIndex}
               onPlace={place}
             />
           ) : notakto ? (
@@ -350,6 +372,98 @@ function NotaktoBoards({
         )
       })}
     </div>
+  )
+}
+
+/**
+ * Ultimate Tic-Tac-Toe's nine boards in a 3 × 3, between thick lines: the
+ * one the player to move is sent to highlighted, a won board under its
+ * winner's big mark, a full one faded; three won in a row struck through.
+ */
+function UltimateBoard({
+  view,
+  cells,
+  preview,
+  lastIndex,
+  onPlace,
+}: {
+  view: GridView
+  cells: (board: number) => BoardCell[]
+  preview?: Shape
+  lastIndex?: number
+  onPlace: (cell: Cell) => void
+}) {
+  const { t } = useTranslation()
+  const ink = '5px solid var(--grid-ink)'
+  const none = new Set<number>()
+  const { outcome } = view
+  return (
+    <div className="relative grid aspect-square w-[min(100%,calc(100dvh-15rem))] grid-cols-3 grid-rows-3" dir="ltr">
+      {Array.from({ length: 9 }, (_, b) => {
+        const squares = cells(b)
+        const won = view.lines.find((line) => boardOf(line.cells[0]) === b)
+        const full = squares.every(({ square }) => square !== 'empty')
+        const closed = !!won || full
+        const target = !outcome && !closed && (view.nextBoard === undefined || view.nextBoard === b)
+        return (
+          <div
+            key={b}
+            className="relative p-[7%] transition-colors"
+            style={{
+              borderRight: b % 3 < 2 ? ink : undefined,
+              borderBottom: b < 6 ? ink : undefined,
+              background: target && view.nextBoard !== undefined ? 'var(--highlight)' : undefined,
+            }}
+          >
+            <div style={{ opacity: won ? 0.3 : full ? 0.5 : 1 }}>
+              <MarkGrid
+                className="w-full"
+                width={3}
+                height={3}
+                cells={squares}
+                preview={target ? preview : undefined}
+                winning={none}
+                lastIndex={lastIndex}
+                label={t('grid.board', { n: b + 1 })}
+                pen={3.2}
+                ink="2px solid var(--grid-ink)"
+                closed={!target}
+                onPlace={onPlace}
+              />
+            </div>
+            {won && (
+              <span className="pointer-events-none absolute inset-[10%]">
+                <Mark mark={won.seat === 0 ? 'x' : 'o'} pen={2.2} draw />
+              </span>
+            )}
+          </div>
+        )
+      })}
+      {outcome && outcome.line.length > 0 && <BigLine cells={outcome.line} />}
+    </div>
+  )
+}
+
+/** Ultimate's board (0-8, row by row) a cell of the 9 × 9 grid is on. */
+const boardOf = (cell: Cell) => Math.floor(cell.row / 3) * 3 + Math.floor(cell.col / 3)
+
+/** A pen stroke through three won boards' middles, over the 9 × 9 grid. */
+function BigLine({ cells }: { cells: Cell[] }) {
+  const [first, end] = [cells[0], cells[cells.length - 1]]
+  const [x1, y1, x2, y2] = [first.col * 10 + 5, first.row * 10 + 5, end.col * 10 + 5, end.row * 10 + 5]
+  const [dx, dy] = [(x2 - x1) * 0.2, (y2 - y1) * 0.2]
+  return (
+    <svg viewBox="0 0 90 90" className="pointer-events-none absolute inset-0 size-full" aria-hidden>
+      <motion.path
+        d={`M${x1 - dx} ${y1 - dy}L${x2 + dx} ${y2 + dy}`}
+        stroke="var(--ink)"
+        strokeWidth={2.2}
+        strokeLinecap="round"
+        initial={{ pathLength: 0 }}
+        animate={{ pathLength: 1 }}
+        transition={{ duration: 0.45, delay: 0.5, ease: 'easeOut' }}
+      />
+    </svg>
   )
 }
 

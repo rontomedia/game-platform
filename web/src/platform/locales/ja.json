@@ -438,7 +438,8 @@
     "offBoard": "そのマスは盤上にありません。",
     "over": "ゲームは終了しました。",
     "closed": "その盤はもう終わっています。",
-    "noLetter": "先に S か O を選んでください。"
+    "noLetter": "先に S か O を選んでください。",
+    "wrongBoard": "強調された盤に書いてください。"
   },
   "grid": {
     "ticTacToe": "三目並べ",
@@ -464,6 +465,11 @@
     "letter": "文字",
     "letterKey": "{{letter}} を書く（{{letter}} キー）",
     "points": "点",
-    "size": "{{width}} × {{height}}"
+    "size": "{{width}} × {{height}}",
+    "ultimate": "アルティメット三目並べ",
+    "goalUltimate": "9 つの盤が 1 つに。あなたが書いたマスの位置が、相手の次の盤になります。3 つ並べてその盤を取り、取った盤を 3 つ並べれば勝ち。",
+    "yourTurnBoard": "あなたの番です。強調された盤の空いているマスを選んでください。",
+    "yourTurnAnyBoard": "あなたの番です。開いているどの盤の空いているマスでも選べます。",
+    "nineBoards": "3 × 3 の盤が 9 つ"
   }
 }

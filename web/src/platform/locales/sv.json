@@ -457,7 +457,8 @@
     "offBoard": "Rutan finns inte i rutnätet.",
     "over": "Spelet är slut.",
     "closed": "Det brädet är stängt.",
-    "noLetter": "Välj S eller O först."
+    "noLetter": "Välj S eller O först.",
+    "wrongBoard": "Spela i den markerade brädan."
   },
   "grid": {
     "ticTacToe": "Tre i rad",
@@ -484,6 +485,11 @@
     "letter": "Bokstav",
     "letterKey": "Skriv {{letter}} (tangent {{letter}})",
     "points": "poäng",
-    "size": "{{width}} × {{height}}"
+    "size": "{{width}} × {{height}}",
+    "ultimate": "Ultimate tre i rad",
+    "goalUltimate": "Nio brädor i en: rutan du spelar i skickar motspelaren till den brädan. Tre i rad vinner en bräda, tre brädor i rad vinner spelet.",
+    "yourTurnBoard": "Din tur: välj en ledig ruta i den markerade brädan.",
+    "yourTurnAnyBoard": "Din tur: välj en ledig ruta i valfri öppen bräda.",
+    "nineBoards": "9 brädor om 3 × 3"
   }
 }

@@ -17,7 +17,7 @@ import initEngine, { gameProtocolVersion, protocolVersion, type BotLevel, type R
 await initEngine()
 
 /**
- * Grid games' page (Tic-Tac-Toe, Gomoku, Notakto, S.O.S): home, lobby and board. `kind`:
+ * Grid games' page (Tic-Tac-Toe, Ultimate, Notakto, Gomoku, S.O.S): home, lobby and board. `kind`:
  * the rule set the home screen starts on (its page's).
  */
 export default function GridApp({ kind }: { kind?: RuleSet }) {
@@ -84,7 +84,7 @@ interface Choices {
 const defaultChoices: Choices = { ruleSet: 'ticTacToe', turnSeconds: 60, timeBank: false, standIn: 'medium', boards: 3 }
 
 /** The rule sets, in the order the home screen offers them. */
-const RULE_SETS = ['ticTacToe', 'gomoku', 'notakto', 'sos'] as const
+const RULE_SETS = ['ticTacToe', 'ultimate', 'notakto', 'gomoku', 'sos'] as const
 
 /** Remembered across visits: the options the player last created a grid room with. */
 const OPTIONS_KEY = 'grid.roomOptions'
@@ -101,6 +101,7 @@ function goal(t: TFunction, ruleSet: RuleSet): string {
   if (ruleSet === 'gomoku') return t('grid.goalStone', { line })
   if (ruleSet === 'notakto') return t('grid.goalNotakto')
   if (ruleSet === 'sos') return t('grid.goalSos')
+  if (ruleSet === 'ultimate') return t('grid.goalUltimate')
   return t('grid.goal', { line })
 }
 
@@ -182,6 +183,8 @@ function describe(t: TFunction, options: GridOptions): string {
         ? t('grid.boardsCount', { count: boards })
         : ruleSet === 'sos'
           ? t('grid.size', { width, height })
+          : ruleSet === 'ultimate'
+            ? t('grid.nineBoards')
           : t('grid.rules', { line, width, height })
     }`,
   ]

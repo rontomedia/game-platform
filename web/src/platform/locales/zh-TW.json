@@ -438,7 +438,8 @@
     "offBoard": "這個格子不在棋盤上。",
     "over": "遊戲已結束。",
     "closed": "這個棋盤已經結束了。",
-    "noLetter": "請先選 S 或 O。"
+    "noLetter": "請先選 S 或 O。",
+    "wrongBoard": "請在醒目的棋盤裡下。"
   },
   "grid": {
     "ticTacToe": "井字棋",
@@ -464,6 +465,11 @@
     "letter": "字母",
     "letterKey": "寫 {{letter}}（按鍵 {{letter}}）",
     "points": "分",
-    "size": "{{width}} × {{height}}"
+    "size": "{{width}} × {{height}}",
+    "ultimate": "終極井字棋",
+    "goalUltimate": "九個棋盤合為一體：你下的格子位置決定對手下一步的棋盤。連成三個贏下該棋盤，三個棋盤連成一線贏得比賽。",
+    "yourTurnBoard": "輪到你了：在醒目的棋盤裡選一個空格。",
+    "yourTurnAnyBoard": "輪到你了：在任一未結束的棋盤裡選一個空格。",
+    "nineBoards": "9 個 3 × 3 棋盤"
   }
 }

@@ -457,7 +457,8 @@
     "offBoard": "Dat vakje ligt niet in het raster.",
     "over": "Het spel is afgelopen.",
     "closed": "Dat bord is al gesloten.",
-    "noLetter": "Kies eerst S of O."
+    "noLetter": "Kies eerst S of O.",
+    "wrongBoard": "Speel in het gemarkeerde bord."
   },
   "grid": {
     "ticTacToe": "Boter-kaas-en-eieren",
@@ -484,6 +485,11 @@
     "letter": "Letter",
     "letterKey": "{{letter}} schrijven (toets {{letter}})",
     "points": "punten",
-    "size": "{{width}} × {{height}}"
+    "size": "{{width}} × {{height}}",
+    "ultimate": "Ultimate boter-kaas-en-eieren",
+    "goalUltimate": "Negen borden in één: waar je speelt, stuurt de ander naar dat bord. Drie op een rij winnen een bord, drie borden op een rij het spel.",
+    "yourTurnBoard": "Jij bent aan de beurt: kies een vrij vakje in het gemarkeerde bord.",
+    "yourTurnAnyBoard": "Jij bent aan de beurt: kies een vrij vakje in een open bord.",
+    "nineBoards": "9 borden van 3 × 3"
   }
 }

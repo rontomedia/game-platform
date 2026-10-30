@@ -457,7 +457,8 @@
     "offBoard": "Dieses Feld liegt nicht im Raster.",
     "over": "Das Spiel ist vorbei.",
     "closed": "Dieses Feld ist schon beendet.",
-    "noLetter": "Wähle zuerst S oder O."
+    "noLetter": "Wähle zuerst S oder O.",
+    "wrongBoard": "Spiel im hervorgehobenen Feld."
   },
   "grid": {
     "ticTacToe": "Tic-Tac-Toe",
@@ -484,6 +485,11 @@
     "letter": "Buchstabe",
     "letterKey": "{{letter}} schreiben (Taste {{letter}})",
     "points": "Punkte",
-    "size": "{{width}} × {{height}}"
+    "size": "{{width}} × {{height}}",
+    "ultimate": "Ultimate Tic-Tac-Toe",
+    "goalUltimate": "Neun Felder in einem: Wo du setzt, schickt den anderen in dieses Feld. Drei in einer Reihe gewinnen ein Feld, drei Felder in einer Reihe das Spiel.",
+    "yourTurnBoard": "Du bist dran: wähle ein freies Kästchen im hervorgehobenen Feld.",
+    "yourTurnAnyBoard": "Du bist dran: wähle ein freies Kästchen in einem offenen Feld.",
+    "nineBoards": "9 Felder zu 3 × 3"
   }
 }

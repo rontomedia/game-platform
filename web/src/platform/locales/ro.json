@@ -476,7 +476,8 @@
     "offBoard": "Căsuța nu e pe grilă.",
     "over": "Jocul s-a terminat.",
     "closed": "Tabla aceea e închisă.",
-    "noLetter": "Alege mai întâi S sau O."
+    "noLetter": "Alege mai întâi S sau O.",
+    "wrongBoard": "Joacă în tabla evidențiată."
   },
   "grid": {
     "ticTacToe": "X și 0",
@@ -504,6 +505,11 @@
     "letter": "Literă",
     "letterKey": "Scrie {{letter}} (tasta {{letter}})",
     "points": "puncte",
-    "size": "{{width}} × {{height}}"
+    "size": "{{width}} × {{height}}",
+    "ultimate": "X și 0 suprem",
+    "goalUltimate": "Nouă table într-una: căsuța în care joci îl trimite pe adversar în acea tablă. Trei în linie câștigă o tablă, trei table în linie câștigă jocul.",
+    "yourTurnBoard": "E rândul tău: alege o căsuță liberă în tabla evidențiată.",
+    "yourTurnAnyBoard": "E rândul tău: alege o căsuță liberă în orice tablă deschisă.",
+    "nineBoards": "9 table de 3 × 3"
   }
 }

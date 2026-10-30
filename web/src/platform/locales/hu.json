@@ -457,7 +457,8 @@
     "offBoard": "Ez a mező nincs a rácson.",
     "over": "A játék véget ért.",
     "closed": "Az a tábla már lezárult.",
-    "noLetter": "Előbb válaszd az S-t vagy az O-t."
+    "noLetter": "Előbb válaszd az S-t vagy az O-t.",
+    "wrongBoard": "A kiemelt táblán lépj."
   },
   "grid": {
     "ticTacToe": "Tic-tac-toe",
@@ -484,6 +485,11 @@
     "letter": "Betű",
     "letterKey": "{{letter}} írása ({{letter}} billentyű)",
     "points": "pont",
-    "size": "{{width}} × {{height}}"
+    "size": "{{width}} × {{height}}",
+    "ultimate": "Ultimate tic-tac-toe",
+    "goalUltimate": "Kilenc tábla egyben: ahová lépsz, abba a táblába küldöd az ellenfelet. Három egy sorban megnyer egy táblát, három tábla egy sorban a játékot.",
+    "yourTurnBoard": "Te jössz: válassz egy szabad mezőt a kiemelt táblán.",
+    "yourTurnAnyBoard": "Te jössz: válassz egy szabad mezőt bármelyik nyitott táblán.",
+    "nineBoards": "9 tábla, 3 × 3"
   }
 }

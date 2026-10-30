@@ -495,7 +495,8 @@
     "offBoard": "To pole není na mřížce.",
     "over": "Hra skončila.",
     "closed": "Ta mřížka je už uzavřená.",
-    "noLetter": "Nejdřív vyber S nebo O."
+    "noLetter": "Nejdřív vyberte S nebo O.",
+    "wrongBoard": "Hrajte ve zvýrazněné mřížce."
   },
   "grid": {
     "ticTacToe": "Piškvorky 3 × 3",
@@ -518,12 +519,17 @@
     "boardsCount_other": "{{count}} mřížek",
     "sos": "S.O.S",
     "goalSos": "Střídavě pište S nebo O do volného pole. Každé S-O-S je bod a další tah; vyhrává víc bodů.",
-    "yourTurnSos": "Jsi na tahu: vyber S nebo O, pak volné pole.",
-    "again": "S-O-S! Napiš další písmeno.",
+    "yourTurnSos": "Jste na tahu: vyberte S nebo O, pak volné pole.",
+    "again": "S-O-S! Napište další písmeno.",
     "drawSos": "Remíza: stejně bodů.",
     "letter": "Písmeno",
     "letterKey": "Napsat {{letter}} (klávesa {{letter}})",
     "points": "body",
-    "size": "{{width}} × {{height}}"
+    "size": "{{width}} × {{height}}",
+    "ultimate": "Ultimátní piškvorky",
+    "goalUltimate": "Devět mřížek v jedné: pole, kam hrajete, pošle soupeře do té mřížky. Tři v řadě vyhrávají mřížku, tři mřížky v řadě hru.",
+    "yourTurnBoard": "Jste na tahu: vyberte volné pole ve zvýrazněné mřížce.",
+    "yourTurnAnyBoard": "Jste na tahu: vyberte volné pole v kterékoli otevřené mřížce.",
+    "nineBoards": "9 mřížek 3 × 3"
   }
 }

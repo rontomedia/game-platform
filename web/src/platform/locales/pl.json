@@ -495,7 +495,8 @@
     "offBoard": "Tego pola nie ma na planszy.",
     "over": "Gra się skończyła.",
     "closed": "Ta plansza jest już zakończona.",
-    "noLetter": "Najpierw wybierz S albo O."
+    "noLetter": "Najpierw wybierz S albo O.",
+    "wrongBoard": "Graj na podświetlonej planszy."
   },
   "grid": {
     "ticTacToe": "Kółko i krzyżyk",
@@ -524,6 +525,11 @@
     "letter": "Litera",
     "letterKey": "Wpisz {{letter}} (klawisz {{letter}})",
     "points": "punkty",
-    "size": "{{width}} × {{height}}"
+    "size": "{{width}} × {{height}}",
+    "ultimate": "Ultimate kółko i krzyżyk",
+    "goalUltimate": "Dziewięć plansz w jednej: pole, w które grasz, wysyła przeciwnika na tę planszę. Trzy w rzędzie wygrywają planszę, trzy plansze w rzędzie wygrywają grę.",
+    "yourTurnBoard": "Twój ruch: wybierz wolne pole na podświetlonej planszy.",
+    "yourTurnAnyBoard": "Twój ruch: wybierz wolne pole na dowolnej otwartej planszy.",
+    "nineBoards": "9 plansz 3 × 3"
   }
 }

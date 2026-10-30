@@ -12,6 +12,7 @@ mod bot;
 mod game;
 mod notakto;
 mod sos;
+mod ultimate;
 pub mod protocol;
 
 pub use bot::{bot_move, bot_move_with, BotLevel};

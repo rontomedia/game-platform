@@ -46,7 +46,8 @@ npm run wasm      # only rebuild every game's engine WASM (scripts/wasm.mjs; nee
 ```
 
 `http://localhost:5173/` is the games page; `/rummy`, `/okey-101`, `/okey`,
-`/tic-tac-toe`, `/gomoku`, `/notakto` and `/sos` a rule set's page each.
+`/tic-tac-toe`, `/ultimate-tic-tac-toe`, `/notakto`, `/gomoku` and `/sos` a
+rule set's page each.
 `http://localhost:5173/?demo` shows the board with a made-up 4-player game
 and no server (`src/games/tile-rummy/demo.ts`): the place to work on the board's look.
 `?demo=racks` adds the open racks panel; `?demo=watcher` is a bots-only
@@ -153,13 +154,20 @@ only builds it on start.
   1-4, cells counted across them as one grid, `columns`, `board_of`),
   `Sos`: 8×8, sides as house rules, each writes S or O (`Letter`, a
   `Placing`'s `letter`; `Square::S`), every S-O-S scores and plays again,
-  most when full wins, `scores` in the view),
+  most when full wins, `scores` in the view; `Ultimate`: 9 boards in a
+  3 × 3, `layout`, the cell marked sends the other to that board
+  (`next_board` in the view, absent for any open one, `WrongBoard`), a
+  board won by a line or closed when full, three won in a row win, the
+  outcome's line the three boards' middle cells),
   `Game` (X, seat 0, first; `play` a `Placing`, `place` a mark,
   `GridError`, `lines` made, the outcome with its line, views,
   `placings`; in Notakto both mark X, a line closes its board and who
   closes the last loses), `check_place`. S.O.S's bots (`sos.rs`): take the
   most, then a letter that leaves nothing to take, else (Hard) the one
-  giving least to a greedy reply; Extra Hard solves the last 10 cells. Notakto's
+  giving least to a greedy reply; Extra Hard solves the last 10 cells.
+  Ultimate's (`ultimate.rs`): alpha-beta over boards won towards a line of
+  three and two-in-a-rows on open boards; Easy 1 move with noise, Medium
+  3, Hard 5, Extra Hard deepening until `spent`. Notakto's
   bots (`notakto.rs`) search it to the end: boards as 9-bit sets in their
   least symmetric form (46 of them), Hard perfect, Medium perfect once
   few cells are safe, Easy any safe cell. Other bots (`bot.rs`, over `board.rs`'s windows
@@ -297,7 +305,9 @@ only builds it on start.
     fixed and the mark laid over its cell, so drawing never resizes it,
     `MarkGrid`); S.O.S's letters in ink (`Mark` draws S too), each S-O-S
     struck through in its scorer's pen, points in the player chips, S or
-    O picked below the board or by key; Notakto's boards the same, side by side or in rows,
+    O picked below the board or by key; Ultimate's nine boards between
+    thick lines (`UltimateBoard`), the one sent to highlighted, a won one
+    under its winner's big mark; Notakto's boards the same, side by side or in rows,
     whichever makes them biggest (`useLayout`), a closed board struck
     through and faded. Gomoku
     (`StoneBoard.tsx`, any grid over 25 cells): black and white stones on

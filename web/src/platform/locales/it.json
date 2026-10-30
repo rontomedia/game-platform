@@ -476,7 +476,8 @@
     "offBoard": "Quella casella non è nella griglia.",
     "over": "La partita è finita.",
     "closed": "Quella griglia è chiusa.",
-    "noLetter": "Scegli prima S o O."
+    "noLetter": "Scegli prima S o O.",
+    "wrongBoard": "Gioca nella griglia evidenziata."
   },
   "grid": {
     "ticTacToe": "Tris",
@@ -504,6 +505,11 @@
     "letter": "Lettera",
     "letterKey": "Scrivi {{letter}} (tasto {{letter}})",
     "points": "punti",
-    "size": "{{width}} × {{height}}"
+    "size": "{{width}} × {{height}}",
+    "ultimate": "Tris definitivo",
+    "goalUltimate": "Nove griglie in una: la casella in cui giochi manda l’avversario in quella griglia. Tre in fila vincono una griglia, tre griglie in fila la partita.",
+    "yourTurnBoard": "Tocca a te: scegli una casella libera nella griglia evidenziata.",
+    "yourTurnAnyBoard": "Tocca a te: scegli una casella libera in una griglia aperta.",
+    "nineBoards": "9 griglie 3 × 3"
   }
 }

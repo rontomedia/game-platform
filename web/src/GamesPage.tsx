@@ -40,8 +40,9 @@ export function GamesPage() {
           art={<GridArt />}
           pages={[
             ['/tic-tac-toe', t('grid.ticTacToe')],
-            ['/gomoku', t('grid.gomoku')],
+            ['/ultimate-tic-tac-toe', t('grid.ultimate')],
             ['/notakto', t('grid.notakto')],
+            ['/gomoku', t('grid.gomoku')],
             ['/sos', t('grid.sos')],
           ]}
         />

@@ -476,7 +476,8 @@
     "offBoard": "Essa casa não está na grade.",
     "over": "A partida terminou.",
     "closed": "Esse tabuleiro já está fechado.",
-    "noLetter": "Escolha S ou O primeiro."
+    "noLetter": "Escolha S ou O primeiro.",
+    "wrongBoard": "Jogue no tabuleiro destacado."
   },
   "grid": {
     "ticTacToe": "Jogo da velha",
@@ -504,6 +505,11 @@
     "letter": "Letra",
     "letterKey": "Escrever {{letter}} (tecla {{letter}})",
     "points": "pontos",
-    "size": "{{width}} × {{height}}"
+    "size": "{{width}} × {{height}}",
+    "ultimate": "Jogo da velha supremo",
+    "goalUltimate": "Nove tabuleiros em um: a casa em que você joga manda o adversário para esse tabuleiro. Três em linha ganham um tabuleiro; três tabuleiros em linha, a partida.",
+    "yourTurnBoard": "Sua vez: escolha uma casa livre no tabuleiro destacado.",
+    "yourTurnAnyBoard": "Sua vez: escolha uma casa livre em qualquer tabuleiro aberto.",
+    "nineBoards": "9 tabuleiros 3 × 3"
   }
 }

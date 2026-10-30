@@ -457,7 +457,8 @@
     "offBoard": "O kare tahtada değil.",
     "over": "Oyun bitti.",
     "closed": "O tahta kapandı.",
-    "noLetter": "Önce S ya da O seç."
+    "noLetter": "Önce S ya da O seç.",
+    "wrongBoard": "Vurgulu tahtada oyna."
   },
   "grid": {
     "ticTacToe": "XOX",
@@ -484,6 +485,11 @@
     "letter": "Harf",
     "letterKey": "{{letter}} yaz ({{letter}} tuşu)",
     "points": "puan",
-    "size": "{{width}} × {{height}}"
+    "size": "{{width}} × {{height}}",
+    "ultimate": "Ultimate XOX",
+    "goalUltimate": "Bir arada dokuz tahta: oynadığın kare rakibi o tahtaya gönderir. Üçü bir sırada tahtayı, üç tahta bir sırada oyunu kazanır.",
+    "yourTurnBoard": "Sıra sende: vurgulu tahtada boş bir kare seç.",
+    "yourTurnAnyBoard": "Sıra sende: açık herhangi bir tahtada boş bir kare seç.",
+    "nineBoards": "3 × 3’lük 9 tahta"
   }
 }

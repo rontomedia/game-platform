@@ -476,7 +476,8 @@
     "offBoard": "Esa casilla no está en la cuadrícula.",
     "over": "La partida ha terminado.",
     "closed": "Ese tablero ya está cerrado.",
-    "noLetter": "Elige primero S u O."
+    "noLetter": "Elige primero S u O.",
+    "wrongBoard": "Juega en el tablero resaltado."
   },
   "grid": {
     "ticTacToe": "Tres en raya",
@@ -504,6 +505,11 @@
     "letter": "Letra",
     "letterKey": "Escribir {{letter}} (tecla {{letter}})",
     "points": "puntos",
-    "size": "{{width}} × {{height}}"
+    "size": "{{width}} × {{height}}",
+    "ultimate": "Tres en raya definitivo",
+    "goalUltimate": "Nueve tableros en uno: la casilla donde juegas envía al rival a ese tablero. Tres en línea ganan un tablero; tres tableros en línea, la partida.",
+    "yourTurnBoard": "Tu turno: elige una casilla libre del tablero resaltado.",
+    "yourTurnAnyBoard": "Tu turno: elige una casilla libre de cualquier tablero abierto.",
+    "nineBoards": "9 tableros de 3 × 3"
   }
 }

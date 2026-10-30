@@ -23,7 +23,7 @@ use tsify::Tsify;
 
 use crate::board::{mix, Board};
 use crate::game::{GridView, Placing, RuleSet};
-use crate::{notakto, sos};
+use crate::{notakto, sos, ultimate};
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[cfg_attr(feature = "wasm", derive(Tsify))]
@@ -68,6 +68,7 @@ pub fn bot_move_with(view: &GridView, level: BotLevel, spent: &dyn Fn() -> f64) 
     match view.rules.rule_set {
         RuleSet::Notakto => return notakto::choose(view, level).into(),
         RuleSet::Sos => return sos::choose(view, level),
+        RuleSet::Ultimate => return ultimate::choose(view, level, spent).into(),
         RuleSet::TicTacToe | RuleSet::Gomoku => {}
     }
     let mut board = Board::from_view(view);
@@ -403,7 +404,7 @@ mod tests {
     fn grid_strength() {
         let var = |name: &str, default: u64| std::env::var(name).ok().and_then(|v| v.parse().ok()).unwrap_or(default);
         let (games, budget) = (var("GRID_GAMES", 20), var("GRID_MS", 1000) as f64 / 1000.0);
-        for rule_set in [RuleSet::TicTacToe, RuleSet::Gomoku, RuleSet::Notakto, RuleSet::Sos] {
+        for rule_set in [RuleSet::TicTacToe, RuleSet::Gomoku, RuleSet::Notakto, RuleSet::Sos, RuleSet::Ultimate] {
             let rules = GridRules::named(rule_set);
             for (a, b) in [(Medium, Easy), (Hard, Easy), (Hard, Medium), (ExtraHard, Hard)] {
                 let (mut wins, mut draws) = ([0; 2], 0);

@@ -457,7 +457,8 @@
     "offBoard": "That cell isn’t on the grid.",
     "over": "The game is over.",
     "closed": "That board is finished.",
-    "noLetter": "Pick S or O first."
+    "noLetter": "Pick S or O first.",
+    "wrongBoard": "Play in the highlighted board."
   },
   "grid": {
     "ticTacToe": "Tic-Tac-Toe",
@@ -484,6 +485,11 @@
     "letter": "Letter",
     "letterKey": "Write {{letter}} (key {{letter}})",
     "points": "points",
-    "size": "{{width}} × {{height}}"
+    "size": "{{width}} × {{height}}",
+    "ultimate": "Ultimate Tic-Tac-Toe",
+    "goalUltimate": "Nine boards in one: where you mark sends the other player to that board. Win a board with three in a row, the game with three boards in a row.",
+    "yourTurnBoard": "Your turn: choose a free cell in the highlighted board.",
+    "yourTurnAnyBoard": "Your turn: choose a free cell in any open board.",
+    "nineBoards": "9 boards of 3 × 3"
   }
 }

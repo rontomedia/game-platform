@@ -21,6 +21,10 @@ pub enum RuleSet {
     /// 8 × 8; each writes S or O, and every S-O-S made in a line scores a
     /// point and another turn; most points when the grid is full wins.
     Sos,
+    /// Nine 3 × 3 boards in a 3 × 3: the cell a mark goes in sends the other
+    /// player to that board; a line wins a board, three boards in a row
+    /// win the game.
+    Ultimate,
 }
 
 /// The shortest and longest side a grid may have.
@@ -65,14 +69,18 @@ impl GridRules {
             RuleSet::Gomoku => GridRules { rule_set, width: 15, height: 15, line: 5, boards: 1 },
             RuleSet::Notakto => GridRules { rule_set, width: 3, height: 3, line: 3, boards: 3 },
             RuleSet::Sos => GridRules { rule_set, width: 8, height: 8, line: 3, boards: 1 },
+            RuleSet::Ultimate => GridRules { rule_set, width: 3, height: 3, line: 3, boards: 9 },
         }
     }
 
     /// The rules with anything out of range brought into it: sides of
     /// `MIN_SIDE` to `MAX_SIDE`, a line of 3 up to the shorter side, one
     /// board; Notakto's boards are 3 × 3, 1 to `MAX_BOARDS` of them; S.O.S
-    /// is always 3 letters in a row.
+    /// is always 3 letters in a row; Ultimate Tic-Tac-Toe as named.
     pub fn checked(self) -> GridRules {
+        if self.rule_set == RuleSet::Ultimate {
+            return GridRules::named(RuleSet::Ultimate);
+        }
         if self.rule_set == RuleSet::Notakto {
             return GridRules { boards: self.boards.clamp(1, MAX_BOARDS), ..GridRules::named(RuleSet::Notakto) };
         }
@@ -82,13 +90,21 @@ impl GridRules {
         GridRules { width, height, line, boards: 1, ..self }
     }
 
+    /// Boards across and down: Notakto's side by side, Ultimate's 3 × 3.
+    pub fn layout(&self) -> (u8, u8) {
+        match self.rule_set {
+            RuleSet::Ultimate => (3, 3),
+            _ => (self.boards, 1),
+        }
+    }
+
     /// The grid's columns, all boards together.
     pub fn columns(&self) -> u8 {
-        self.width * self.boards
+        self.width * self.layout().0
     }
 
     pub fn rows(&self) -> u8 {
-        self.height
+        self.height * self.layout().1
     }
 
     pub fn cells(&self) -> usize {
@@ -106,9 +122,16 @@ impl GridRules {
         Cell { row: (index / columns) as u8, col: (index % columns) as u8 }
     }
 
-    /// The board `cell` is on, counted from the left.
+    /// The board `cell` is on, counted row by row from the top left.
     pub fn board_of(&self, cell: Cell) -> usize {
-        (cell.col / self.width) as usize
+        (cell.row / self.height) as usize * self.layout().0 as usize + (cell.col / self.width) as usize
+    }
+
+    /// Board `board`'s cells, row by row.
+    pub fn board_cells(&self, board: usize) -> impl Iterator<Item = Cell> + '_ {
+        let across = self.layout().0 as usize;
+        let (top, left) = ((board / across) as u8 * self.height, (board % across) as u8 * self.width);
+        (0..self.height).flat_map(move |row| (0..self.width).map(move |col| Cell { row: top + row, col: left + col }))
     }
 
     /// The mark `seat` puts down: their own, or in Notakto X for both
@@ -213,8 +236,12 @@ pub enum GridError {
     OffBoard,
     /// The game is over.
     Over,
-    /// That board is finished (Notakto): it has a line.
+    /// That board is finished: it has a line (or in Ultimate Tic-Tac-Toe,
+    /// is full).
     Closed,
+    /// Ultimate Tic-Tac-Toe: the mark must go in the board the last one
+    /// sent this player to.
+    WrongBoard,
     /// S.O.S needs a letter, S or O.
     NoLetter,
 }
@@ -227,6 +254,7 @@ impl std::fmt::Display for GridError {
             GridError::OffBoard => "not a cell of the grid",
             GridError::Over => "the game is over",
             GridError::Closed => "that board is finished",
+            GridError::WrongBoard => "the mark must go in the board you were sent to",
             GridError::NoLetter => "write S or O",
         };
         f.write_str(text)
@@ -234,7 +262,8 @@ impl std::fmt::Display for GridError {
 }
 
 /// A line made in the game, and who made it: in Notakto, each one
-/// finishes its board; in S.O.S, each S-O-S.
+/// finishes its board; in S.O.S, each S-O-S; in Ultimate Tic-Tac-Toe,
+/// each wins its board.
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[cfg_attr(feature = "wasm", derive(Tsify))]
 pub struct Line {
@@ -255,7 +284,8 @@ pub struct Outcome {
     pub winner: Option<usize>,
     /// The line that ended the game, end to end (all of it, if it's
     /// longer than needed): the winning line, or in Notakto the loser's
-    /// last; empty for a draw, and in S.O.S.
+    /// last, or in Ultimate Tic-Tac-Toe the middle cells of the three
+    /// boards won in a row; empty for a draw, and in S.O.S.
     pub line: Vec<Cell>,
 }
 
@@ -279,6 +309,11 @@ pub struct GridView {
     /// The lines made so far, in order (Notakto's finished boards, S.O.S's
     /// S-O-Ss).
     pub lines: Vec<Line>,
+    /// Ultimate Tic-Tac-Toe: the board the player to move must play in,
+    /// counted row by row; absent when they may play in any open board.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[cfg_attr(feature = "wasm", tsify(optional))]
+    pub next_board: Option<u8>,
     /// Each seat's S-O-Ss: S.O.S only.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     #[cfg_attr(feature = "wasm", tsify(optional))]
@@ -295,6 +330,8 @@ pub struct Game {
     current: usize,
     moves: Vec<Cell>,
     lines: Vec<Line>,
+    /// Ultimate Tic-Tac-Toe's board to play in next, if only one.
+    next_board: Option<u8>,
     outcome: Option<Outcome>,
 }
 
@@ -305,7 +342,7 @@ impl Game {
     /// A game for two on an empty grid, house rules brought into range.
     pub fn new(rules: GridRules) -> Game {
         let rules = rules.checked();
-        Game { rules, board: vec![Square::Empty; rules.cells()], current: 0, moves: Vec::new(), lines: Vec::new(), outcome: None }
+        Game { rules, board: vec![Square::Empty; rules.cells()], current: 0, moves: Vec::new(), lines: Vec::new(), next_board: None, outcome: None }
     }
 
     pub fn rules(&self) -> &GridRules {
@@ -346,7 +383,7 @@ impl Game {
     /// cell; a refused move changes nothing.
     pub fn play(&mut self, seat: usize, placing: Placing) -> Result<(), GridError> {
         let cell = placing.cell;
-        let index = check(&self.rules, &self.board, &self.lines, self.current, self.outcome.is_some(), Some(seat), placing)?;
+        let index = check(&self.rules, &self.board, &self.lines, self.next_board, self.current, self.outcome.is_some(), Some(seat), placing)?;
         self.moves.push(cell);
         if let Some(letter) = placing.letter.filter(|_| self.rules.letters()) {
             self.board[index] = letter.square();
@@ -355,7 +392,9 @@ impl Game {
         }
         self.board[index] = self.rules.mark(seat);
         let line = line_through(&self.rules, &self.board, cell);
-        if self.rules.rule_set == RuleSet::Notakto {
+        if self.rules.rule_set == RuleSet::Ultimate {
+            self.marked_ultimate(seat, cell, line);
+        } else if self.rules.rule_set == RuleSet::Notakto {
             if !line.is_empty() {
                 self.lines.push(Line { seat, cells: line.clone() });
                 if self.lines.len() == self.rules.boards as usize {
@@ -373,6 +412,30 @@ impl Game {
             self.current = 1 - seat;
         }
         Ok(())
+    }
+
+    /// After `seat`'s mark on `cell` in Ultimate Tic-Tac-Toe (`line` the
+    /// line it made on its board, if any): the board won, the game won on
+    /// three in a row, or drawn once every board is closed; the board the
+    /// other is sent to.
+    fn marked_ultimate(&mut self, seat: usize, cell: Cell, line: Vec<Cell>) {
+        let rules = self.rules;
+        if !line.is_empty() {
+            self.lines.push(Line { seat, cells: line });
+            let won: Vec<usize> = (0..9).filter(|&b| self.lines.iter().any(|l| l.seat == seat && rules.board_of(l.cells[0]) == b)).collect();
+            if let Some(boards) = META_LINES.iter().find(|line| line.iter().all(|b| won.contains(b))) {
+                let middle = |b: usize| Cell { row: (b / 3) as u8 * 3 + 1, col: (b % 3) as u8 * 3 + 1 };
+                self.outcome = Some(Outcome { winner: Some(seat), line: boards.iter().map(|&b| middle(b)).collect() });
+                return;
+            }
+        }
+        if (0..9).all(|b| closed(&rules, &self.board, &self.lines, b)) {
+            self.outcome = Some(Outcome { winner: None, line: Vec::new() });
+            return;
+        }
+        let target = (cell.row % 3) as usize * 3 + (cell.col % 3) as usize;
+        self.next_board = (!closed(&rules, &self.board, &self.lines, target)).then_some(target as u8);
+        self.current = 1 - seat;
     }
 
     /// After `seat` wrote a letter on `cell`: its S-O-Ss scored, another
@@ -411,6 +474,7 @@ impl Game {
             current: self.current,
             moves: self.moves.clone(),
             lines: self.lines.clone(),
+            next_board: self.next_board,
             scores: self.rules.letters().then(|| self.scores().to_vec()),
             outcome: self.outcome.clone(),
         }
@@ -427,11 +491,32 @@ impl Game {
 /// Whether the player who sees `view` may make this move, for instant
 /// feedback in the browser (the server checks again).
 pub fn check_place(view: &GridView, placing: Placing) -> Result<(), GridError> {
-    check(&view.rules, &view.board, &view.lines, view.current, view.outcome.is_some(), view.you, placing).map(|_| ())
+    check(&view.rules, &view.board, &view.lines, view.next_board, view.current, view.outcome.is_some(), view.you, placing).map(|_| ())
+}
+
+/// The boards of Ultimate Tic-Tac-Toe's lines of three.
+pub(crate) const META_LINES: [[usize; 3]; 8] = [[0, 1, 2], [3, 4, 5], [6, 7, 8], [0, 3, 6], [1, 4, 7], [2, 5, 8], [0, 4, 8], [2, 4, 6]];
+
+/// Whether board `b` is finished: it has a line, or in Ultimate
+/// Tic-Tac-Toe is full.
+fn closed(rules: &GridRules, board: &[Square], lines: &[Line], b: usize) -> bool {
+    lines.iter().any(|line| rules.board_of(line.cells[0]) == b)
+        || (rules.rule_set == RuleSet::Ultimate
+            && rules.board_cells(b).all(|cell| rules.index(cell).is_some_and(|i| board[i] != Square::Empty)))
 }
 
 /// The cell's index if `seat` may make the move.
-fn check(rules: &GridRules, board: &[Square], lines: &[Line], current: usize, over: bool, seat: Option<usize>, placing: Placing) -> Result<usize, GridError> {
+#[allow(clippy::too_many_arguments)]
+fn check(
+    rules: &GridRules,
+    board: &[Square],
+    lines: &[Line],
+    next_board: Option<u8>,
+    current: usize,
+    over: bool,
+    seat: Option<usize>,
+    placing: Placing,
+) -> Result<usize, GridError> {
     let cell = placing.cell;
     if over {
         return Err(GridError::Over);
@@ -447,8 +532,11 @@ fn check(rules: &GridRules, board: &[Square], lines: &[Line], current: usize, ov
         return placing.letter.map(|_| index).ok_or(GridError::NoLetter);
     }
     let on = rules.board_of(cell);
-    if lines.iter().any(|line| rules.board_of(line.cells[0]) == on) {
+    if closed(rules, board, lines, on) {
         return Err(GridError::Closed);
+    }
+    if next_board.is_some_and(|next| next as usize != on) {
+        return Err(GridError::WrongBoard);
     }
     Ok(index)
 }
@@ -689,6 +777,58 @@ mod tests {
         assert_eq!(outcome.winner, Some(0));
         assert_eq!(game.placings(), Some(vec![0, 1]));
         assert_eq!(check_place(&game.view(0), Placing { cell: c(0, 0), letter: Some(S) }), Err(GridError::Over));
+    }
+
+    #[test]
+    fn ultimate_sends_the_other_player() {
+        let rules = GridRules::named(RuleSet::Ultimate);
+        assert_eq!((rules.columns(), rules.rows(), rules.board_of(c(4, 7))), (9, 9, 5));
+        // X in the middle board's top right sends O to the top right board.
+        let mut game = play(rules, &[(3, 5)]);
+        assert_eq!(game.view(1).next_board, Some(2));
+        assert_eq!(game.place(1, c(0, 0)), Err(GridError::WrongBoard));
+        game.place(1, c(1, 7)).unwrap();
+        assert_eq!(game.view(0).next_board, Some(4), "its middle: back to the middle board");
+    }
+
+    /// An Ultimate game with X's marks on `x`, the boards they make lines on
+    /// won, `seat` to move, sent to `next`.
+    fn ultimate(x: &[(u8, u8)], seat: usize, next: Option<u8>) -> Game {
+        let mut game = Game::new(GridRules::named(RuleSet::Ultimate));
+        for &(row, col) in x {
+            let index = game.rules.index(c(row, col)).unwrap();
+            game.board[index] = Square::X;
+            let line = line_through(&game.rules, &game.board, c(row, col));
+            if !line.is_empty() {
+                game.lines.push(Line { seat: 0, cells: line });
+            }
+        }
+        (game.current, game.next_board) = (seat, next);
+        game
+    }
+
+    #[test]
+    fn ultimate_sent_to_a_closed_board_plays_anywhere() {
+        // X has won the top left board; O's mark in a top left corner sends X there.
+        let mut game = ultimate(&[(0, 0), (0, 1), (0, 2)], 1, None);
+        assert_eq!(game.lines().len(), 1);
+        game.place(1, c(3, 3)).unwrap();
+        assert_eq!(game.view(0).next_board, None, "anywhere");
+        assert_eq!(game.place(0, c(1, 0)), Err(GridError::Closed));
+        game.place(0, c(8, 8)).unwrap();
+        assert_eq!(game.view(1).next_board, Some(8));
+    }
+
+    #[test]
+    fn ultimate_three_boards_in_a_row_win() {
+        // X has the top left and top middle boards, and two of the top right's top row.
+        let mut game = ultimate(&[(0, 0), (0, 1), (0, 2), (0, 3), (0, 4), (0, 5), (0, 6), (0, 7)], 0, Some(2));
+        assert_eq!(game.lines().len(), 2);
+        game.place(0, c(0, 8)).unwrap();
+        let outcome = game.outcome().expect("over");
+        assert_eq!(outcome.winner, Some(0));
+        assert_eq!(outcome.line, [c(1, 1), c(1, 4), c(1, 7)]);
+        assert_eq!(game.lines().len(), 3);
     }
 
     #[test]

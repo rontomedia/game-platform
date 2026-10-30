@@ -7,6 +7,7 @@ export const PAGES = {
   '/okey-101': { family: 'tile-rummy', kind: 'okey101' },
   '/okey': { family: 'tile-rummy', kind: 'okey' },
   '/tic-tac-toe': { family: 'grid', kind: 'ticTacToe' },
+  '/ultimate-tic-tac-toe': { family: 'grid', kind: 'ultimate' },
   '/gomoku': { family: 'grid', kind: 'gomoku' },
   '/notakto': { family: 'grid', kind: 'notakto' },
   '/sos': { family: 'grid', kind: 'sos' },
