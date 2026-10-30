@@ -9,6 +9,14 @@
     "reconnect": "Riconnetti",
     "mismatch": "Il server usa il protocollo {{server}}, questa pagina il {{page}}. Ricarica per avere la versione attuale."
   },
+  "games": {
+    "title": "Giochi",
+    "intro": "Gioca online con gli amici o contro il computer.",
+    "all": "Tutti i giochi",
+    "loading": "Caricamento…",
+    "tileRummy": "Ramino con tessere",
+    "tileRummyDetail": "Scale e gruppi con le tessere del tuo leggio."
+  },
   "units": {
     "seconds": "{{n}} s",
     "minutes": "{{n}} min"

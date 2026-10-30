@@ -9,6 +9,14 @@
     "reconnect": "Se reconnecter",
     "mismatch": "Le serveur utilise le protocole {{server}}, cette page le {{page}}. Rechargez pour obtenir la version actuelle."
   },
+  "games": {
+    "title": "Jeux",
+    "intro": "Jouez en ligne entre amis ou contre l’ordinateur.",
+    "all": "Tous les jeux",
+    "loading": "Chargement…",
+    "tileRummy": "Rami à tuiles",
+    "tileRummyDetail": "Des suites et des groupes avec les tuiles de votre chevalet."
+  },
   "units": {
     "seconds": "{{n}} s",
     "minutes": "{{n}} min"

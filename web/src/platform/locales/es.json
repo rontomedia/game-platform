@@ -9,6 +9,14 @@
     "reconnect": "Reconectar",
     "mismatch": "El servidor usa el protocolo {{server}} y esta página el {{page}}. Recarga para obtener la versión actual."
   },
+  "games": {
+    "title": "Juegos",
+    "intro": "Juega en línea con amigos o contra el ordenador.",
+    "all": "Todos los juegos",
+    "loading": "Cargando…",
+    "tileRummy": "Rummy de fichas",
+    "tileRummyDetail": "Escaleras y grupos con las fichas de tu atril."
+  },
   "units": {
     "seconds": "{{n}} s",
     "minutes": "{{n}} min"

@@ -9,6 +9,14 @@
     "reconnect": "Reconnect",
     "mismatch": "The server speaks protocol {{server}}, this page {{page}}. Reload to get the current version."
   },
+  "games": {
+    "title": "Games",
+    "intro": "Play online with friends, or against computer players.",
+    "all": "All games",
+    "loading": "Loading…",
+    "tileRummy": "Tile rummy",
+    "tileRummyDetail": "Runs and groups from the tiles on your rack."
+  },
   "units": {
     "seconds": "{{n}} s",
     "minutes": "{{n}} min"

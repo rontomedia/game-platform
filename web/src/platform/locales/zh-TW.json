@@ -9,6 +9,14 @@
     "reconnect": "重新連線",
     "mismatch": "伺服器使用協定 {{server}}，此頁面使用 {{page}}。請重新整理頁面以取得最新版本。"
   },
+  "games": {
+    "title": "遊戲",
+    "intro": "與朋友或電腦線上對戰。",
+    "all": "全部遊戲",
+    "loading": "載入中…",
+    "tileRummy": "拉密牌",
+    "tileRummyDetail": "用牌架上的牌組成順子和同點組。"
+  },
   "units": {
     "seconds": "{{n}} 秒",
     "minutes": "{{n}} 分鐘"

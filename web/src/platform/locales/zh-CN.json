@@ -9,6 +9,14 @@
     "reconnect": "重新连接",
     "mismatch": "服务器使用协议 {{server}}，此页面使用 {{page}}。请刷新页面以获取最新版本。"
   },
+  "games": {
+    "title": "游戏",
+    "intro": "与朋友或电脑在线对战。",
+    "all": "全部游戏",
+    "loading": "加载中…",
+    "tileRummy": "拉米牌",
+    "tileRummyDetail": "用牌架上的牌组成顺子和同点组。"
+  },
   "units": {
     "seconds": "{{n}} 秒",
     "minutes": "{{n}} 分钟"

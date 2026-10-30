@@ -9,6 +9,14 @@
     "reconnect": "Anslut igen",
     "mismatch": "Servern använder protokoll {{server}}, den här sidan {{page}}. Ladda om sidan för att få den aktuella versionen."
   },
+  "games": {
+    "title": "Spel",
+    "intro": "Spela online med vänner eller mot datorn.",
+    "all": "Alla spel",
+    "loading": "Laddar …",
+    "tileRummy": "Rummy med brickor",
+    "tileRummyDetail": "Stegar och grupper av brickorna i ditt ställ."
+  },
   "units": {
     "seconds": "{{n}} s",
     "minutes": "{{n}} min"

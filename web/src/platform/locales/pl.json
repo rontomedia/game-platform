@@ -9,6 +9,14 @@
     "reconnect": "Połącz ponownie",
     "mismatch": "Serwer używa protokołu {{server}}, ta strona {{page}}. Odśwież stronę, aby pobrać aktualną wersję."
   },
+  "games": {
+    "title": "Gry",
+    "intro": "Graj online ze znajomymi albo z komputerem.",
+    "all": "Wszystkie gry",
+    "loading": "Ładowanie…",
+    "tileRummy": "Remik z płytkami",
+    "tileRummyDetail": "Szeregi i grupy z płytek na stojaku."
+  },
   "units": {
     "seconds": "{{n}} s",
     "minutes": "{{n}} min"

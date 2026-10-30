@@ -9,6 +9,14 @@
     "reconnect": "다시 연결",
     "mismatch": "서버는 프로토콜 {{server}}, 이 페이지는 {{page}}를 사용합니다. 새로고침하면 최신 버전이 됩니다."
   },
+  "games": {
+    "title": "게임",
+    "intro": "친구들과, 또는 컴퓨터와 온라인으로 즐기세요.",
+    "all": "모든 게임",
+    "loading": "불러오는 중…",
+    "tileRummy": "타일 러미",
+    "tileRummyDetail": "받침대의 타일로 연속과 그룹을 만드세요."
+  },
   "units": {
     "seconds": "{{n}}초",
     "minutes": "{{n}}분"

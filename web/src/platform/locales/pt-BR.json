@@ -9,6 +9,14 @@
     "reconnect": "Reconectar",
     "mismatch": "O servidor usa o protocolo {{server}}, e esta página, o {{page}}. Recarregue para obter a versão atual."
   },
+  "games": {
+    "title": "Jogos",
+    "intro": "Jogue online com amigos ou contra o computador.",
+    "all": "Todos os jogos",
+    "loading": "Carregando…",
+    "tileRummy": "Rummy de peças",
+    "tileRummyDetail": "Sequências e grupos com as peças do seu suporte."
+  },
   "units": {
     "seconds": "{{n}} s",
     "minutes": "{{n}} min"

@@ -1,5 +1,5 @@
 import { AnimatePresence, motion } from 'motion/react'
-import { useState, type FormEvent, type ReactNode } from 'react'
+import { useEffect, useState, type FormEvent, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import { LanguagePicker } from './LanguagePicker.tsx'
@@ -41,9 +41,22 @@ export function RoomPage({
 }) {
   const { t } = useTranslation()
   const [settings, changeSettings] = useSettings()
+  useEffect(() => {
+    document.title = title
+  }, [title])
   return (
     <div className="mx-auto flex max-w-5xl flex-col gap-6 px-4 py-6 sm:px-6 lg:py-10">
       <header className="flex items-center gap-3 sm:gap-4">
+        <a
+          href="/"
+          className="-ms-2 grid size-9 shrink-0 place-items-center rounded-xl text-slate-400 hover:bg-white/10 hover:text-slate-100"
+          title={t('games.all')}
+          aria-label={t('games.all')}
+        >
+          <svg viewBox="0 0 16 16" className="size-4 rtl:-scale-x-100" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>
+            <path d="m10 3-5 5 5 5" />
+          </svg>
+        </a>
         <h1 className="me-auto shrink-0 text-3xl font-bold tracking-tight">{title}</h1>
         <span className="flex shrink-0 items-center gap-2 whitespace-nowrap text-sm text-slate-300" title={SERVER_URL}>
           <span className={`size-2.5 shrink-0 rounded-full ${statusDot[status]}`} />

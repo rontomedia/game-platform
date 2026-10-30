@@ -9,6 +9,14 @@
     "reconnect": "Opnieuw verbinden",
     "mismatch": "De server spreekt protocol {{server}}, deze pagina {{page}}. Laad de pagina opnieuw voor de huidige versie."
   },
+  "games": {
+    "title": "Spellen",
+    "intro": "Speel online met vrienden of tegen de computer.",
+    "all": "Alle spellen",
+    "loading": "Laden…",
+    "tileRummy": "Rummy met stenen",
+    "tileRummyDetail": "Rijen en groepen met de stenen op je rekje."
+  },
   "units": {
     "seconds": "{{n}} s",
     "minutes": "{{n}} min"

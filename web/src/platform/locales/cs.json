@@ -9,6 +9,14 @@
     "reconnect": "Znovu připojit",
     "mismatch": "Server používá protokol {{server}}, tato stránka {{page}}. Načtěte stránku znovu, abyste měli aktuální verzi."
   },
+  "games": {
+    "title": "Hry",
+    "intro": "Hrajte online s přáteli nebo proti počítači.",
+    "all": "Všechny hry",
+    "loading": "Načítání…",
+    "tileRummy": "Rummy s kameny",
+    "tileRummyDetail": "Postupky a skupiny z kamenů na vašem stojánku."
+  },
   "units": {
     "seconds": "{{n}} s",
     "minutes": "{{n}} min"

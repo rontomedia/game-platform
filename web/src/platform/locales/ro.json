@@ -9,6 +9,14 @@
     "reconnect": "Reconectează",
     "mismatch": "Serverul folosește protocolul {{server}}, pagina aceasta {{page}}. Reîncarcă pagina pentru versiunea actuală."
   },
+  "games": {
+    "title": "Jocuri",
+    "intro": "Joacă online cu prietenii sau împotriva calculatorului.",
+    "all": "Toate jocurile",
+    "loading": "Se încarcă…",
+    "tileRummy": "Remi cu piese",
+    "tileRummyDetail": "Serii și grupuri din piesele de pe suportul tău."
+  },
   "units": {
     "seconds": "{{n}} s",
     "minutes": "{{n}} min"

@@ -9,6 +9,14 @@
     "reconnect": "Yeniden bağlan",
     "mismatch": "Sunucu {{server}} protokolünü, bu sayfa {{page}} protokolünü kullanıyor. Güncel sürüm için sayfayı yenileyin."
   },
+  "games": {
+    "title": "Oyunlar",
+    "intro": "Arkadaşlarınla ya da bilgisayara karşı çevrimiçi oyna.",
+    "all": "Tüm oyunlar",
+    "loading": "Yükleniyor…",
+    "tileRummy": "Taşlı rummy",
+    "tileRummyDetail": "Istakandaki taşlarla seriler ve gruplar."
+  },
   "units": {
     "seconds": "{{n}} sn",
     "minutes": "{{n}} dk"

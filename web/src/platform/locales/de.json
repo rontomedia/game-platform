@@ -9,6 +9,14 @@
     "reconnect": "Neu verbinden",
     "mismatch": "Der Server spricht Protokoll {{server}}, diese Seite {{page}}. Lade die Seite neu, um die aktuelle Version zu bekommen."
   },
+  "games": {
+    "title": "Spiele",
+    "intro": "Spiel online mit Freunden oder gegen den Computer.",
+    "all": "Alle Spiele",
+    "loading": "Wird geladen …",
+    "tileRummy": "Rommé mit Steinen",
+    "tileRummyDetail": "Reihen und Gruppen aus den Steinen auf deiner Ablage."
+  },
   "units": {
     "seconds": "{{n}} s",
     "minutes": "{{n}} min"

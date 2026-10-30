@@ -9,6 +9,14 @@
     "reconnect": "Újracsatlakozás",
     "mismatch": "A szerver a(z) {{server}}. protokollt használja, ez az oldal a(z) {{page}}. protokollt. Töltsd újra az oldalt a friss verzióért."
   },
+  "games": {
+    "title": "Játékok",
+    "intro": "Játssz online a barátaiddal vagy a gép ellen.",
+    "all": "Összes játék",
+    "loading": "Betöltés…",
+    "tileRummy": "Römi lapkákkal",
+    "tileRummyDetail": "Sorok és csoportok a tartódon lévő lapkákból."
+  },
   "units": {
     "seconds": "{{n}} mp",
     "minutes": "{{n}} perc"

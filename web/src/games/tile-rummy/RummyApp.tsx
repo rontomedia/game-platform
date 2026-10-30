@@ -26,7 +26,10 @@ import { PlainOkeyBoard } from './PlainOkeyBoard.tsx'
 import type { RummyOptions, RummyRoom } from './protocol.ts'
 import { HowToPlay } from './Rules.tsx'
 import { useRummy, type Draft } from './useRummy.ts'
-import { gameProtocolVersion, protocolVersion, type BotLevel, type Okey101Rules, type RuleSet } from './wasm/engine.js'
+import initEngine, { gameProtocolVersion, protocolVersion, type BotLevel, type Okey101Rules, type RuleSet } from './wasm/engine.js'
+
+// The rules engine (Rust, games/tile-rummy-wasm) answers the boards' questions: loaded with this page.
+await initEngine()
 
 /** Tile rummy's rule sets, as a page each picks one. */
 export type RummyKind = RuleSet['kind']
