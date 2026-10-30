@@ -19,9 +19,10 @@ import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import { compareTiles, type RackSort } from './arrange.ts'
-import { TableGrid, TopBar, WatchBar, type Clock } from './Board.tsx'
+import { TableGrid, TopBar, type Clock } from './Board.tsx'
+import { WatchBar } from '../../platform/WatchBar.tsx'
 import { footprint, gridWithout, resolve, type Cell } from './grid.ts'
-import { noticeText, okeyError, problemText, type Problem } from '../../messages.ts'
+import { noticeText, okeyError, problemText, type Problem } from './messages.ts'
 import type { Settings } from '../../platform/settings.ts'
 import {
   collisions,
@@ -52,7 +53,7 @@ import {
 import { remember, remembered } from '../../platform/storage.ts'
 import { TileFace, type TileSize } from './TileView.tsx'
 import { Button } from '../../platform/ui.tsx'
-import type { Draft, OkeyGame, Status } from '../../useGame.ts'
+import type { Draft, OkeyGame, Status } from './useRummy.ts'
 import { useNow } from '../../platform/useNow.ts'
 import { useTableMetrics, type Metrics } from './useTableMetrics.ts'
 import {

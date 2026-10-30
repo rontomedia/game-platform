@@ -48,14 +48,15 @@ import { footprint, gridWithout, resolve, type Cell } from './grid.ts'
 import type { Settings } from '../../platform/settings.ts'
 import { centre, flyAway, flyIn, glide, pace, reducedMotion } from './flights.ts'
 import { LeaveMenu } from '../../platform/LeaveMenu.tsx'
-import { noticeText, problemText, turnError, type Problem } from '../../messages.ts'
+import { noticeText, problemText, turnError, type Problem } from './messages.ts'
 import { SettingsMenu } from '../../platform/SettingsMenu.tsx'
 import { remember, remembered } from '../../platform/storage.ts'
 import { TileFace, type TileSize } from './TileView.tsx'
 import { Button } from '../../platform/ui.tsx'
 import { useNow } from '../../platform/useNow.ts'
+import { WatchBar } from '../../platform/WatchBar.tsx'
 import { useTableMetrics, type Metrics } from './useTableMetrics.ts'
-import type { Draft, GameState, Status, TurnRecord } from '../../useGame.ts'
+import type { Draft, GameState, Status, TurnRecord } from './useRummy.ts'
 import { checkTurn, classifySet, type Tile } from './wasm/engine.js'
 import type { AnyNotice, Outgoing, RummyRoom } from './protocol.ts'
 
@@ -1611,46 +1612,6 @@ function TurnLine({ turn, name }: { turn: TurnRecord; name: string }) {
         · {t('openRacks.sets', { count: turn.sets })}
       </span>
     </li>
-  )
-}
-
-/**
- * In place of the tray for someone watching: what's going on and, for the
- * host of a game only bots play, buttons to pause it and step through it.
- */
-export function WatchBar({
-  room,
-  over,
-  note,
-  noteColor,
-  send,
-}: {
-  room: RummyRoom
-  over: boolean
-  note: string
-  noteColor: string
-  send: (message: Outgoing) => void
-}) {
-  const { t } = useTranslation()
-  const host = room.watching !== undefined && room.watchers[room.watching]?.host
-  const botsOnly = room.seats.every((seat) => seat.bot !== undefined)
-  return (
-    <section className="tray flex flex-wrap items-center gap-x-4 gap-y-2 rounded-3xl p-3 sm:p-4 short:rounded-2xl short:p-2">
-      <span className="rounded-full bg-violet-400/15 px-2.5 py-1 text-xs font-semibold uppercase tracking-wide text-violet-200">
-        {t('watch.badge')}
-      </span>
-      <p className={`min-w-0 flex-1 text-sm font-medium short:truncate ${noteColor}`}>{note}</p>
-      {host && botsOnly && !over && (
-        <div className="flex gap-2">
-          <Button look="quiet" disabled={!room.paused} onClick={() => send({ type: 'step' })} title={t('watch.stepHint')}>
-            {t('watch.step')}
-          </Button>
-          <Button look="primary" className="min-w-24" onClick={() => send({ type: 'pause', paused: !room.paused })}>
-            {room.paused ? t('watch.resume') : t('watch.pause')}
-          </Button>
-        </div>
-      )}
-    </section>
   )
 }
 

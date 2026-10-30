@@ -1,4 +1,4 @@
-import type { GameState, OkeyGame, PlainOkeyGame, TurnRecord } from '../../useGame.ts'
+import type { GameState, OkeyGame, PlainOkeyGame, TurnRecord } from './useRummy.ts'
 import type { HandView, PlainView, RummyRules, Tile } from './wasm/engine.js'
 import type { RummyOptions, RummyRoom } from './protocol.ts'
 

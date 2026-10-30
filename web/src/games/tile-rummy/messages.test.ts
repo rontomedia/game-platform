@@ -1,9 +1,10 @@
 import i18next from 'i18next'
 import { describe, expect, it } from 'vitest'
 
-import en from './platform/locales/en.json'
-import { noticeText, problemText, refusal, turnError } from './messages.ts'
-import type { Refusal, TurnError } from './games/tile-rummy/wasm/engine.js'
+import en from '../../platform/locales/en.json'
+import { refusal } from '../../platform/messages.ts'
+import { noticeText, problemText, turnError } from './messages.ts'
+import type { Refusal, TurnError } from './wasm/engine.js'
 
 const i18n = i18next.createInstance()
 await i18n.init({ lng: 'en', resources: { en: { translation: en } }, interpolation: { escapeValue: false } })

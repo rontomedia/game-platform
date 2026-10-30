@@ -26,22 +26,3 @@ export type Outgoing = Exclude<RummyClientMessage, { type: 'game' }> | RummyRequ
 
 /** A notice from the room or from the game. */
 export type AnyNotice = Notice | RummyNotice
-
-/** The room's own requests; anything else goes to the game. */
-const ROOM_REQUESTS: ReadonlySet<string> = new Set([
-  'createRoom',
-  'joinRoom',
-  'rejoin',
-  'leave',
-  'watch',
-  'addBot',
-  'removeBot',
-  'start',
-  'pause',
-  'step',
-] satisfies Exclude<RummyClientMessage['type'], 'game'>[])
-
-/** A board's message as the server reads it. */
-export function wire(message: Outgoing): RummyClientMessage {
-  return ROOM_REQUESTS.has(message.type) ? (message as RummyClientMessage) : { type: 'game', message: message as RummyRequest }
-}

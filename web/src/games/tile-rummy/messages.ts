@@ -1,18 +1,18 @@
 import type { TFunction } from 'i18next'
 
-import type { OkeyError, Refusal, TurnError } from './games/tile-rummy/wasm/engine.js'
-import type { AnyNotice } from './games/tile-rummy/protocol.ts'
+import { roomNoticeText, roomProblemText } from '../../platform/messages.ts'
+import type { RoomProblem } from '../../platform/useRoom.ts'
+import type { OkeyError, TurnError } from './wasm/engine.js'
+import type { AnyNotice } from './protocol.ts'
+
+/** Tile rummy's own problems: a turn or an Okey move refused. */
+export type RummyProblem = { kind: 'turn'; error: TurnError } | { kind: 'okey'; error: OkeyError }
 
 /**
  * Something that went wrong, kept as what happened and worded when shown
- * (the server sends no sentences, only what happened). `text` is the
- * server's English for a message it couldn't read: a bug, not for players.
+ * (the server sends no sentences, only what happened).
  */
-export type Problem =
-  | { kind: 'turn'; error: TurnError }
-  | { kind: 'okey'; error: OkeyError }
-  | { kind: 'refused'; refusal: Refusal }
-  | { kind: 'text'; message: string }
+export type Problem = RoomProblem | RummyProblem
 
 /** Why a turn isn't allowed, for the player. */
 export function turnError(t: TFunction, error: TurnError): string {
@@ -42,39 +42,15 @@ export function okeyError(t: TFunction, error: OkeyError): string {
   }
 }
 
-/** Why the server won't do what the player asked. */
-export function refusal(t: TFunction, refusal: Refusal): string {
-  switch (refusal.kind) {
-    case 'noSuchRoom':
-      return t('refusal.noSuchRoom', { code: refusal.code })
-    case 'roomFull':
-      return t('refusal.roomFull', { count: refusal.max })
-    case 'watchersFull':
-      return t('refusal.watchersFull', { count: refusal.max })
-    case 'tooFewPlayers':
-      return t('refusal.tooFewPlayers', { count: refusal.min })
-    default:
-      return t(`refusal.${refusal.kind}`)
-  }
-}
-
 export function problemText(t: TFunction, problem: Problem): string {
   switch (problem.kind) {
     case 'turn':
       return turnError(t, problem.error)
     case 'okey':
       return okeyError(t, problem.error)
-    case 'refused':
-      return refusal(t, problem.refusal)
-    case 'text':
-      return problem.message
+    default:
+      return roomProblemText(t, problem)
   }
-}
-
-/** Milliseconds as minutes and seconds: "1:05". */
-export function clockTime(ms: number): string {
-  const seconds = Math.round(ms / 1000)
-  return `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, '0')}`
 }
 
 /** Something the server tells the player, worded. */
@@ -87,9 +63,7 @@ export function noticeText(t: TFunction, notice: AnyNotice): string {
         played: t('notice.tilesPlayed', { count: notice.played }),
         back: t('notice.tilesBack', { count: notice.back }),
       })
-    case 'unearnedWarning':
-      return t('notice.unearnedWarning', { soFar: clockTime(notice.soFarMs), limit: clockTime(notice.limitMs) })
-    case 'noMoreBonus':
-      return t('notice.noMoreBonus', { time: clockTime(notice.takenBackMs) })
+    default:
+      return roomNoticeText(t, notice)
   }
 }
