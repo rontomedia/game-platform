@@ -15,7 +15,9 @@
     "all": "Toate jocurile",
     "loading": "Se încarcă…",
     "tileRummy": "Remi cu piese",
-    "tileRummyDetail": "Serii și grupuri din piesele de pe suportul tău."
+    "tileRummyDetail": "Serii și grupuri din piesele de pe suportul tău.",
+    "grid": "Jocuri pe grilă",
+    "gridDetail": "Pune-ți semnele în linie înaintea adversarului."
   },
   "units": {
     "seconds": "{{n}} s",
@@ -320,7 +322,10 @@
     "watchLive": "Urmărește turele în direct",
     "watchLiveHint": "Vezi mutările celorlalți jucători pe măsură ce le fac, în camerele care le arată.",
     "language": "Limbă",
-    "languageAuto": "Automat ({{language}})"
+    "languageAuto": "Automat ({{language}})",
+    "paper": "Hârtie",
+    "paperLight": "Deschisă",
+    "paperDark": "Închisă"
   },
   "turnError": {
     "noSuchTile": "O piesă care nu există în joc.",
@@ -436,5 +441,19 @@
     "tooFewPairs": "{{pairs}} perechi; deschiderea cere {{needed}}.",
     "discardNotUsed": "Piesa luată trebuie să ajungă pe masă (în deschiderea ta, dacă deschizi).",
     "notComplete": "Celelalte 14 piese trebuie să fie toate în formații sau șapte perechi."
+  },
+  "gridError": {
+    "notYourTurn": "Nu e rândul tău.",
+    "occupied": "Căsuța e ocupată.",
+    "offBoard": "Căsuța nu e pe grilă.",
+    "over": "Jocul s-a terminat."
+  },
+  "grid": {
+    "ticTacToe": "X și 0",
+    "gomoku": "Gomoku",
+    "yourTurn": "E rândul tău: alege o căsuță liberă.",
+    "draw": "Egalitate: grila e plină.",
+    "rules": "{{line}} în linie pe {{width}} × {{height}}",
+    "goal": "Pe rând, marcați o căsuță liberă: câștigă primul care are {{line}} în linie."
   }
 }

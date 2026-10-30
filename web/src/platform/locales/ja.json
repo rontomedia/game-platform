@@ -15,7 +15,9 @@
     "all": "すべてのゲーム",
     "loading": "読み込み中…",
     "tileRummy": "タイルラミー",
-    "tileRummyDetail": "ラックのタイルで連番と組を作ります。"
+    "tileRummyDetail": "ラックのタイルで連番と組を作ります。",
+    "grid": "グリッドゲーム",
+    "gridDetail": "相手より先に自分の印を一列に並べよう。"
   },
   "units": {
     "seconds": "{{n}}秒",
@@ -296,7 +298,10 @@
     "watchLive": "手番をライブで見る",
     "watchLiveHint": "ライブ表示のルームで、ほかのプレイヤーの動きをその場で見られます。",
     "language": "言語",
-    "languageAuto": "自動（{{language}}）"
+    "languageAuto": "自動（{{language}}）",
+    "paper": "紙",
+    "paperLight": "ライト",
+    "paperDark": "ダーク"
   },
   "turnError": {
     "noSuchTile": "ゲームに存在しないタイルです。",
@@ -398,5 +403,19 @@
     "tooFewPairs": "{{pairs}}ペア。オープンには{{needed}}必要です。",
     "discardNotUsed": "取った捨て牌は場に出してください（オープン中ならオープンの中に）。",
     "notComplete": "残り14枚はすべてセットか7ペアでなければなりません。"
+  },
+  "gridError": {
+    "notYourTurn": "あなたの番ではありません。",
+    "occupied": "そのマスは埋まっています。",
+    "offBoard": "そのマスは盤上にありません。",
+    "over": "ゲームは終了しました。"
+  },
+  "grid": {
+    "ticTacToe": "三目並べ",
+    "gomoku": "五目並べ",
+    "yourTurn": "あなたの番です。空いているマスを選んでください。",
+    "draw": "引き分け：マスが埋まりました。",
+    "rules": "{{width}} × {{height}} で {{line}} 目並べ",
+    "goal": "交互に空いたマスに印をつけ、先に {{line}} 個並べた方の勝ちです。"
   }
 }

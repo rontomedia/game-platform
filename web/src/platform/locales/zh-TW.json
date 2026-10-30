@@ -15,7 +15,9 @@
     "all": "全部遊戲",
     "loading": "載入中…",
     "tileRummy": "拉密牌",
-    "tileRummyDetail": "用牌架上的牌組成順子和同點組。"
+    "tileRummyDetail": "用牌架上的牌組成順子和同點組。",
+    "grid": "棋盤遊戲",
+    "gridDetail": "搶在對手之前把你的棋子連成一線。"
   },
   "units": {
     "seconds": "{{n}} 秒",
@@ -296,7 +298,10 @@
     "watchLive": "即時觀看回合",
     "watchLiveHint": "在開啟即時顯示的房間裡，即時看到其他玩家的操作。",
     "language": "語言",
-    "languageAuto": "自動（{{language}}）"
+    "languageAuto": "自動（{{language}}）",
+    "paper": "紙張",
+    "paperLight": "淺色",
+    "paperDark": "深色"
   },
   "turnError": {
     "noSuchTile": "遊戲中沒有這張牌。",
@@ -398,5 +403,19 @@
     "tooFewPairs": "{{pairs}} 對；開牌需要 {{needed}} 對。",
     "discardNotUsed": "你拿的牌必須放到桌上（如果正在開牌，要放進開牌裡）。",
     "notComplete": "其餘 14 張牌必須都在組合裡，或組成七對。"
+  },
+  "gridError": {
+    "notYourTurn": "還沒輪到你。",
+    "occupied": "這個格子已經有子了。",
+    "offBoard": "這個格子不在棋盤上。",
+    "over": "遊戲已結束。"
+  },
+  "grid": {
+    "ticTacToe": "井字棋",
+    "gomoku": "五子棋",
+    "yourTurn": "輪到你了：選一個空格。",
+    "draw": "平手：棋盤已滿。",
+    "rules": "{{width}} × {{height}} 棋盤上連成 {{line}} 子",
+    "goal": "輪流在空格落子：先連成 {{line}} 子者獲勝。"
   }
 }

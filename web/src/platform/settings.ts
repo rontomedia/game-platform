@@ -12,9 +12,11 @@ export interface Settings {
   watchLive: boolean
   /** The game's language, or `auto` for the browser's. */
   language: LanguageChoice
+  /** Paper games (grid): a light sheet of paper, or a dark one. */
+  paper: 'light' | 'dark'
 }
 
-const defaults: Settings = { rackStyle: 'flat', watchLive: true, language: 'auto' }
+const defaults: Settings = { rackStyle: 'flat', watchLive: true, language: 'auto', paper: 'light' }
 const KEY = 'rummy.settings'
 
 /** The settings as saved, before any screen is shown. */

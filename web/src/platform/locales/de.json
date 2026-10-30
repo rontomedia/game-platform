@@ -15,7 +15,9 @@
     "all": "Alle Spiele",
     "loading": "Wird geladen …",
     "tileRummy": "Rommé mit Steinen",
-    "tileRummyDetail": "Reihen und Gruppen aus den Steinen auf deiner Ablage."
+    "tileRummyDetail": "Reihen und Gruppen aus den Steinen auf deiner Ablage.",
+    "grid": "Rasterspiele",
+    "gridDetail": "Bring deine Zeichen in eine Reihe, bevor es dein Gegner schafft."
   },
   "units": {
     "seconds": "{{n}} s",
@@ -308,7 +310,10 @@
     "watchLive": "Züge live verfolgen",
     "watchLiveHint": "Sieh die Züge der anderen, während sie sie machen, in Räumen, die sie zeigen.",
     "language": "Sprache",
-    "languageAuto": "Automatisch ({{language}})"
+    "languageAuto": "Automatisch ({{language}})",
+    "paper": "Papier",
+    "paperLight": "Hell",
+    "paperDark": "Dunkel"
   },
   "turnError": {
     "noSuchTile": "Ein Stein, den es im Spiel nicht gibt.",
@@ -417,5 +422,19 @@
     "tooFewPairs": "{{pairs}} Paare; zum Eröffnen nötig: {{needed}}.",
     "discardNotUsed": "Der genommene Abwurf muss auf den Tisch (in deine Eröffnung, wenn du eröffnest).",
     "notComplete": "Deine anderen 14 Steine müssen alle in Kombinationen liegen oder sieben Paare sein."
+  },
+  "gridError": {
+    "notYourTurn": "Du bist nicht dran.",
+    "occupied": "Dieses Feld ist besetzt.",
+    "offBoard": "Dieses Feld liegt nicht im Raster.",
+    "over": "Das Spiel ist vorbei."
+  },
+  "grid": {
+    "ticTacToe": "Tic-Tac-Toe",
+    "gomoku": "Gomoku",
+    "yourTurn": "Du bist dran: wähle ein freies Feld.",
+    "draw": "Unentschieden: das Feld ist voll.",
+    "rules": "{{line}} in einer Reihe auf {{width}} × {{height}}",
+    "goal": "Abwechselnd wird ein freies Feld markiert: Wer zuerst {{line}} in einer Reihe hat, gewinnt."
   }
 }

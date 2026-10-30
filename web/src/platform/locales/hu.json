@@ -15,7 +15,9 @@
     "all": "Összes játék",
     "loading": "Betöltés…",
     "tileRummy": "Römi lapkákkal",
-    "tileRummyDetail": "Sorok és csoportok a tartódon lévő lapkákból."
+    "tileRummyDetail": "Sorok és csoportok a tartódon lévő lapkákból.",
+    "grid": "Rácsjátékok",
+    "gridDetail": "Rakd ki a jeleidet egy sorba előbb, mint az ellenfeled."
   },
   "units": {
     "seconds": "{{n}} mp",
@@ -308,7 +310,10 @@
     "watchLive": "Körök követése élőben",
     "watchLiveHint": "Lásd a többiek lépéseit, miközben megteszik őket, azokban a szobákban, amelyek mutatják.",
     "language": "Nyelv",
-    "languageAuto": "Automatikus ({{language}})"
+    "languageAuto": "Automatikus ({{language}})",
+    "paper": "Papír",
+    "paperLight": "Világos",
+    "paperDark": "Sötét"
   },
   "turnError": {
     "noSuchTile": "Egy lapka, amely nincs a játékban.",
@@ -417,5 +422,19 @@
     "tooFewPairs": "{{pairs}} pár; a nyitáshoz {{needed}} kell.",
     "discardNotUsed": "Az elvett követ az asztalra kell tenni (a nyitásodba, ha most nyitsz).",
     "notComplete": "A többi 14 kövednek mind kombinációban kell lennie, vagy hét párnak."
+  },
+  "gridError": {
+    "notYourTurn": "Nem te jössz.",
+    "occupied": "Ez a mező foglalt.",
+    "offBoard": "Ez a mező nincs a rácson.",
+    "over": "A játék véget ért."
+  },
+  "grid": {
+    "ticTacToe": "Tic-tac-toe",
+    "gomoku": "Gomoku",
+    "yourTurn": "Te jössz: válassz egy szabad mezőt.",
+    "draw": "Döntetlen: a rács megtelt.",
+    "rules": "{{line}} egy sorban, {{width}} × {{height}} mezőn",
+    "goal": "Felváltva jelöltök meg egy szabad mezőt: aki elsőként rak ki {{line}} jelet egy sorban, nyer."
   }
 }

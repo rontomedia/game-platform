@@ -268,3 +268,65 @@ body {
     animation: none;
   }
 }
+
+/*
+ * Paper games (grid): squared paper, marks in pen. Light by default, a dark
+ * sheet as a setting (`Settings.paper`). The page is the paper: top bar,
+ * board and the line below it are drawn on it.
+ */
+.paper {
+  --paper-line-size: 24px;
+  min-height: 100dvh;
+  color: var(--ink);
+  background-color: var(--paper);
+  background-image:
+    linear-gradient(var(--paper-line) 1px, transparent 1px),
+    linear-gradient(90deg, var(--paper-line) 1px, transparent 1px);
+  background-size: var(--paper-line-size) var(--paper-line-size);
+}
+.paper-light {
+  --paper: #fbf8ef;
+  --paper-line: rgb(70 120 210 / 0.14);
+  --ink: #1f2a44;
+  --ink-soft: #5b6478;
+  --pen-x: #1d4ed8;
+  --pen-o: #c2410c;
+  --grid-ink: #2b3550;
+  /* A highlighter over the winning line, and a lighter touch on the last mark. */
+  --highlight: rgb(250 204 21 / 0.45);
+  --touch: rgb(70 120 210 / 0.09);
+  --card: rgb(255 255 255 / 0.75);
+  --card-line: rgb(31 42 68 / 0.12);
+}
+.paper-dark {
+  --paper: #1b1e25;
+  --paper-line: rgb(255 255 255 / 0.05);
+  --ink: #e8e6e0;
+  --ink-soft: #9aa1ad;
+  --pen-x: #7dd3fc;
+  --pen-o: #fdba74;
+  --grid-ink: #cfccc4;
+  --highlight: rgb(250 204 21 / 0.25);
+  --touch: rgb(255 255 255 / 0.05);
+  --card: rgb(255 255 255 / 0.05);
+  --card-line: rgb(255 255 255 / 0.1);
+}
+/* A card on the paper: the player chips, the line under the board, the watch bar. */
+.paper .paper-card,
+.paper .tray {
+  background: var(--card);
+  border: 1px solid var(--card-line);
+  box-shadow: 0 1px 2px rgb(0 0 0 / 0.06);
+  backdrop-filter: blur(2px);
+}
+.paper .ink-soft {
+  color: var(--ink-soft);
+}
+/* The menus' buttons in the top bar, in ink (their menus stay dark). */
+.paper .paper-tools > div > button {
+  color: var(--ink-soft);
+}
+.paper .paper-tools > div > button:hover {
+  color: var(--ink);
+  background: var(--touch);
+}

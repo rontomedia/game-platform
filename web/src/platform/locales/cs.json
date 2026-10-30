@@ -15,7 +15,9 @@
     "all": "Všechny hry",
     "loading": "Načítání…",
     "tileRummy": "Rummy s kameny",
-    "tileRummyDetail": "Postupky a skupiny z kamenů na vašem stojánku."
+    "tileRummyDetail": "Postupky a skupiny z kamenů na vašem stojánku.",
+    "grid": "Hry na mřížce",
+    "gridDetail": "Dostaňte své značky do řady dřív než soupeř."
   },
   "units": {
     "seconds": "{{n}} s",
@@ -332,7 +334,10 @@
     "watchLive": "Sledovat tahy živě",
     "watchLiveHint": "Vidět kroky ostatních hráčů, zatímco je dělají, v místnostech, které je ukazují.",
     "language": "Jazyk",
-    "languageAuto": "Automaticky ({{language}})"
+    "languageAuto": "Automaticky ({{language}})",
+    "paper": "Papír",
+    "paperLight": "Světlý",
+    "paperDark": "Tmavý"
   },
   "turnError": {
     "noSuchTile": "Kámen, který ve hře není.",
@@ -455,5 +460,19 @@
     "tooFewPairs": "Párů: {{pairs}}; otevření potřebuje {{needed}}.",
     "discardNotUsed": "Vzatý kámen musí na stůl (do vašeho otevření, pokud otevíráte).",
     "notComplete": "Ostatních 14 kamenů musí být v sestavách, nebo tvořit sedm párů."
+  },
+  "gridError": {
+    "notYourTurn": "Nejste na tahu.",
+    "occupied": "To pole je obsazené.",
+    "offBoard": "To pole není na mřížce.",
+    "over": "Hra skončila."
+  },
+  "grid": {
+    "ticTacToe": "Piškvorky 3 × 3",
+    "gomoku": "Gomoku",
+    "yourTurn": "Jste na tahu: vyberte volné pole.",
+    "draw": "Remíza: mřížka je plná.",
+    "rules": "{{line}} v řadě na {{width}} × {{height}}",
+    "goal": "Střídavě označujete volné pole: vyhrává ten, kdo první spojí {{line}} v řadě."
   }
 }

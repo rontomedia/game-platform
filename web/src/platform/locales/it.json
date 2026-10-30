@@ -15,7 +15,9 @@
     "all": "Tutti i giochi",
     "loading": "Caricamento…",
     "tileRummy": "Ramino con tessere",
-    "tileRummyDetail": "Scale e gruppi con le tessere del tuo leggio."
+    "tileRummyDetail": "Scale e gruppi con le tessere del tuo leggio.",
+    "grid": "Giochi a griglia",
+    "gridDetail": "Metti in fila i tuoi segni prima dell’avversario."
   },
   "units": {
     "seconds": "{{n}} s",
@@ -320,7 +322,10 @@
     "watchLive": "Segui i turni dal vivo",
     "watchLiveHint": "Vedi le mosse degli altri giocatori mentre le fanno, nelle stanze che le mostrano.",
     "language": "Lingua",
-    "languageAuto": "Automatica ({{language}})"
+    "languageAuto": "Automatica ({{language}})",
+    "paper": "Carta",
+    "paperLight": "Chiara",
+    "paperDark": "Scura"
   },
   "turnError": {
     "noSuchTile": "Una tessera che non esiste nel gioco.",
@@ -436,5 +441,19 @@
     "tooFewPairs": "{{pairs}} coppie; per aprire ne servono {{needed}}.",
     "discardNotUsed": "Lo scarto che hai preso deve andare sul tavolo (nella tua apertura, se stai aprendo).",
     "notComplete": "Le altre 14 tessere devono essere tutte in combinazioni, o sette coppie."
+  },
+  "gridError": {
+    "notYourTurn": "Non è il tuo turno.",
+    "occupied": "Quella casella è occupata.",
+    "offBoard": "Quella casella non è nella griglia.",
+    "over": "La partita è finita."
+  },
+  "grid": {
+    "ticTacToe": "Tris",
+    "gomoku": "Gomoku",
+    "yourTurn": "Tocca a te: scegli una casella libera.",
+    "draw": "Pareggio: la griglia è piena.",
+    "rules": "{{line}} in fila su {{width}} × {{height}}",
+    "goal": "A turno si segna una casella libera: vince chi mette per primo {{line}} in fila."
   }
 }

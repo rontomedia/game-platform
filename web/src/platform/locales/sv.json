@@ -15,7 +15,9 @@
     "all": "Alla spel",
     "loading": "Laddar …",
     "tileRummy": "Rummy med brickor",
-    "tileRummyDetail": "Stegar och grupper av brickorna i ditt ställ."
+    "tileRummyDetail": "Stegar och grupper av brickorna i ditt ställ.",
+    "grid": "Rutnätsspel",
+    "gridDetail": "Få dina tecken i rad före motståndaren."
   },
   "units": {
     "seconds": "{{n}} s",
@@ -308,7 +310,10 @@
     "watchLive": "Följ dragen live",
     "watchLiveHint": "Se de andra spelarnas drag medan de gör dem, i rum som visar dem.",
     "language": "Språk",
-    "languageAuto": "Automatiskt ({{language}})"
+    "languageAuto": "Automatiskt ({{language}})",
+    "paper": "Papper",
+    "paperLight": "Ljust",
+    "paperDark": "Mörkt"
   },
   "turnError": {
     "noSuchTile": "En bricka som inte finns i spelet.",
@@ -417,5 +422,19 @@
     "tooFewPairs": "{{pairs}} par; öppningen kräver {{needed}}.",
     "discardNotUsed": "Brickan du tog måste läggas på bordet (i din öppning, om du öppnar).",
     "notComplete": "Dina andra 14 brickor måste alla vara i kombinationer, eller sju par."
+  },
+  "gridError": {
+    "notYourTurn": "Det är inte din tur.",
+    "occupied": "Rutan är upptagen.",
+    "offBoard": "Rutan finns inte i rutnätet.",
+    "over": "Spelet är slut."
+  },
+  "grid": {
+    "ticTacToe": "Tre i rad",
+    "gomoku": "Gomoku",
+    "yourTurn": "Din tur: välj en ledig ruta.",
+    "draw": "Oavgjort: rutnätet är fullt.",
+    "rules": "{{line}} i rad på {{width}} × {{height}}",
+    "goal": "Markera en ledig ruta i tur och ordning: först med {{line}} i rad vinner."
   }
 }

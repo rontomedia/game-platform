@@ -15,7 +15,9 @@
     "all": "Todos los juegos",
     "loading": "Cargando…",
     "tileRummy": "Rummy de fichas",
-    "tileRummyDetail": "Escaleras y grupos con las fichas de tu atril."
+    "tileRummyDetail": "Escaleras y grupos con las fichas de tu atril.",
+    "grid": "Juegos de cuadrícula",
+    "gridDetail": "Pon tus marcas en línea antes que el otro jugador."
   },
   "units": {
     "seconds": "{{n}} s",
@@ -320,7 +322,10 @@
     "watchLive": "Ver los turnos en directo",
     "watchLiveHint": "Ve los movimientos de los demás jugadores mientras los hacen, en las salas que los comparten.",
     "language": "Idioma",
-    "languageAuto": "Automático ({{language}})"
+    "languageAuto": "Automático ({{language}})",
+    "paper": "Papel",
+    "paperLight": "Claro",
+    "paperDark": "Oscuro"
   },
   "turnError": {
     "noSuchTile": "Una ficha que no existe en el juego.",
@@ -436,5 +441,19 @@
     "tooFewPairs": "{{pairs}} parejas; la apertura necesita {{needed}}.",
     "discardNotUsed": "El descarte que tomaste debe ir a la mesa (en tu apertura, si estás abriendo).",
     "notComplete": "Tus otras 14 fichas deben estar todas en combinaciones, o ser siete parejas."
+  },
+  "gridError": {
+    "notYourTurn": "No es tu turno.",
+    "occupied": "Esa casilla está ocupada.",
+    "offBoard": "Esa casilla no está en la cuadrícula.",
+    "over": "La partida ha terminado."
+  },
+  "grid": {
+    "ticTacToe": "Tres en raya",
+    "gomoku": "Gomoku",
+    "yourTurn": "Tu turno: elige una casilla libre.",
+    "draw": "Empate: la cuadrícula está llena.",
+    "rules": "{{line}} en línea en {{width}} × {{height}}",
+    "goal": "Marcad por turnos una casilla libre: gana el primero con {{line}} en línea."
   }
 }

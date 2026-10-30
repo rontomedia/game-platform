@@ -6,6 +6,7 @@ import { pageAt } from './pages.ts'
 
 // Each family's code and engine (WASM) load only on its pages.
 const RummyApp = lazy(() => import('./games/tile-rummy/RummyApp.tsx'))
+const GridApp = lazy(() => import('./games/grid/GridApp.tsx'))
 
 /**
  * The site: the games page, or a rule set's page (`pages.ts`). `?demo` on
@@ -17,7 +18,7 @@ export default function App() {
   if (!page && !demo) return <GamesPage />
   return (
     <Suspense fallback={<Loading />}>
-      <RummyApp kind={page?.kind} />
+      {page?.family === 'grid' ? <GridApp kind={page.kind} /> : <RummyApp kind={page?.kind} />}
     </Suspense>
   )
 }

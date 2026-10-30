@@ -15,7 +15,9 @@
     "all": "All games",
     "loading": "Loading…",
     "tileRummy": "Tile rummy",
-    "tileRummyDetail": "Runs and groups from the tiles on your rack."
+    "tileRummyDetail": "Runs and groups from the tiles on your rack.",
+    "grid": "Grid games",
+    "gridDetail": "Get your marks in a row before the other player does."
   },
   "units": {
     "seconds": "{{n}} s",
@@ -308,7 +310,10 @@
     "watchLive": "Watch turns live",
     "watchLiveHint": "See the other players’ moves as they make them, in rooms that share them.",
     "language": "Language",
-    "languageAuto": "Auto ({{language}})"
+    "languageAuto": "Auto ({{language}})",
+    "paper": "Paper",
+    "paperLight": "Light",
+    "paperDark": "Dark"
   },
   "turnError": {
     "noSuchTile": "A tile that isn’t in the game.",
@@ -417,5 +422,19 @@
     "tooFewPairs": "{{pairs}} pairs; opening needs {{needed}}.",
     "discardNotUsed": "The discard you took must go on the table (into your opening, if you’re opening).",
     "notComplete": "Your other 14 tiles must all be in sets, or seven pairs."
+  },
+  "gridError": {
+    "notYourTurn": "It isn’t your turn.",
+    "occupied": "That cell is taken.",
+    "offBoard": "That cell isn’t on the grid.",
+    "over": "The game is over."
+  },
+  "grid": {
+    "ticTacToe": "Tic-Tac-Toe",
+    "gomoku": "Gomoku",
+    "yourTurn": "Your turn: choose a free cell.",
+    "draw": "A draw: the grid is full.",
+    "rules": "{{line}} in a row on {{width}} × {{height}}",
+    "goal": "Take turns marking a free cell: the first with {{line}} in a row wins."
   }
 }

@@ -15,7 +15,9 @@
     "all": "Alle spellen",
     "loading": "Laden…",
     "tileRummy": "Rummy met stenen",
-    "tileRummyDetail": "Rijen en groepen met de stenen op je rekje."
+    "tileRummyDetail": "Rijen en groepen met de stenen op je rekje.",
+    "grid": "Rasterspellen",
+    "gridDetail": "Krijg je tekens op een rij voordat de ander dat doet."
   },
   "units": {
     "seconds": "{{n}} s",
@@ -308,7 +310,10 @@
     "watchLive": "Beurten live volgen",
     "watchLiveHint": "Zie de zetten van de anderen terwijl ze die doen, in kamers die ze tonen.",
     "language": "Taal",
-    "languageAuto": "Automatisch ({{language}})"
+    "languageAuto": "Automatisch ({{language}})",
+    "paper": "Papier",
+    "paperLight": "Licht",
+    "paperDark": "Donker"
   },
   "turnError": {
     "noSuchTile": "Een steen die niet in het spel bestaat.",
@@ -417,5 +422,19 @@
     "tooFewPairs": "{{pairs}} paren; openen vraagt {{needed}}.",
     "discardNotUsed": "De genomen steen moet op tafel (in je opening, als je opent).",
     "notComplete": "Je andere 14 stenen moeten allemaal in combinaties liggen, of zeven paren zijn."
+  },
+  "gridError": {
+    "notYourTurn": "Je bent niet aan de beurt.",
+    "occupied": "Dat vakje is bezet.",
+    "offBoard": "Dat vakje ligt niet in het raster.",
+    "over": "Het spel is afgelopen."
+  },
+  "grid": {
+    "ticTacToe": "Boter-kaas-en-eieren",
+    "gomoku": "Gomoku",
+    "yourTurn": "Jij bent aan de beurt: kies een vrij vakje.",
+    "draw": "Gelijkspel: het raster is vol.",
+    "rules": "{{line}} op een rij op {{width}} × {{height}}",
+    "goal": "Om de beurt markeer je een vrij vakje: wie het eerst {{line}} op een rij heeft, wint."
   }
 }

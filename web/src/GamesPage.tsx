@@ -34,6 +34,15 @@ export function GamesPage() {
             ['/okey', t('home.okey')],
           ]}
         />
+        <Family
+          name={t('games.grid')}
+          detail={t('games.gridDetail')}
+          art={<GridArt />}
+          pages={[
+            ['/tic-tac-toe', t('grid.ticTacToe')],
+            ['/gomoku', t('grid.gomoku')],
+          ]}
+        />
       </div>
     </div>
   )
@@ -95,6 +104,31 @@ function TilesArt() {
           {value}
         </span>
       ))}
+    </div>
+  )
+}
+
+/** A game of Tic-Tac-Toe won across the middle: grid games' picture. */
+function GridArt() {
+  const marks = ['o', '', 'x', 'x', 'x', 'x', 'o', '', 'o']
+  return (
+    <div className="grid h-36 place-items-center bg-[radial-gradient(circle_at_50%_40%,#1f5f4f,#0d2f28)]" dir="ltr">
+      <div className="grid size-28 grid-cols-3 gap-[2px] rounded-lg bg-white/15 p-[2px]">
+        {marks.map((mark, i) => (
+          <span key={i} className={`grid place-items-center rounded-md ${i >= 3 && i < 6 ? 'bg-[#5c5530]' : 'bg-[#163f36]'}`}>
+            {mark === 'x' && (
+              <svg viewBox="0 0 24 24" className="size-6 text-teal-300" fill="none" stroke="currentColor" strokeWidth="3.2" strokeLinecap="round">
+                <path d="M5 5l14 14M19 5L5 19" />
+              </svg>
+            )}
+            {mark === 'o' && (
+              <svg viewBox="0 0 24 24" className="size-6 text-amber-300" fill="none" stroke="currentColor" strokeWidth="3.2">
+                <circle cx="12" cy="12" r="7.5" />
+              </svg>
+            )}
+          </span>
+        ))}
+      </div>
     </div>
   )
 }

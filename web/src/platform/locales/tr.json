@@ -15,7 +15,9 @@
     "all": "Tüm oyunlar",
     "loading": "Yükleniyor…",
     "tileRummy": "Taşlı rummy",
-    "tileRummyDetail": "Istakandaki taşlarla seriler ve gruplar."
+    "tileRummyDetail": "Istakandaki taşlarla seriler ve gruplar.",
+    "grid": "Izgara oyunları",
+    "gridDetail": "İşaretlerini rakibinden önce aynı sıraya diz."
   },
   "units": {
     "seconds": "{{n}} sn",
@@ -308,7 +310,10 @@
     "watchLive": "Hamleleri canlı izle",
     "watchLiveHint": "Hamleleri paylaşan odalarda, diğer oyuncuların hamlelerini yapılırken görün.",
     "language": "Dil",
-    "languageAuto": "Otomatik ({{language}})"
+    "languageAuto": "Otomatik ({{language}})",
+    "paper": "Kâğıt",
+    "paperLight": "Açık",
+    "paperDark": "Koyu"
   },
   "turnError": {
     "noSuchTile": "Oyunda olmayan bir taş.",
@@ -417,5 +422,19 @@
     "tooFewPairs": "{{pairs}} çift; açış için {{needed}} gerekiyor.",
     "discardNotUsed": "Aldığın taş masaya inmeli (açıyorsan açışında).",
     "notComplete": "Kalan 14 taşın hepsi perde ya da yedi çift olmalı."
+  },
+  "gridError": {
+    "notYourTurn": "Sıra sende değil.",
+    "occupied": "O kare dolu.",
+    "offBoard": "O kare tahtada değil.",
+    "over": "Oyun bitti."
+  },
+  "grid": {
+    "ticTacToe": "XOX",
+    "gomoku": "Gomoku",
+    "yourTurn": "Sıra sende: boş bir kare seç.",
+    "draw": "Berabere: tahta doldu.",
+    "rules": "{{width}} × {{height}} tahtada {{line}} sıra",
+    "goal": "Sırayla boş bir kareyi işaretleyin: ilk {{line}} tanesini sıraya dizen kazanır."
   }
 }

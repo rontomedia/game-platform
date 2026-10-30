@@ -15,7 +15,9 @@
     "all": "Tous les jeux",
     "loading": "Chargement…",
     "tileRummy": "Rami à tuiles",
-    "tileRummyDetail": "Des suites et des groupes avec les tuiles de votre chevalet."
+    "tileRummyDetail": "Des suites et des groupes avec les tuiles de votre chevalet.",
+    "grid": "Jeux de grille",
+    "gridDetail": "Alignez vos symboles avant l’autre joueur."
   },
   "units": {
     "seconds": "{{n}} s",
@@ -320,7 +322,10 @@
     "watchLive": "Suivre les tours en direct",
     "watchLiveHint": "Voyez les coups des autres joueurs pendant qu’ils les jouent, dans les salles qui les montrent.",
     "language": "Langue",
-    "languageAuto": "Automatique ({{language}})"
+    "languageAuto": "Automatique ({{language}})",
+    "paper": "Papier",
+    "paperLight": "Clair",
+    "paperDark": "Sombre"
   },
   "turnError": {
     "noSuchTile": "Une tuile qui n’existe pas dans le jeu.",
@@ -436,5 +441,19 @@
     "tooFewPairs": "{{pairs}} paires ; l’ouverture en demande {{needed}}.",
     "discardNotUsed": "La défausse prise doit aller sur la table (dans votre ouverture, si vous ouvrez).",
     "notComplete": "Vos 14 autres tuiles doivent toutes être en combinaisons, ou former sept paires."
+  },
+  "gridError": {
+    "notYourTurn": "Ce n’est pas votre tour.",
+    "occupied": "Cette case est prise.",
+    "offBoard": "Cette case n’est pas sur la grille.",
+    "over": "La partie est terminée."
+  },
+  "grid": {
+    "ticTacToe": "Morpion",
+    "gomoku": "Gomoku",
+    "yourTurn": "À vous : choisissez une case libre.",
+    "draw": "Match nul : la grille est pleine.",
+    "rules": "{{line}} alignés sur {{width}} × {{height}}",
+    "goal": "Chacun à son tour marque une case libre : le premier à en aligner {{line}} gagne."
   }
 }

@@ -15,7 +15,9 @@
     "all": "Wszystkie gry",
     "loading": "Ładowanie…",
     "tileRummy": "Remik z płytkami",
-    "tileRummyDetail": "Szeregi i grupy z płytek na stojaku."
+    "tileRummyDetail": "Szeregi i grupy z płytek na stojaku.",
+    "grid": "Gry na planszy",
+    "gridDetail": "Ułóż swoje znaki w rzędzie przed przeciwnikiem."
   },
   "units": {
     "seconds": "{{n}} s",
@@ -332,7 +334,10 @@
     "watchLive": "Oglądaj tury na żywo",
     "watchLiveHint": "Widzisz ruchy innych graczy w trakcie ich tury, w pokojach, które je pokazują.",
     "language": "Język",
-    "languageAuto": "Automatycznie ({{language}})"
+    "languageAuto": "Automatycznie ({{language}})",
+    "paper": "Kartka",
+    "paperLight": "Jasna",
+    "paperDark": "Ciemna"
   },
   "turnError": {
     "noSuchTile": "Płytka, której nie ma w grze.",
@@ -455,5 +460,19 @@
     "tooFewPairs": "Par: {{pairs}}; otwarcie wymaga {{needed}}.",
     "discardNotUsed": "Wzięty kamień musi trafić na stół (do otwarcia, jeśli otwierasz).",
     "notComplete": "Pozostałe 14 kamieni musi być w układach albo tworzyć siedem par."
+  },
+  "gridError": {
+    "notYourTurn": "To nie twój ruch.",
+    "occupied": "To pole jest zajęte.",
+    "offBoard": "Tego pola nie ma na planszy.",
+    "over": "Gra się skończyła."
+  },
+  "grid": {
+    "ticTacToe": "Kółko i krzyżyk",
+    "gomoku": "Gomoku",
+    "yourTurn": "Twój ruch: wybierz wolne pole.",
+    "draw": "Remis: plansza jest pełna.",
+    "rules": "{{line}} w rzędzie na planszy {{width}} × {{height}}",
+    "goal": "Na zmianę zaznaczacie wolne pola: wygrywa pierwszy, kto ułoży {{line}} w rzędzie."
   }
 }

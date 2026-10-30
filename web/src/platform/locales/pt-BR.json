@@ -15,7 +15,9 @@
     "all": "Todos os jogos",
     "loading": "Carregando…",
     "tileRummy": "Rummy de peças",
-    "tileRummyDetail": "Sequências e grupos com as peças do seu suporte."
+    "tileRummyDetail": "Sequências e grupos com as peças do seu suporte.",
+    "grid": "Jogos de grade",
+    "gridDetail": "Coloque suas marcas em linha antes do outro jogador."
   },
   "units": {
     "seconds": "{{n}} s",
@@ -320,7 +322,10 @@
     "watchLive": "Acompanhar as jogadas ao vivo",
     "watchLiveHint": "Veja os movimentos dos outros jogadores enquanto eles jogam, nas salas que os mostram.",
     "language": "Idioma",
-    "languageAuto": "Automático ({{language}})"
+    "languageAuto": "Automático ({{language}})",
+    "paper": "Papel",
+    "paperLight": "Claro",
+    "paperDark": "Escuro"
   },
   "turnError": {
     "noSuchTile": "Uma peça que não existe no jogo.",
@@ -436,5 +441,19 @@
     "tooFewPairs": "{{pairs}} pares; a abertura precisa de {{needed}}.",
     "discardNotUsed": "O descarte que você pegou precisa ir para a mesa (na sua abertura, se estiver abrindo).",
     "notComplete": "Suas outras 14 peças precisam estar todas em combinações, ou ser sete pares."
+  },
+  "gridError": {
+    "notYourTurn": "Não é a sua vez.",
+    "occupied": "Essa casa está ocupada.",
+    "offBoard": "Essa casa não está na grade.",
+    "over": "A partida terminou."
+  },
+  "grid": {
+    "ticTacToe": "Jogo da velha",
+    "gomoku": "Gomoku",
+    "yourTurn": "Sua vez: escolha uma casa livre.",
+    "draw": "Empate: a grade está cheia.",
+    "rules": "{{line}} em linha em {{width}} × {{height}}",
+    "goal": "Marquem uma casa livre por vez: vence quem fizer {{line}} em linha primeiro."
   }
 }
