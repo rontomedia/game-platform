@@ -17,8 +17,8 @@ room; `protocol`; `server`, the binary with each game's adapter),
 `games/` a crate per game family and its `-wasm` crate (`tile-rummy`,
 `grid`). In `web/src/`,
 `platform/` is shared (i18n, settings, storage, ui) and `games/<family>/`
-a game's boards and engine WASM; `App.tsx`, `useGame.ts` and
-`messages.ts` still mix both, to be split as the second family arrives.
+a game's app, boards and engine WASM (`tile-rummy`, `grid`); `App.tsx`
+routes to the games page or a game's page (`pages.ts`).
 
 ## Commands
 
@@ -33,7 +33,6 @@ cargo run -p server -- --open-racks # the same, every rack shown to everyone (ju
 # (the games served, default all); see `config` in main.rs
 cargo test --workspace              # one test: cargo test -p tile-rummy runs
 cargo clippy --workspace --all-targets
-cargo build -p grid-wasm --target wasm32-unknown-unknown  # not yet used by web/
 ```
 
 From `web/`:
@@ -43,9 +42,11 @@ npm run dev       # builds the engine WASM (debug), then Vite on http://localhos
 npm run build     # release WASM + type check + production build into web/dist
 npm run lint      # oxlint
 npm test          # Vitest (web/src/**/*.test.ts); one test: npx vitest run -t "name"
-npm run wasm      # only rebuild the engine WASM (needs wasm-pack)
+npm run wasm      # only rebuild every game's engine WASM (scripts/wasm.mjs; needs wasm-pack)
 ```
 
+`http://localhost:5173/` is the games page; `/rummy`, `/okey-101`, `/okey`,
+`/tic-tac-toe` and `/gomoku` a rule set's page each.
 `http://localhost:5173/?demo` shows the board with a made-up 4-player game
 and no server (`src/games/tile-rummy/demo.ts`): the place to work on the board's look.
 `?demo=racks` adds the open racks panel; `?demo=watcher` is a bots-only
@@ -60,7 +61,7 @@ the bot levels against each other and prints wins and time per move;
 grid bots, on Tic-Tac-Toe and Gomoku (`GRID_GAMES`, `GRID_MS`).
 
 Run the server and `npm run dev` together. After changing Rust in
-`games/tile-rummy*`, rerun `npm run wasm:dev` (Vite then reloads); `npm run dev`
+`games/tile-rummy*` or `games/grid*`, rerun `npm run wasm:dev` (Vite then reloads); `npm run dev`
 only builds it on start.
 
 ## Architecture
@@ -130,7 +131,7 @@ only builds it on start.
   with `#[tsify(optional)]`.
   Messages say what happened, never a sentence for players: `Notice`,
   `Refusal` and `TurnError` are enums the client words in the player's
-  language (`web/src/messages.ts`; tile rummy's `RummyNotice`,
+  language (`web/src/platform/messages.ts`, each game's `messages.ts`; tile rummy's `RummyNotice`,
   `TurnError` and the like inside `game`); `Error { message }` is only for
   messages the server couldn't read. A new thing to tell players is a new
   variant, not text.
@@ -157,7 +158,7 @@ only builds it on start.
   loses Tic-Tac-Toe), Extra Hard deepening until `spent` (negamax with
   alpha-beta over cells near the marks).
 - **`games/grid-wasm`**: `checkPlace`, `outcome`, `botMove`, as
-  tile-rummy-wasm; not yet built into `web/`.
+  tile-rummy-wasm, into `web/src/games/grid/wasm/`.
 - **`crates/platform`**: what every game's rooms share; depends on no
   game.
   - `engine.rs`: the `GameEngine` trait a game implements for the room:
@@ -257,14 +258,34 @@ only builds it on start.
 - **`web/`**: Vite + React 19 + TypeScript client. Tailwind v4 (theme tokens
   and the tile/felt/rack looks in `src/index.css`; a `short:` variant for
   screens under 500 px high, i.e. phones held sideways), Motion for UI
-  animation, Inter via fontsource. `src/main.tsx` awaits the WASM init
+  animation, Inter via fontsource. `src/main.tsx` awaits the language
   before rendering. The board is HTML elements, not a canvas.
-  - `useGame.ts` owns the connection: it keeps the seat token in
-    `sessionStorage` (per tab, so two tabs are two players), rejoins after a
-    reload and retries a lost connection. Screens: home (create/join),
-    lobby, `Board.tsx`.
+  - Pages (`pages.ts`, `App.tsx`): `/` the games page (`GamesPage.tsx`: a
+    card per family, links to its rule sets' pages), a page per named rule
+    set in its family's app, `React.lazy` so a family's code and WASM load
+    only on its pages (each app's module awaits its engine's init). A new
+    rule set's page: a path in `PAGES` and a link on the games page.
+  - `platform/`: what every game's page shares. `useRoom.ts` owns the
+    connection to `/ws/<game>`: the seat token in `sessionStorage` per game
+    (per tab, so two tabs are two players), rejoining after a reload,
+    retrying a lost connection, room requests sent as they are and the
+    game's inside `game`, the game's messages to its `onGame`.
+    `RoomScreens.tsx`: the page's header (back to all games), the home
+    screen (name, create/join around the game's options), the lobby,
+    `TurnTime`, `StandIn`, `Advanced`, `Choice`, `Option`; `WatchBar.tsx`;
+    `protocol.ts` (the shared types, from tile rummy's WASM build, types
+    only); `messages.ts` (refusals, the room's notices).
+  - `games/tile-rummy/`: `RummyApp.tsx` (its home options, lobby rules,
+    boards and `?demo`s), `useRummy.ts` (its states, on `useRoom`),
+    `protocol.ts` (the generic types filled in), `messages.ts`, the boards.
+  - `games/grid/`: `GridApp.tsx`, `useGrid.ts`, `GridBoard.tsx`: the grid
+    on paper (`.paper` in `index.css`; light, or dark as a setting,
+    `Settings.paper`), Tic-Tac-Toe's lines by hand, Gomoku's ruled, marks
+    drawn in pen (Motion `pathLength`), the winning line highlighted; a
+    click places a mark (checked first, `checkPlace`). Paper games keep
+    this look; the tile games keep the felt and tray.
   - Room options on the home screen: only turn time is always shown; the
-    rest are under "Advanced settings" (`Advanced` in `App.tsx`, folded,
+    rest are under "Advanced settings" (`Advanced` in `platform/RoomScreens.tsx`, folded,
     showing how many differ from the defaults). A new room option goes
     under Advanced unless most players would want to choose it.
   - `Board.tsx`: everything moves by dragging (dnd-kit core + sortable):
@@ -278,7 +299,7 @@ only builds it on start.
     `transform`. `checkTurn` gives instant feedback. Set outlines, in order
     of precedence: amber invalid, green changed or new this turn (moving a
     set doesn't count), blue changed by another player on their last turn
-    (`GameState.lastPlay` from `useGame.ts`; flashes when it's news, then
+    (`GameState.lastPlay` from `useRummy.ts`; flashes when it's news, then
     stays quiet until the table changes).
   - Live turns: the current player's board sends its table after each
     drop (`draft`, in every room: it's what's played if time runs out); the
@@ -327,14 +348,15 @@ only builds it on start.
     across server states (the board remounts on every state,
     `key={game.version}`) by matching tiles and sets by content; saved per
     tab in sessionStorage. Pure, with Vitest tests.
-  - Open racks: when states carry `racks`, `useGame.ts` logs each turn
+  - Open racks: when states carry `racks`, `useRummy.ts` logs each turn
     (tiles played, tile drawn) and the board shows the others' racks and
     the log above the table (`OpenRacks`). Each of those racks can be
     sorted or reordered by dragging (its own nested `DndContext`), the
     order kept per tab like the player's own.
   - `settings.ts` / `SettingsMenu.tsx`: device preferences (rack style: flat
-    tray or two-row rack; watching live turns; language) behind the gear in
-    the top bar.
+    tray or two-row rack; watching live turns; the paper games' sheet;
+    language) behind the gear in the top bar, each game's own shown
+    (`tiles`, `paper`).
   - `Rules.tsx`: "How to play" under the home and lobby box, unfolding
     the rules below it as wide as the page (only the box itself is
     `max-w-lg`), for rule sets listed in `RULES` (classic so far): short
@@ -371,7 +393,7 @@ only builds it on start.
     `end-`, `text-start`), and the playing surface (table, rack, plans,
     open racks' tiles) stays `dir="ltr"` so runs read 1 2 3.
   - `OkeyBoard.tsx`: Okey 101's board (rooms whose `rules` are Okey 101
-    get `okeyState`, kept as `OkeyGame` in `useGame.ts`). The turn is built
+    get `okeyState`, kept as `OkeyGame` in `useRummy.ts`). The turn is built
     on the board and sent whole as `discard` when a tile is dropped on the
     discard spot (checked first in the browser, `checkOkeyTurn`): draw
     (button or pool), or drag the previous player's discard in; drop tiles
@@ -404,7 +426,7 @@ only builds it on start.
     `Rack`, `DiscardSpot`, `Overlay`, `Plans`: a rack tile double-clicked
     goes into a plan, any time, plans checked as plain Okey's sets with
     12-13-1, `plainSet`). Both Okey boards mark the tile last drawn
-    (`OkeyGame.drawn`, from the phase going draw to play in `useGame.ts`),
+    (`OkeyGame.drawn`, from the phase going draw to play in `useRummy.ts`),
     and have a slot beside the discard spot for up to 3 tiles to discard
     next (`NextSpot`, the first nearest the spot; a tile goes in where
     it's let go, `enqueue`), told to the server as they change
