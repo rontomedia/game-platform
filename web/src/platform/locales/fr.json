@@ -16,7 +16,7 @@
     "loading": "Chargement…",
     "tileRummy": "Rami à tuiles",
     "tileRummyDetail": "Des suites et des groupes avec les tuiles de votre chevalet.",
-    "grid": "Jeux de grille",
+    "grid": "Papier et crayon",
     "gridDetail": "Alignez vos symboles avant l’autre joueur."
   },
   "units": {
@@ -199,6 +199,34 @@
       "scores": "Chacun commence avec 20 points (sauf si la salle en a choisi autrement). Quand quelqu’un finit, chaque autre joueur perd 2, ou 4 si le gagnant a fini avec un okey ou avec sept paires, 8 pour les deux. Celui qui a le jumeau de l’indicateur à la donne le montre, et chaque autre joueur perd 1. Si la pioche est vide, la manche est redistribuée. La partie s’arrête quand quelqu’un n’a plus de points : le plus de points gagne.",
       "controlsDiscard": "Déposez une tuile sur votre place de défausse pour finir votre tour, ou sur la place pour finir afin de gagner avec les 14 autres. Triez votre chevalet avec les boutons au-dessus, ou faites glisser les tuiles dans l’ordre qui vous plaît.",
       "controlsTime": "Surveillez l’horloge : quand le temps est écoulé, vous piochez si ce n’était pas fait, et une tuile est défaussée pour vous."
+    },
+    "ticTacToe": {
+      "aim": "Alignez trois de vos symboles avant l’autre joueur : en ligne, en colonne ou en diagonale.",
+      "aimCaption": "X prend la ligne du haut.",
+      "turnTitle": "Chacun son tour",
+      "turn": "X commence, puis vous jouez à tour de rôle. À votre tour, placez votre symbole dans une case vide. Les symboles restent en place jusqu’à la fin.",
+      "tipsTitle": "Bien jouer",
+      "tips": "Commencez au centre ou dans un coin. Quand l’autre joueur en a deux alignés, bloquez aussitôt la troisième case. Mieux encore : créez deux menaces d’un seul coup, il ne pourra en bloquer qu’une.",
+      "tipsCaption": "Le symbole de X dans le coin du bas menace deux lignes ; O en bloque une, X gagne sur l’autre.",
+      "drawTitle": "Match nul",
+      "draw": "Quand les neuf cases sont pleines sans alignement de trois, la partie est nulle. Bien joué des deux côtés, le morpion finit toujours par un nul : on gagne sur une erreur.",
+      "drawCaption": "Toutes les lignes sont bloquées : match nul."
+    },
+    "gomoku": {
+      "aim": "Alignez cinq de vos pierres avant l’autre joueur : en ligne, en colonne ou en diagonale. Six ou plus gagnent aussi.",
+      "aimCaption": "Le quatre ouvert de Noir est imparable : Blanc bloque un bout, Noir termine à l’autre.",
+      "turn": "Noir commence, puis chacun à son tour pose une pierre sur une intersection libre, bords compris. Les pierres ne bougent jamais et ne sont jamais prises.",
+      "threatsTitle": "Rangées ouvertes",
+      "threats": "Une rangée dont les deux bouts sont libres est ouverte. Un quatre ouvert gagne toujours : bloquez donc un trois ouvert avant qu’il grandisse, en posant une pierre à l’un de ses bouts.",
+      "threatsCaption": "Le trois de Blanc en diagonale est ouvert des deux côtés : Noir en bloque un.",
+      "draw": "Si le plateau se remplit sans alignement de cinq, la partie est nulle. Sur 15 × 15, c’est rare."
+    },
+    "grid": {
+      "controlsMark": "Cliquez sur une case vide pour y placer votre symbole ; à votre tour, un symbole pâle montre où il ira.",
+      "controlsStone": "Cliquez sur une intersection libre pour poser votre pierre ; à votre tour, une pierre pâle montre où elle ira. Un point rouge marque la dernière pierre posée.",
+      "controlsTime": "Surveillez l’horloge : si votre temps s’écoule, un symbole est placé pour vous.",
+      "controlsPaper": "Papier clair ou sombre : à choisir dans les réglages, sous l’engrenage du plateau.",
+      "controlsTimeStone": "Surveillez l’horloge : si votre temps s’écoule, une pierre est posée pour vous."
     }
   },
   "tile": {
@@ -457,6 +485,7 @@
     "goal": "Chacun à son tour marque une case libre : le premier à en aligner {{line}} gagne.",
     "yourTurnStone": "À vous : posez une pierre sur une intersection libre.",
     "black": "Noirs",
-    "white": "Blancs"
+    "white": "Blancs",
+    "goalStone": "Chacun à son tour pose une pierre sur une intersection libre : le premier à en aligner {{line}} gagne."
   }
 }

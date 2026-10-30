@@ -16,7 +16,7 @@
     "loading": "Načítání…",
     "tileRummy": "Rummy s kameny",
     "tileRummyDetail": "Postupky a skupiny z kamenů na vašem stojánku.",
-    "grid": "Hry na mřížce",
+    "grid": "Papír a tužka",
     "gridDetail": "Dostaňte své značky do řady dřív než soupeř."
   },
   "units": {
@@ -201,6 +201,34 @@
       "scores": "Každý začíná s 20 body (pokud místnost nezvolila jinak). Když někdo dohraje, každý další hráč ztratí 2, nebo 4, pokud vítěz dohrál okeyem nebo sedmi páry, 8 za obojí. Kdo má při rozdání dvojče ukazatele, ukáže ho a každý další hráč ztratí 1. Když dojde balík, rozdává se znovu. Hra končí, když někomu dojdou body: vyhrává nejvíc bodů.",
       "controlsDiscard": "Pusťte kámen na své místo pro odhoz a tah skončí, nebo na místo pro dohrání a vyhrajete s ostatními 14. Stojánek seřadíte tlačítky nad ním, nebo přetáhněte kameny do vlastního pořadí.",
       "controlsTime": "Hlídejte čas: když vyprší, líznete si, pokud jste to ještě neudělali, a za vás se odhodí kámen."
+    },
+    "ticTacToe": {
+      "aim": "Dostaňte tři své značky do řady dřív než soupeř: vodorovně, svisle nebo úhlopříčně.",
+      "aimCaption": "X bere horní řadu.",
+      "turnTitle": "Na střídačku",
+      "turn": "Začíná X, pak se střídáte. Ve svém tahu dejte značku na libovolné volné pole. Značky zůstávají na místě až do konce hry.",
+      "tipsTitle": "Jak hrát dobře",
+      "tips": "Začněte uprostřed nebo v rohu. Když má soupeř dvě v řadě, hned zablokujte třetí pole. Nejlepší je jednou značkou vytvořit dvě hrozby: zablokovat dokáže jen jednu.",
+      "tipsCaption": "Značka X v dolním rohu hrozí na dvou liniích; O jednu zablokuje, X vyhraje na druhé.",
+      "drawTitle": "Remíza",
+      "draw": "Když je všech devět polí plných a nikdo nemá tři v řadě, je to remíza. Při pečlivé hře obou stran končí piškvorky vždy remízou: vyhrává se na soupeřově chybě.",
+      "drawCaption": "Každá linie je zablokovaná: remíza."
+    },
+    "gomoku": {
+      "aim": "Dostaňte pět svých kamenů do řady dřív než soupeř: vodorovně, svisle nebo úhlopříčně. Šest a víc vyhrává také.",
+      "aimCaption": "Otevřenou čtyřku černého nejde zastavit: bílý zablokuje jeden konec, černý dokončí na druhém.",
+      "turn": "Začíná černý, pak se střídáte v pokládání jednoho kamene na libovolný volný průsečík, i na okraji. Kameny se nikdy neposouvají ani neberou.",
+      "threatsTitle": "Otevřené řady",
+      "threats": "Řada s oběma volnými konci je otevřená. Otevřená čtyřka vždy vyhrává, takže otevřenou trojku zablokujte, než vyroste: položte kámen na jeden z jejích konců.",
+      "threatsCaption": "Trojka bílého na úhlopříčce je otevřená z obou stran: černý jednu zablokuje.",
+      "draw": "Zaplní-li se deska bez pětice v řadě, je to remíza. Na 15 × 15 je to vzácné."
+    },
+    "grid": {
+      "controlsMark": "Klepnutím na volné pole tam dáte značku; ve vašem tahu bledá značka ukazuje, kam přijde.",
+      "controlsStone": "Klepnutím na volný průsečík položíte kámen; ve vašem tahu bledý kámen ukazuje, kam přijde. Červená tečka označuje poslední kámen.",
+      "controlsTime": "Hlídejte hodiny: když vám dojde čas, značka se položí za vás.",
+      "controlsPaper": "Světlý nebo tmavý papír: vyberte v nastavení, pod ozubeným kolem na desce.",
+      "controlsTimeStone": "Hlídejte hodiny: když vám dojde čas, kámen se položí za vás."
     }
   },
   "tile": {
@@ -476,6 +504,7 @@
     "goal": "Střídavě označujete volné pole: vyhrává ten, kdo první spojí {{line}} v řadě.",
     "yourTurnStone": "Jste na tahu: položte kámen na volný průsečík.",
     "black": "Černý",
-    "white": "Bílý"
+    "white": "Bílý",
+    "goalStone": "Střídavě pokládáte kámen na volný průsečík: vyhrává ten, kdo první spojí {{line}} v řadě."
   }
 }

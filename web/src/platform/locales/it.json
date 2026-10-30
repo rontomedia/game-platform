@@ -16,7 +16,7 @@
     "loading": "Caricamento…",
     "tileRummy": "Ramino con tessere",
     "tileRummyDetail": "Scale e gruppi con le tessere del tuo leggio.",
-    "grid": "Giochi a griglia",
+    "grid": "Carta e matita",
     "gridDetail": "Metti in fila i tuoi segni prima dell’avversario."
   },
   "units": {
@@ -199,6 +199,34 @@
       "scores": "Tutti partono con 20 punti (salvo diversa scelta della stanza). Quando qualcuno chiude, ogni altro giocatore perde 2, o 4 se il vincitore ha chiuso con un okey o con sette coppie, 8 per entrambe le cose. Chi ha il gemello dell’indicatore alla distribuzione lo mostra, e ogni altro giocatore perde 1. Se il mazzo finisce, la mano si ridistribuisce. La partita finisce quando qualcuno resta senza punti: vince chi ne ha di più.",
       "controlsDiscard": "Rilascia una tessera nel tuo posto degli scarti per finire il turno, o nel posto per chiudere per vincere con le altre 14. Ordina il leggio con i pulsanti sopra, o trascina le tessere nell’ordine che preferisci.",
       "controlsTime": "Tieni d’occhio l’orologio: quando il tempo scade, peschi se non l’avevi fatto, e per te viene scartata una tessera."
+    },
+    "ticTacToe": {
+      "aim": "Metti tre dei tuoi segni in fila prima dell’avversario: in orizzontale, in verticale o in diagonale.",
+      "aimCaption": "X prende la riga in alto.",
+      "turnTitle": "A turno",
+      "turn": "Comincia X, poi si gioca a turno. Al tuo turno metti il tuo segno in una casella libera. I segni restano al loro posto fino alla fine.",
+      "tipsTitle": "Giocare bene",
+      "tips": "Comincia dal centro o da un angolo. Quando l’avversario ha due segni in fila, blocca subito la terza casella. Meglio ancora: crea due minacce con un solo segno, perché potrà bloccarne una sola.",
+      "tipsCaption": "Il segno di X nell’angolo in basso minaccia due linee; O ne blocca una, X vince sull’altra.",
+      "drawTitle": "Pareggio",
+      "draw": "Quando tutte e nove le caselle sono piene e nessuno ha tre in fila, la partita è pari. Se entrambi giocano con attenzione, il tris finisce sempre pari: si vince sfruttando un errore.",
+      "drawCaption": "Ogni linea è bloccata: pareggio."
+    },
+    "gomoku": {
+      "aim": "Metti cinque delle tue pietre in fila prima dell’avversario: in orizzontale, in verticale o in diagonale. Anche sei o più vincono.",
+      "aimCaption": "Il quattro aperto del Nero è inarrestabile: il Bianco blocca un’estremità, il Nero chiude dall’altra.",
+      "turn": "Comincia il Nero, poi a turno si mette una pietra su un incrocio libero, bordi compresi. Le pietre non si spostano e non si catturano mai.",
+      "threatsTitle": "File aperte",
+      "threats": "Una fila con entrambe le estremità libere è aperta. Un quattro aperto vince sempre, quindi blocca un tre aperto prima che cresca: metti una pietra a una delle sue estremità.",
+      "threatsCaption": "Il tre del Bianco in diagonale è aperto da entrambi i lati: il Nero ne blocca uno.",
+      "draw": "Se la scacchiera si riempie senza file di cinque, la partita è pari. Su 15 × 15 succede di rado."
+    },
+    "grid": {
+      "controlsMark": "Clicca su una casella libera per mettere il tuo segno; al tuo turno un segno tenue mostra dove andrà.",
+      "controlsStone": "Clicca su un incrocio libero per mettere la tua pietra; al tuo turno una pietra tenue mostra dove andrà. Un punto rosso segna l’ultima pietra.",
+      "controlsTime": "Tieni d’occhio l’orologio: se il tempo finisce, un segno viene messo al posto tuo.",
+      "controlsPaper": "Carta chiara o scura: scegli nelle impostazioni, sotto l’ingranaggio della scacchiera.",
+      "controlsTimeStone": "Tieni d’occhio l’orologio: se il tempo finisce, una pietra viene messa al posto tuo."
     }
   },
   "tile": {
@@ -457,6 +485,7 @@
     "goal": "A turno si segna una casella libera: vince chi mette per primo {{line}} in fila.",
     "yourTurnStone": "Tocca a te: metti una pietra su un incrocio libero.",
     "black": "Nero",
-    "white": "Bianco"
+    "white": "Bianco",
+    "goalStone": "A turno si mette una pietra su un incrocio libero: vince chi mette per primo {{line}} in fila."
   }
 }

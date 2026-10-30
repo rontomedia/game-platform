@@ -16,7 +16,7 @@
     "loading": "Yükleniyor…",
     "tileRummy": "Taşlı rummy",
     "tileRummyDetail": "Istakandaki taşlarla seriler ve gruplar.",
-    "grid": "Izgara oyunları",
+    "grid": "Kâğıt kalem",
     "gridDetail": "İşaretlerini rakibinden önce aynı sıraya diz."
   },
   "units": {
@@ -197,6 +197,34 @@
       "scores": "Herkes 20 puanla başlar (oda başka seçmediyse). Biri bitirince diğer her oyuncu 2 puan kaybeder; bitiren okeyle ya da yedi çiftle bitirdiyse 4, ikisi birden ise 8. Dağıtımda göstergenin eşini elinde tutan onu gösterir ve diğer her oyuncu 1 kaybeder. Deste biterse el yeniden dağıtılır. Birinin puanı bitince oyun biter: en çok puanı olan kazanır.",
       "controlsDiscard": "Sıranızı bitirmek için bir taşı atma yerinize, kalan 14’le kazanmak için bitirme yerine bırakın. Istakanızı üstündeki düğmelerle dizin ya da taşları kendi sıranıza sürükleyin.",
       "controlsTime": "Saati izleyin: süre dolunca, çekmediyseniz taş çekilir ve sizin için bir taş atılır."
+    },
+    "ticTacToe": {
+      "aim": "Üç işaretini rakibinden önce aynı sıraya diz: yatay, dikey ya da çapraz.",
+      "aimCaption": "X üst sırayı alıyor.",
+      "turnTitle": "Sırayla",
+      "turn": "X başlar, sonra sırayla oynarsınız. Sıran gelince işaretini boş bir kareye koy. İşaretler oyun bitene kadar yerinde kalır.",
+      "tipsTitle": "İyi oynamak",
+      "tips": "Ortadan ya da bir köşeden başla. Rakibin iki tane dizince üçüncü kareyi hemen kapat. En iyisi tek işaretle iki tehdit yaratmak: rakip yalnızca birini kapatabilir.",
+      "tipsCaption": "X’in alt köşedeki işareti iki çizgiyi tehdit ediyor; O birini kapatır, X diğerinden kazanır.",
+      "drawTitle": "Beraberlik",
+      "draw": "Dokuz karenin hepsi dolar ve kimse üçünü dizemezse oyun berabere biter. İki taraf da dikkatli oynarsa XOX hep berabere biter: kazanmak için rakibin hatasını yakalamak gerekir.",
+      "drawCaption": "Bütün çizgiler kapalı: berabere."
+    },
+    "gomoku": {
+      "aim": "Beş taşını rakibinden önce aynı sıraya diz: yatay, dikey ya da çapraz. Altı ya da daha fazlası da kazanır.",
+      "aimCaption": "Siyahın açık dörtlüsü durdurulamaz: beyaz bir ucu kapatır, siyah diğer uçta bitirir.",
+      "turn": "Siyah başlar, sonra sırayla boş bir kesişime birer taş koyarsınız, kenarlar dahil. Taşlar asla yer değiştirmez ve alınmaz.",
+      "threatsTitle": "Açık sıralar",
+      "threats": "İki ucu da boş olan sıra açıktır. Açık dörtlü her zaman kazanır; o yüzden açık üçlüyü büyümeden kapat: uçlarından birine taş koy.",
+      "threatsCaption": "Beyazın çaprazdaki üçlüsü iki ucu da açık: siyah birini kapatıyor.",
+      "draw": "Tahta beşli sıra olmadan dolarsa oyun berabere biter. 15 × 15 tahtada bu nadirdir."
+    },
+    "grid": {
+      "controlsMark": "İşaretini koymak için boş bir kareye tıkla; sıran gelince soluk bir işaret nereye gideceğini gösterir.",
+      "controlsStone": "Taşını koymak için boş bir kesişime tıkla; sıran gelince soluk bir taş nereye gideceğini gösterir. Kırmızı nokta son konan taşı gösterir.",
+      "controlsTime": "Saate dikkat et: süren biterse senin yerine bir işaret konur.",
+      "controlsPaper": "Açık ya da koyu kâğıt: tahtadaki dişli simgesinin altındaki ayarlardan seç.",
+      "controlsTimeStone": "Saate dikkat et: süren biterse senin yerine bir taş konur."
     }
   },
   "tile": {
@@ -438,6 +466,7 @@
     "goal": "Sırayla boş bir kareyi işaretleyin: ilk {{line}} tanesini sıraya dizen kazanır.",
     "yourTurnStone": "Sıra sende: boş bir kesişime taş koy.",
     "black": "Siyah",
-    "white": "Beyaz"
+    "white": "Beyaz",
+    "goalStone": "Sırayla boş bir kesişime taş koyun: ilk {{line}} tanesini sıraya dizen kazanır."
   }
 }

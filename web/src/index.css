@@ -271,12 +271,12 @@ body {
 
 /*
  * Paper games (grid): squared paper, marks in pen. Light by default, a dark
- * sheet as a setting (`Settings.paper`). The page is the paper: top bar,
- * board and the line below it are drawn on it.
+ * sheet as a setting (`Settings.paper`). On a board the page is the paper
+ * (top bar, board and the line below it drawn on it); the rules' scenes
+ * are little sheets of it.
  */
 .paper {
   --paper-line-size: 24px;
-  min-height: 100dvh;
   color: var(--ink);
   background-color: var(--paper);
   background-image:

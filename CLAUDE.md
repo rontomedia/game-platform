@@ -282,7 +282,8 @@ only builds it on start.
     on paper (`.paper` in `index.css`; light, or dark as a setting,
     `Settings.paper`), the winning line highlighted; a click places a
     mark (checked first, `checkPlace`). Tic-Tac-Toe: lines by hand, X and
-    O drawn in pen in the cells (Motion `pathLength`). Gomoku
+    O drawn in pen in the cells (`marks.tsx`, Motion `pathLength`; rows
+    fixed and the mark laid over its cell, so drawing never resizes it). Gomoku
     (`StoneBoard.tsx`, any grid over 25 cells): black and white stones on
     the intersections (black first; a rim, `--rim-*`, shows each on either
     sheet), star points, the last stone dotted; its lines are the paper's
@@ -363,13 +364,18 @@ only builds it on start.
     tray or two-row rack; watching live turns; the paper games' sheet;
     language) behind the gear in the top bar, each game's own shown
     (`tiles`, `paper`).
-  - `Rules.tsx`: "How to play" under the home and lobby box, unfolding
-    the rules below it as wide as the page (only the box itself is
-    `max-w-lg`), for rule sets listed in `RULES` (classic so far): short
-    numbered sections, two to a row on wide screens, most with a scene of
-    real tiles gliding between frames (Motion `layoutId`; fine here,
-    nothing is draggable), the board's outlines, the last frame for reduced
-    motion. Texts under `rules` in the catalogues.
+  - "How to play" under the home and lobby box (`platform/HowToPlay.tsx`:
+    the button, the rules unfolding below it as wide as the page, only
+    the box itself `max-w-lg`; `RuleSection`s numbered, two to a row on
+    wide screens; `RuleText`, `RuleList`; `useScene` plays a scene's
+    frames while it's in view, the last frame for reduced motion). Tile
+    rummy's (`Rules.tsx`, rule sets in `RULES`): scenes of real tiles
+    gliding between frames (Motion `layoutId`; fine here, nothing is
+    draggable), the board's outlines. The grid's (`games/grid/GridRules.tsx`):
+    scenes on a little sheet of paper, marks drawn and stones set a move at
+    a time, the winning line highlighted; Gomoku's paper lines aligned
+    with its board's as on the real one (`usePaperLines`). Texts under
+    `rules` in the catalogues.
   - Languages: react-i18next, every visible text through `t('key')` (no
     text in components). `src/platform/locales/en.json` is the source and types the
     keys and their `{{values}}` (`i18next.d.ts`), so a wrong key fails the

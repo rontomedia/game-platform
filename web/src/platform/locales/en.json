@@ -16,7 +16,7 @@
     "loading": "Loading…",
     "tileRummy": "Tile rummy",
     "tileRummyDetail": "Runs and groups from the tiles on your rack.",
-    "grid": "Grid games",
+    "grid": "Pencil & paper",
     "gridDetail": "Get your marks in a row before the other player does."
   },
   "units": {
@@ -197,6 +197,34 @@
       "scores": "Everyone starts with 20 points (unless the room chose otherwise). When someone finishes, each other player loses 2, or 4 if the winner finished with an okey or with seven pairs, 8 for both. Holding the indicator’s twin at the deal shows it and costs each other player 1. If the pool runs out, the hand is dealt again. The game ends when someone has no points left: the most points win.",
       "controlsDiscard": "Drop a tile on your discard spot to end your turn, or on the finish spot to win with the other 14. Sort your rack with the buttons above it, or drag tiles into your own order.",
       "controlsTime": "Watch the clock: when time runs out, you draw if you hadn’t, and a tile is discarded for you."
+    },
+    "ticTacToe": {
+      "aim": "Get three of your marks in a row before the other player does: across, down or diagonally.",
+      "aimCaption": "X takes the top row.",
+      "turnTitle": "Taking turns",
+      "turn": "X moves first, then you take turns. On your turn, put your mark in any empty cell. Marks stay where they are for the rest of the game.",
+      "tipsTitle": "Playing well",
+      "tips": "Start in the middle or a corner. When the other player has two in a row, block the third cell at once. Best of all, make two threats with one mark: they can block only one.",
+      "tipsCaption": "X’s mark in the bottom corner threatens two lines; O blocks one, X wins on the other.",
+      "drawTitle": "A draw",
+      "draw": "When all nine cells are full and nobody has three in a row, the game is a draw. Played carefully by both sides, Tic-Tac-Toe always ends in a draw: you win by catching a slip.",
+      "drawCaption": "Every line is blocked: a draw."
+    },
+    "gomoku": {
+      "aim": "Get five of your stones in a row before the other player does: across, down or diagonally. A row of six or more wins too.",
+      "aimCaption": "Black’s open four can’t be stopped: White blocks one end, Black finishes at the other.",
+      "turn": "Black moves first, then you take turns placing one stone on any empty intersection, the edges included. Stones are never moved or taken.",
+      "threatsTitle": "Open rows",
+      "threats": "A row with both ends free is open. An open four always wins, so block an open three before it grows: put a stone at one of its ends.",
+      "threatsCaption": "White’s three on the diagonal is open at both ends: Black blocks one.",
+      "draw": "If the board fills up without a row of five, the game is a draw. On 15 × 15 points that’s rare."
+    },
+    "grid": {
+      "controlsMark": "Click an empty cell to put your mark there; on your turn a faint mark shows where it will go.",
+      "controlsStone": "Click an empty intersection to place your stone; on your turn a faint stone shows where it will go. A red dot marks the last stone placed.",
+      "controlsTime": "Watch the clock: when your time runs out, a mark is placed for you.",
+      "controlsPaper": "Light or dark paper: choose it in the settings, behind the gear on the board.",
+      "controlsTimeStone": "Watch the clock: when your time runs out, a stone is placed for you."
     }
   },
   "tile": {
@@ -438,6 +466,7 @@
     "goal": "Take turns marking a free cell: the first with {{line}} in a row wins.",
     "yourTurnStone": "Your turn: place a stone on a free point.",
     "black": "Black",
-    "white": "White"
+    "white": "White",
+    "goalStone": "Take turns placing a stone on a free point: the first with {{line}} in a row wins."
   }
 }

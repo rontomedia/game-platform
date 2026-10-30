@@ -113,7 +113,7 @@ export function StoneBoard({
             <circle key={`${x}-${y}`} cx={centre(x)} cy={centre(y)} r={Math.max(2.5, pitch * 0.09)} fill="var(--grid-ink)" />
           ))}
         </svg>
-        <div className="absolute inset-0 grid" style={{ gridTemplateColumns: `repeat(${cols}, 1fr)` }}>
+        <div className="absolute inset-0 grid" style={{ gridTemplateColumns: `repeat(${cols}, 1fr)`, gridTemplateRows: `repeat(${rows}, 1fr)` }}>
           {view.board.map((square, index) => {
             const cell = { row: Math.floor(index / cols), col: index % cols }
             const stone = square === 'x' ? 'black' : square === 'o' ? 'white' : undefined

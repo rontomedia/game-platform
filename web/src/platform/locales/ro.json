@@ -16,7 +16,7 @@
     "loading": "Se încarcă…",
     "tileRummy": "Remi cu piese",
     "tileRummyDetail": "Serii și grupuri din piesele de pe suportul tău.",
-    "grid": "Jocuri pe grilă",
+    "grid": "Hârtie și creion",
     "gridDetail": "Pune-ți semnele în linie înaintea adversarului."
   },
   "units": {
@@ -199,6 +199,34 @@
       "scores": "Toți încep cu 20 de puncte (dacă camera n-a ales altfel). Când cineva închide, fiecare alt jucător pierde 2, sau 4 dacă câștigătorul a închis cu un okey sau cu șapte perechi, 8 pentru amândouă. Cine are geamănul indicatorului la împărțire îl arată, iar fiecare alt jucător pierde 1. Dacă se termină grămada, mâna se împarte din nou. Jocul se termină când cineva rămâne fără puncte: câștigă cele mai multe puncte.",
       "controlsDiscard": "Lasă o piesă pe locul tău de aruncat ca să-ți închei tura, sau pe locul de închidere ca să câștigi cu celelalte 14. Sortează-ți suportul cu butoanele de deasupra sau trage piesele în ordinea dorită.",
       "controlsTime": "Fii atent la ceas: când expiră timpul, tragi dacă n-ai tras, iar în locul tău se aruncă o piesă."
+    },
+    "ticTacToe": {
+      "aim": "Pune trei semne de-ale tale în linie înaintea adversarului: pe orizontală, pe verticală sau pe diagonală.",
+      "aimCaption": "X ia rândul de sus.",
+      "turnTitle": "Pe rând",
+      "turn": "Începe X, apoi jucați pe rând. La rândul tău, pune-ți semnul într-o căsuță liberă. Semnele rămân pe loc până la final.",
+      "tipsTitle": "Joc bun",
+      "tips": "Începe din mijloc sau dintr-un colț. Când adversarul are două în linie, blochează imediat a treia căsuță. Cel mai bine: creează două amenințări cu un singur semn, căci poate bloca doar una.",
+      "tipsCaption": "Semnul lui X din colțul de jos amenință două linii; O blochează una, X câștigă pe cealaltă.",
+      "drawTitle": "Egalitate",
+      "draw": "Când toate cele nouă căsuțe sunt pline și nimeni nu are trei în linie, jocul se termină la egalitate. Jucat atent de ambele părți, X și 0 se termină mereu la egalitate: câștigi prinzând o greșeală.",
+      "drawCaption": "Fiecare linie e blocată: egalitate."
+    },
+    "gomoku": {
+      "aim": "Pune cinci pietre de-ale tale în linie înaintea adversarului: pe orizontală, pe verticală sau pe diagonală. Șase sau mai multe câștigă și ele.",
+      "aimCaption": "Patrul deschis al Negrului nu poate fi oprit: Albul blochează un capăt, Negrul termină la celălalt.",
+      "turn": "Începe Negrul, apoi puneți pe rând câte o piatră pe orice intersecție liberă, inclusiv pe margini. Pietrele nu se mută și nu se capturează niciodată.",
+      "threatsTitle": "Linii deschise",
+      "threats": "O linie cu ambele capete libere e deschisă. Un patru deschis câștigă mereu, așa că blochează un trei deschis înainte să crească: pune o piatră la unul dintre capetele lui.",
+      "threatsCaption": "Treiul Albului pe diagonală e deschis la ambele capete: Negrul blochează unul.",
+      "draw": "Dacă tabla se umple fără o linie de cinci, jocul se termină la egalitate. Pe 15 × 15 se întâmplă rar."
+    },
+    "grid": {
+      "controlsMark": "Dă clic pe o căsuță liberă ca să-ți pui semnul; la rândul tău, un semn palid arată unde va ajunge.",
+      "controlsStone": "Dă clic pe o intersecție liberă ca să-ți pui piatra; la rândul tău, o piatră palidă arată unde va ajunge. Un punct roșu marchează ultima piatră.",
+      "controlsTime": "Fii atent la ceas: dacă ți se termină timpul, se pune un semn în locul tău.",
+      "controlsPaper": "Hârtie deschisă sau închisă: alege în setări, sub rotița de pe tablă.",
+      "controlsTimeStone": "Fii atent la ceas: dacă ți se termină timpul, se pune o piatră în locul tău."
     }
   },
   "tile": {
@@ -457,6 +485,7 @@
     "goal": "Pe rând, marcați o căsuță liberă: câștigă primul care are {{line}} în linie.",
     "yourTurnStone": "E rândul tău: pune o piatră pe o intersecție liberă.",
     "black": "Negru",
-    "white": "Alb"
+    "white": "Alb",
+    "goalStone": "Pe rând, puneți câte o piatră pe o intersecție liberă: câștigă primul care are {{line}} în linie."
   }
 }

@@ -7,6 +7,7 @@ import { useSettings } from '../../platform/settings.ts'
 import { remember, remembered } from '../../platform/storage.ts'
 import { turnLength } from '../../platform/turns.ts'
 import { GridBoard } from './GridBoard.tsx'
+import { GridHowToPlay } from './GridRules.tsx'
 import { problemText } from './messages.ts'
 import { named, type GridOptions } from './protocol.ts'
 import { useGrid } from './useGrid.ts'
@@ -58,6 +59,7 @@ export default function GridApp({ kind }: { kind?: RuleSet }) {
           problem={problem && problemText(t, problem)}
           send={send}
           leave={leave}
+          after={<GridHowToPlay ruleSet={ruleSet} />}
         />
       )}
     </RoomPage>
@@ -110,7 +112,13 @@ function Home({
   }
   const changed = Number(choices.timeBank !== defaultChoices.timeBank) + Number(choices.standIn !== defaultChoices.standIn)
   return (
-    <RoomHome send={send} ready={ready} problem={problem} options={() => roomOptions(choices)}>
+    <RoomHome
+      send={send}
+      ready={ready}
+      problem={problem}
+      options={() => roomOptions(choices)}
+      after={<GridHowToPlay ruleSet={choices.ruleSet} />}
+    >
       <div className="mt-5">
         <span className="block text-sm font-medium text-slate-300">{t('home.game')}</span>
         <Choice
@@ -119,7 +127,9 @@ function Home({
           value={choices.ruleSet}
           onChange={(ruleSet) => change({ ruleSet })}
         />
-        <p className="mt-2 text-xs text-slate-500">{t('grid.goal', { line: named(choices.ruleSet).line })}</p>
+        <p className="mt-2 text-xs text-slate-500">
+          {t(choices.ruleSet === 'gomoku' ? 'grid.goalStone' : 'grid.goal', { line: named(choices.ruleSet).line })}
+        </p>
       </div>
       <TurnTime value={choices.turnSeconds} onChange={(turnSeconds) => change({ turnSeconds })} />
       <Advanced changed={changed}>

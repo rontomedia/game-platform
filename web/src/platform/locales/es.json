@@ -16,7 +16,7 @@
     "loading": "Cargando…",
     "tileRummy": "Rummy de fichas",
     "tileRummyDetail": "Escaleras y grupos con las fichas de tu atril.",
-    "grid": "Juegos de cuadrícula",
+    "grid": "Lápiz y papel",
     "gridDetail": "Pon tus marcas en línea antes que el otro jugador."
   },
   "units": {
@@ -199,6 +199,34 @@
       "scores": "Todos empiezan con 20 puntos (salvo que la sala elija otra cosa). Cuando alguien cierra, cada uno de los demás pierde 2, o 4 si el ganador cerró con un okey o con siete parejas, 8 por las dos cosas. Quien tiene el gemelo del indicador al repartir lo muestra, y cada uno de los demás pierde 1. Si se acaba el montón, se reparte de nuevo. La partida termina cuando alguien se queda sin puntos: gana quien tenga más.",
       "controlsDiscard": "Suelta una ficha en tu lugar de descarte para terminar tu turno, o en el lugar para cerrar para ganar con las otras 14. Ordena tu atril con los botones de encima, o arrastra las fichas al orden que quieras.",
       "controlsTime": "Vigila el reloj: si se acaba el tiempo, robas si no lo habías hecho, y se descarta una ficha por ti."
+    },
+    "ticTacToe": {
+      "aim": "Pon tres de tus marcas en línea antes que el otro jugador: en horizontal, en vertical o en diagonal.",
+      "aimCaption": "X se queda con la fila de arriba.",
+      "turnTitle": "Por turnos",
+      "turn": "Empieza X y luego os turnáis. En tu turno, pon tu marca en cualquier casilla libre. Las marcas se quedan donde están hasta el final.",
+      "tipsTitle": "Jugar bien",
+      "tips": "Empieza por el centro o una esquina. Si el otro jugador tiene dos en línea, bloquea la tercera casilla enseguida. Lo mejor: crear dos amenazas con una sola marca, porque solo podrá bloquear una.",
+      "tipsCaption": "La marca de X en la esquina de abajo amenaza dos líneas; O bloquea una y X gana por la otra.",
+      "drawTitle": "Empate",
+      "draw": "Si las nueve casillas se llenan y nadie tiene tres en línea, la partida es un empate. Si ambos juegan con cuidado, el tres en raya siempre acaba en empate: se gana aprovechando un descuido.",
+      "drawCaption": "Todas las líneas están bloqueadas: empate."
+    },
+    "gomoku": {
+      "aim": "Pon cinco de tus piedras en línea antes que el otro jugador: en horizontal, en vertical o en diagonal. Seis o más también ganan.",
+      "aimCaption": "El cuatro abierto de las negras no se puede parar: las blancas bloquean un extremo y las negras terminan en el otro.",
+      "turn": "Empiezan las negras y luego os turnáis para poner una piedra en cualquier intersección libre, también en los bordes. Las piedras nunca se mueven ni se capturan.",
+      "threatsTitle": "Líneas abiertas",
+      "threats": "Una línea con los dos extremos libres está abierta. Un cuatro abierto siempre gana, así que bloquea un tres abierto antes de que crezca: pon una piedra en uno de sus extremos.",
+      "threatsCaption": "El tres de las blancas en diagonal está abierto por ambos lados: las negras bloquean uno.",
+      "draw": "Si el tablero se llena sin ninguna línea de cinco, la partida es un empate. En un tablero de 15 × 15 es raro."
+    },
+    "grid": {
+      "controlsMark": "Haz clic en una casilla libre para poner tu marca; en tu turno, una marca tenue muestra dónde irá.",
+      "controlsStone": "Haz clic en una intersección libre para poner tu piedra; en tu turno, una piedra tenue muestra dónde irá. Un punto rojo marca la última piedra.",
+      "controlsTime": "Vigila el reloj: si se te acaba el tiempo, se pone una marca por ti.",
+      "controlsPaper": "Papel claro u oscuro: elígelo en los ajustes, en el engranaje del tablero.",
+      "controlsTimeStone": "Vigila el reloj: si se te acaba el tiempo, se pone una piedra por ti."
     }
   },
   "tile": {
@@ -457,6 +485,7 @@
     "goal": "Marcad por turnos una casilla libre: gana el primero con {{line}} en línea.",
     "yourTurnStone": "Tu turno: coloca una piedra en una intersección libre.",
     "black": "Negras",
-    "white": "Blancas"
+    "white": "Blancas",
+    "goalStone": "Poned por turnos una piedra en una intersección libre: gana el primero con {{line}} en línea."
   }
 }

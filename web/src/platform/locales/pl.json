@@ -16,7 +16,7 @@
     "loading": "Ładowanie…",
     "tileRummy": "Remik z płytkami",
     "tileRummyDetail": "Szeregi i grupy z płytek na stojaku.",
-    "grid": "Gry na planszy",
+    "grid": "Papier i ołówek",
     "gridDetail": "Ułóż swoje znaki w rzędzie przed przeciwnikiem."
   },
   "units": {
@@ -201,6 +201,34 @@
       "scores": "Każdy zaczyna z 20 punktami (chyba że pokój wybrał inaczej). Gdy ktoś skończy, każdy inny gracz traci 2, albo 4, jeśli zwycięzca skończył okeyem lub siedmioma parami, 8 za jedno i drugie. Kto przy rozdaniu ma bliźniaka wskaźnika, pokazuje go, a każdy inny gracz traci 1. Gdy pula się skończy, rozdaje się od nowa. Gra kończy się, gdy komuś skończą się punkty: wygrywa najwięcej punktów.",
       "controlsDiscard": "Upuść kamień na swoim miejscu odrzutu, by zakończyć turę, albo na miejscu kończenia, by wygrać pozostałymi 14. Sortuj stojak przyciskami nad nim albo przeciągaj kamienie w dowolnej kolejności.",
       "controlsTime": "Pilnuj czasu: gdy się skończy, dobierasz, jeśli jeszcze nie dobrałeś, a za ciebie odrzucany jest kamień."
+    },
+    "ticTacToe": {
+      "aim": "Ułóż trzy swoje znaki w rzędzie, zanim zrobi to przeciwnik: poziomo, pionowo albo po skosie.",
+      "aimCaption": "X zajmuje górny rząd.",
+      "turnTitle": "Na zmianę",
+      "turn": "Zaczyna X, potem gracze ruszają się na zmianę. W swoim ruchu postaw znak na dowolnym wolnym polu. Znaki zostają na miejscu do końca gry.",
+      "tipsTitle": "Dobra gra",
+      "tips": "Zacznij od środka albo rogu. Gdy przeciwnik ma dwa w rzędzie, od razu zablokuj trzecie pole. Najlepiej jednym znakiem stwórz dwa zagrożenia: przeciwnik zablokuje tylko jedno.",
+      "tipsCaption": "Znak X w dolnym rogu grozi na dwóch liniach; O blokuje jedną, X wygrywa na drugiej.",
+      "drawTitle": "Remis",
+      "draw": "Gdy wszystkie dziewięć pól jest zajętych, a nikt nie ma trzech w rzędzie, gra kończy się remisem. Przy uważnej grze obu stron kółko i krzyżyk zawsze kończy się remisem: wygrywa się na błędzie przeciwnika.",
+      "drawCaption": "Każda linia jest zablokowana: remis."
+    },
+    "gomoku": {
+      "aim": "Ułóż pięć swoich kamieni w rzędzie, zanim zrobi to przeciwnik: poziomo, pionowo albo po skosie. Sześć lub więcej też wygrywa.",
+      "aimCaption": "Otwartej czwórki czarnych nie da się zatrzymać: białe blokują jeden koniec, czarne kończą na drugim.",
+      "turn": "Zaczynają czarne, potem gracze na zmianę stawiają po jednym kamieniu na dowolnym wolnym przecięciu, także na brzegu. Kamieni nigdy się nie przesuwa ani nie zbija.",
+      "threatsTitle": "Otwarte rzędy",
+      "threats": "Rząd z oboma wolnymi końcami jest otwarty. Otwarta czwórka zawsze wygrywa, więc blokuj otwartą trójkę, zanim urośnie: postaw kamień na jednym z jej końców.",
+      "threatsCaption": "Trójka białych na skosie jest otwarta z obu stron: czarne blokują jeden koniec.",
+      "draw": "Jeśli plansza się zapełni bez piątki w rzędzie, gra kończy się remisem. Na planszy 15 × 15 to rzadkość."
+    },
+    "grid": {
+      "controlsMark": "Kliknij wolne pole, żeby postawić tam znak; w twoim ruchu blady znak pokazuje, gdzie trafi.",
+      "controlsStone": "Kliknij wolne przecięcie, żeby postawić kamień; w twoim ruchu blady kamień pokazuje, gdzie trafi. Czerwona kropka oznacza ostatni kamień.",
+      "controlsTime": "Pilnuj zegara: gdy skończy ci się czas, znak zostanie postawiony za ciebie.",
+      "controlsPaper": "Jasna lub ciemna kartka: wybierz w ustawieniach, pod zębatką na planszy.",
+      "controlsTimeStone": "Pilnuj zegara: gdy skończy ci się czas, kamień zostanie postawiony za ciebie."
     }
   },
   "tile": {
@@ -476,6 +504,7 @@
     "goal": "Na zmianę zaznaczacie wolne pola: wygrywa pierwszy, kto ułoży {{line}} w rzędzie.",
     "yourTurnStone": "Twój ruch: postaw kamień na wolnym przecięciu.",
     "black": "Czarne",
-    "white": "Białe"
+    "white": "Białe",
+    "goalStone": "Na zmianę stawiacie kamienie na wolnych przecięciach: wygrywa pierwszy, kto ułoży {{line}} w rzędzie."
   }
 }

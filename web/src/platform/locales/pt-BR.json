@@ -16,7 +16,7 @@
     "loading": "Carregando…",
     "tileRummy": "Rummy de peças",
     "tileRummyDetail": "Sequências e grupos com as peças do seu suporte.",
-    "grid": "Jogos de grade",
+    "grid": "Lápis e papel",
     "gridDetail": "Coloque suas marcas em linha antes do outro jogador."
   },
   "units": {
@@ -199,6 +199,34 @@
       "scores": "Todos começam com 20 pontos (a não ser que a sala escolha outro número). Quando alguém bate, cada outro jogador perde 2, ou 4 se o vencedor bateu com um okey ou com sete pares, 8 pelos dois. Quem tem o gêmeo do indicador na distribuição o mostra, e cada outro jogador perde 1. Se o monte acabar, a mão é distribuída de novo. O jogo acaba quando alguém fica sem pontos: vence quem tiver mais.",
       "controlsDiscard": "Solte uma peça no seu lugar de descarte para encerrar a vez, ou no lugar de bater para vencer com as outras 14. Organize o suporte com os botões acima dele, ou arraste as peças para a ordem que quiser.",
       "controlsTime": "Fique de olho no relógio: quando o tempo acaba, você compra se não tinha comprado, e uma peça é descartada por você."
+    },
+    "ticTacToe": {
+      "aim": "Coloque três das suas marcas em linha antes do outro jogador: na horizontal, na vertical ou na diagonal.",
+      "aimCaption": "O X fica com a linha de cima.",
+      "turnTitle": "Em turnos",
+      "turn": "O X começa e depois vocês se alternam. Na sua vez, coloque sua marca em qualquer casa livre. As marcas ficam onde estão até o fim.",
+      "tipsTitle": "Jogando bem",
+      "tips": "Comece pelo centro ou por um canto. Quando o outro jogador tiver duas em linha, bloqueie a terceira casa na hora. Melhor ainda: crie duas ameaças com uma só marca, porque ele só consegue bloquear uma.",
+      "tipsCaption": "A marca do X no canto de baixo ameaça duas linhas; o O bloqueia uma e o X vence pela outra.",
+      "drawTitle": "Empate",
+      "draw": "Quando as nove casas estão cheias e ninguém tem três em linha, a partida empata. Com cuidado dos dois lados, o jogo da velha sempre termina empatado: vence-se aproveitando um descuido.",
+      "drawCaption": "Todas as linhas estão bloqueadas: empate."
+    },
+    "gomoku": {
+      "aim": "Coloque cinco das suas pedras em linha antes do outro jogador: na horizontal, na vertical ou na diagonal. Seis ou mais também vencem.",
+      "aimCaption": "A quadra aberta das pretas não tem como ser parada: as brancas bloqueiam uma ponta e as pretas fecham na outra.",
+      "turn": "As pretas começam e depois vocês se alternam colocando uma pedra em qualquer cruzamento livre, inclusive nas bordas. As pedras nunca são movidas nem capturadas.",
+      "threatsTitle": "Linhas abertas",
+      "threats": "Uma linha com as duas pontas livres está aberta. Uma quadra aberta sempre vence, então bloqueie uma trinca aberta antes que ela cresça: coloque uma pedra numa das pontas.",
+      "threatsCaption": "A trinca das brancas na diagonal está aberta dos dois lados: as pretas bloqueiam um.",
+      "draw": "Se o tabuleiro encher sem nenhuma linha de cinco, a partida empata. Num tabuleiro 15 × 15 isso é raro."
+    },
+    "grid": {
+      "controlsMark": "Clique numa casa livre para colocar sua marca; na sua vez, uma marca clara mostra onde ela vai ficar.",
+      "controlsStone": "Clique num cruzamento livre para colocar sua pedra; na sua vez, uma pedra clara mostra onde ela vai ficar. Um ponto vermelho marca a última pedra.",
+      "controlsTime": "Fique de olho no relógio: se seu tempo acabar, uma marca é colocada por você.",
+      "controlsPaper": "Papel claro ou escuro: escolha nas configurações, na engrenagem do tabuleiro.",
+      "controlsTimeStone": "Fique de olho no relógio: se seu tempo acabar, uma pedra é colocada por você."
     }
   },
   "tile": {
@@ -457,6 +485,7 @@
     "goal": "Marquem uma casa livre por vez: vence quem fizer {{line}} em linha primeiro.",
     "yourTurnStone": "Sua vez: coloque uma pedra num cruzamento livre.",
     "black": "Pretas",
-    "white": "Brancas"
+    "white": "Brancas",
+    "goalStone": "Coloquem uma pedra por vez num cruzamento livre: vence quem fizer {{line}} em linha primeiro."
   }
 }

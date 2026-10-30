@@ -16,7 +16,7 @@
     "loading": "Wird geladen …",
     "tileRummy": "Rommé mit Steinen",
     "tileRummyDetail": "Reihen und Gruppen aus den Steinen auf deiner Ablage.",
-    "grid": "Rasterspiele",
+    "grid": "Papier & Stift",
     "gridDetail": "Bring deine Zeichen in eine Reihe, bevor es dein Gegner schafft."
   },
   "units": {
@@ -197,6 +197,34 @@
       "scores": "Alle beginnen mit 20 Punkten (wenn der Raum nichts anderes gewählt hat). Beendet jemand, verliert jeder andere 2, oder 4, wenn der Gewinner mit einem Okey oder mit sieben Paaren beendet hat, 8 für beides. Wer beim Geben den Zwilling des Anzeigers hat, zeigt ihn, und jeder andere verliert 1. Ist der Stapel leer, wird die Runde neu gegeben. Das Spiel endet, wenn jemand keine Punkte mehr hat: Die meisten Punkte gewinnen.",
       "controlsDiscard": "Leg einen Stein auf deinen Abwurfplatz, um deinen Zug zu beenden, oder auf den Beenden-Platz, um mit den anderen 14 zu gewinnen. Sortier deine Ablage mit den Knöpfen darüber oder zieh Steine in deine eigene Reihenfolge.",
       "controlsTime": "Achte auf die Uhr: Läuft die Zeit ab, ziehst du, falls noch nicht geschehen, und ein Stein wird für dich abgeworfen."
+    },
+    "ticTacToe": {
+      "aim": "Bring drei deiner Zeichen in eine Reihe, bevor es der andere schafft: waagerecht, senkrecht oder diagonal.",
+      "aimCaption": "X holt sich die oberste Reihe.",
+      "turnTitle": "Abwechselnd",
+      "turn": "X fängt an, dann seid ihr abwechselnd dran. In deinem Zug setzt du dein Zeichen in ein freies Feld. Zeichen bleiben bis zum Ende stehen.",
+      "tipsTitle": "Gut spielen",
+      "tips": "Fang in der Mitte oder in einer Ecke an. Hat der andere zwei in einer Reihe, blockier sofort das dritte Feld. Am besten machst du mit einem Zeichen zwei Drohungen: Er kann nur eine blockieren.",
+      "tipsCaption": "Das X in der unteren Ecke droht auf zwei Linien; O blockiert eine, X gewinnt auf der anderen.",
+      "drawTitle": "Unentschieden",
+      "draw": "Sind alle neun Felder voll und niemand hat drei in einer Reihe, endet das Spiel unentschieden. Spielen beide sorgfältig, endet Tic-Tac-Toe immer unentschieden: Man gewinnt durch einen Fehler des anderen.",
+      "drawCaption": "Jede Linie ist blockiert: unentschieden."
+    },
+    "gomoku": {
+      "aim": "Bring fünf deiner Steine in eine Reihe, bevor es der andere schafft: waagerecht, senkrecht oder diagonal. Sechs oder mehr gewinnen auch.",
+      "aimCaption": "Die offene Vier von Schwarz ist nicht zu stoppen: Weiß blockiert ein Ende, Schwarz vollendet am anderen.",
+      "turn": "Schwarz fängt an, dann setzt ihr abwechselnd je einen Stein auf einen freien Schnittpunkt, auch am Rand. Steine werden nie bewegt oder geschlagen.",
+      "threatsTitle": "Offene Reihen",
+      "threats": "Eine Reihe mit zwei freien Enden ist offen. Eine offene Vier gewinnt immer, also blockier eine offene Drei, bevor sie wächst: Setz einen Stein an eines ihrer Enden.",
+      "threatsCaption": "Die weiße Drei auf der Diagonale ist an beiden Enden offen: Schwarz blockiert eines.",
+      "draw": "Füllt sich das Brett ohne Fünferreihe, endet das Spiel unentschieden. Auf 15 × 15 ist das selten."
+    },
+    "grid": {
+      "controlsMark": "Klick auf ein freies Feld, um dein Zeichen dorthin zu setzen; in deinem Zug zeigt ein blasses Zeichen, wo es landet.",
+      "controlsStone": "Klick auf einen freien Schnittpunkt, um deinen Stein zu setzen; in deinem Zug zeigt ein blasser Stein, wo er landet. Ein roter Punkt markiert den letzten Stein.",
+      "controlsTime": "Behalt die Uhr im Blick: Läuft deine Zeit ab, wird ein Zeichen für dich gesetzt.",
+      "controlsPaper": "Helles oder dunkles Papier: wähl es in den Einstellungen, hinter dem Zahnrad auf dem Brett.",
+      "controlsTimeStone": "Behalt die Uhr im Blick: Läuft deine Zeit ab, wird ein Stein für dich gesetzt."
     }
   },
   "tile": {
@@ -438,6 +466,7 @@
     "goal": "Abwechselnd wird ein freies Feld markiert: Wer zuerst {{line}} in einer Reihe hat, gewinnt.",
     "yourTurnStone": "Du bist dran: setz einen Stein auf einen freien Schnittpunkt.",
     "black": "Schwarz",
-    "white": "Weiß"
+    "white": "Weiß",
+    "goalStone": "Abwechselnd wird ein Stein auf einen freien Schnittpunkt gesetzt: Wer zuerst {{line}} in einer Reihe hat, gewinnt."
   }
 }

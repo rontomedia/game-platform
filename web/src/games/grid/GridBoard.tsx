@@ -1,4 +1,3 @@
-import { motion } from 'motion/react'
 import { useCallback, useState, type CSSProperties } from 'react'
 import { useTranslation } from 'react-i18next'
 
@@ -10,6 +9,7 @@ import { useNow } from '../../platform/useNow.ts'
 import type { Status } from '../../platform/useRoom.ts'
 import { WatchBar } from '../../platform/WatchBar.tsx'
 import type { GridOutgoing, GridRoom } from './protocol.ts'
+import { Mark } from './marks.tsx'
 import { StoneBoard, StoneFace, type PaperLines } from './StoneBoard.tsx'
 import type { GridGame } from './useGrid.ts'
 import { checkPlace, type Cell, type Square } from './wasm/engine.js'
@@ -108,7 +108,7 @@ export function GridBoard({
   const shown = local ?? problem
 
   return (
-    <div className={`paper paper-${settings.paper}`} style={sheet}>
+    <div className={`paper paper-${settings.paper} min-h-dvh`} style={sheet}>
       <div className="mx-auto flex h-dvh max-w-5xl flex-col gap-3 p-3 sm:gap-4 sm:p-4">
         <header className="flex items-center gap-3">
           <div className="hidden shrink-0 items-baseline gap-2 md:flex">
@@ -154,7 +154,12 @@ export function GridBoard({
           ) : (
           <div
             className="grid w-[min(100%,calc(100dvh-15rem))]"
-            style={{ gridTemplateColumns: `repeat(${rules.width}, minmax(0, 1fr))`, aspectRatio: `${rules.width} / ${rules.height}` }}
+            // Rows as fixed as the columns: a mark being drawn mustn't size its row.
+            style={{
+              gridTemplateColumns: `repeat(${rules.width}, minmax(0, 1fr))`,
+              gridTemplateRows: `repeat(${rules.height}, minmax(0, 1fr))`,
+              aspectRatio: `${rules.width} / ${rules.height}`,
+            }}
             dir="ltr"
             role="grid"
             aria-label={t(`grid.${rules.ruleSet}`)}
@@ -233,41 +238,17 @@ function GridCell({
       className={`group relative grid place-items-center transition-colors ${preview ? 'cursor-pointer hover:bg-[var(--touch)]' : 'cursor-default'}`}
     >
       {square !== 'empty' ? (
-        <span className="size-[70%]">
+        <span className="absolute inset-[15%]">
           <Mark mark={square} pen={pen} draw />
         </span>
       ) : (
         preview && (
-          <span className="size-[70%] opacity-0 transition-opacity group-hover:opacity-25" aria-hidden>
+          <span className="absolute inset-[15%] opacity-0 transition-opacity group-hover:opacity-25" aria-hidden>
             <Mark mark={preview} pen={pen} />
           </span>
         )
       )}
     </button>
-  )
-}
-
-/** X (seat 0) and O (seat 1) as in pen, slightly by hand; `draw`: stroke by stroke as it appears. */
-function Mark({ mark, pen = 2.6, draw = false }: { mark: 'x' | 'o'; pen?: number; draw?: boolean }) {
-  const strokes =
-    mark === 'x'
-      ? ['M5.6 5.3C9.4 9.6 13.8 14 18.7 18.8', 'M18.5 5.5C14.4 9.7 9.8 14.4 5.4 18.6']
-      : ['M12.4 4.7C16.8 4.6 19.5 7.9 19.3 12.3C19.1 16.6 15.8 19.4 11.8 19.3C7.6 19.2 4.7 16 4.8 11.9C4.9 8.2 7.5 5.1 11.6 4.6']
-  return (
-    <svg viewBox="0 0 24 24" className="size-full" fill="none" aria-hidden>
-      {strokes.map((d, i) => (
-        <motion.path
-          key={i}
-          d={d}
-          stroke={mark === 'x' ? 'var(--pen-x)' : 'var(--pen-o)'}
-          strokeWidth={pen}
-          strokeLinecap="round"
-          initial={draw ? { pathLength: 0 } : false}
-          animate={{ pathLength: 1 }}
-          transition={{ duration: mark === 'x' ? 0.16 : 0.32, delay: i * 0.14, ease: 'easeOut' }}
-        />
-      ))}
-    </svg>
   )
 }
 

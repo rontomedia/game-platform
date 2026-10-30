@@ -16,7 +16,7 @@
     "loading": "Laddar …",
     "tileRummy": "Rummy med brickor",
     "tileRummyDetail": "Stegar och grupper av brickorna i ditt ställ.",
-    "grid": "Rutnätsspel",
+    "grid": "Papper och penna",
     "gridDetail": "Få dina tecken i rad före motståndaren."
   },
   "units": {
@@ -197,6 +197,34 @@
       "scores": "Alla börjar med 20 poäng (om inte rummet valt annat). När någon går ut förlorar varje annan spelare 2, eller 4 om vinnaren gick ut med en okey eller med sju par, 8 för båda. Den som har indikatorns tvilling vid given visar den, och varje annan spelare förlorar 1. Tar högen slut delas given om. Spelet slutar när någon har slut på poäng: flest poäng vinner.",
       "controlsDiscard": "Släpp en bricka på din kastplats för att avsluta turen, eller på gå ut-platsen för att vinna med de andra 14. Sortera stället med knapparna ovanför, eller dra brickorna i den ordning du vill.",
       "controlsTime": "Håll koll på klockan: när tiden tar slut drar du om du inte gjort det, och en bricka kastas åt dig."
+    },
+    "ticTacToe": {
+      "aim": "Få tre av dina tecken i rad före motståndaren: vågrätt, lodrätt eller diagonalt.",
+      "aimCaption": "X tar översta raden.",
+      "turnTitle": "I tur och ordning",
+      "turn": "X börjar, sedan turas ni om. När det är din tur sätter du ditt tecken i en tom ruta. Tecknen ligger kvar resten av spelet.",
+      "tipsTitle": "Att spela bra",
+      "tips": "Börja i mitten eller i ett hörn. När motståndaren har två i rad, blockera den tredje rutan direkt. Allra bäst: skapa två hot med ett tecken, för motståndaren kan bara blockera ett.",
+      "tipsCaption": "X i nedre hörnet hotar två linjer; O blockerar den ena, X vinner på den andra.",
+      "drawTitle": "Oavgjort",
+      "draw": "När alla nio rutor är fulla och ingen har tre i rad blir det oavgjort. Spelar båda noggrant slutar tre i rad alltid oavgjort: man vinner på motståndarens misstag.",
+      "drawCaption": "Alla linjer är blockerade: oavgjort."
+    },
+    "gomoku": {
+      "aim": "Få fem av dina stenar i rad före motståndaren: vågrätt, lodrätt eller diagonalt. Sex eller fler vinner också.",
+      "aimCaption": "Svarts öppna fyra går inte att stoppa: Vit blockerar ena änden, Svart avslutar i den andra.",
+      "turn": "Svart börjar, sedan turas ni om att lägga en sten på en tom korsning, även längs kanten. Stenar flyttas eller tas aldrig.",
+      "threatsTitle": "Öppna rader",
+      "threats": "En rad med båda ändar fria är öppen. En öppen fyra vinner alltid, så blockera en öppen trea innan den växer: lägg en sten i en av dess ändar.",
+      "threatsCaption": "Vits trea på diagonalen är öppen i båda ändar: Svart blockerar den ena.",
+      "draw": "Fylls brädet utan fem i rad blir det oavgjort. På 15 × 15 är det ovanligt."
+    },
+    "grid": {
+      "controlsMark": "Klicka på en tom ruta för att sätta ditt tecken där; på din tur visar ett blekt tecken var det hamnar.",
+      "controlsStone": "Klicka på en tom korsning för att lägga din sten; på din tur visar en blek sten var den hamnar. En röd prick visar den senaste stenen.",
+      "controlsTime": "Håll koll på klockan: tar din tid slut sätts ett tecken åt dig.",
+      "controlsPaper": "Ljust eller mörkt papper: välj i inställningarna, bakom kugghjulet på brädet.",
+      "controlsTimeStone": "Håll koll på klockan: tar din tid slut läggs en sten åt dig."
     }
   },
   "tile": {
@@ -438,6 +466,7 @@
     "goal": "Markera en ledig ruta i tur och ordning: först med {{line}} i rad vinner.",
     "yourTurnStone": "Din tur: lägg en sten på en ledig korsning.",
     "black": "Svart",
-    "white": "Vit"
+    "white": "Vit",
+    "goalStone": "Lägg i tur och ordning en sten på en ledig korsning: först med {{line}} i rad vinner."
   }
 }

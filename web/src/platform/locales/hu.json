@@ -16,7 +16,7 @@
     "loading": "Betöltés…",
     "tileRummy": "Römi lapkákkal",
     "tileRummyDetail": "Sorok és csoportok a tartódon lévő lapkákból.",
-    "grid": "Rácsjátékok",
+    "grid": "Papír és ceruza",
     "gridDetail": "Rakd ki a jeleidet egy sorba előbb, mint az ellenfeled."
   },
   "units": {
@@ -197,6 +197,34 @@
       "scores": "Mindenki 20 ponttal kezd (ha a szoba mást nem választott). Ha valaki befejez, minden más játékos 2 pontot veszít, vagy 4-et, ha a győztes okeyjel vagy hét párral fejezett be, mindkettőért 8-at. Akinél osztáskor ott a jelző ikre, megmutatja, és minden más játékos 1-et veszít. Ha elfogy a pakli, újraosztanak. A játék véget ér, ha valakinek elfogy a pontja: a legtöbb pont nyer.",
       "controlsDiscard": "Engedj egy követ a dobóhelyedre a köröd befejezéséhez, vagy a befejező helyre, hogy a többi 14-gyel nyerj. A tartódat a fölötte lévő gombokkal rendezheted, vagy húzd a köveket a saját sorrendedbe.",
       "controlsTime": "Figyeld az órát: ha lejár az idő, húzol, ha még nem tetted, és helyetted eldobnak egy követ."
+    },
+    "ticTacToe": {
+      "aim": "Rakd ki három jeledet egy sorba előbb, mint az ellenfeled: vízszintesen, függőlegesen vagy átlósan.",
+      "aimCaption": "X elfoglalja a felső sort.",
+      "turnTitle": "Felváltva",
+      "turn": "X kezd, aztán felváltva léptek. A te lépésedben tedd a jeledet egy üres mezőbe. A jelek a játék végéig a helyükön maradnak.",
+      "tipsTitle": "Jó játék",
+      "tips": "Kezdj középen vagy egy sarokban. Ha az ellenfelednek két jele van egy sorban, azonnal zárd le a harmadik mezőt. A legjobb, ha egy jellel két fenyegetést csinálsz: csak az egyiket tudja lezárni.",
+      "tipsCaption": "X jele az alsó sarokban két vonalat fenyeget; O lezárja az egyiket, X a másikon nyer.",
+      "drawTitle": "Döntetlen",
+      "draw": "Ha mind a kilenc mező megtelt, és senkinek nincs három egy sorban, a játék döntetlen. Ha mindkét fél figyelmesen játszik, a tic-tac-toe mindig döntetlen: az ellenfél hibáján lehet nyerni.",
+      "drawCaption": "Minden vonal le van zárva: döntetlen."
+    },
+    "gomoku": {
+      "aim": "Rakd ki öt kövedet egy sorba előbb, mint az ellenfeled: vízszintesen, függőlegesen vagy átlósan. Hat vagy több is nyer.",
+      "aimCaption": "Fekete nyitott négyesét nem lehet megállítani: Fehér lezárja az egyik végét, Fekete a másikon fejezi be.",
+      "turn": "Fekete kezd, aztán felváltva tesztek le egy-egy követ bármelyik üres metszéspontra, a széleken is. A köveket soha nem mozgatják és nem veszik le.",
+      "threatsTitle": "Nyitott sorok",
+      "threats": "Az a sor nyitott, amelynek mindkét vége szabad. A nyitott négyes mindig nyer, ezért a nyitott hármast zárd le, mielőtt megnő: tegyél követ az egyik végére.",
+      "threatsCaption": "Fehér hármasa az átlón mindkét végén nyitott: Fekete lezárja az egyiket.",
+      "draw": "Ha a tábla ötös sor nélkül telik meg, a játék döntetlen. 15 × 15-ös táblán ez ritka."
+    },
+    "grid": {
+      "controlsMark": "Kattints egy üres mezőre, hogy oda tedd a jeledet; a te lépésedben egy halvány jel mutatja, hová kerül.",
+      "controlsStone": "Kattints egy üres metszéspontra, hogy letedd a kövedet; a te lépésedben egy halvány kő mutatja, hová kerül. Piros pötty jelöli az utolsó követ.",
+      "controlsTime": "Figyeld az órát: ha lejár az időd, helyetted tesznek le egy jelet.",
+      "controlsPaper": "Világos vagy sötét papír: válaszd ki a beállításokban, a tábla fogaskereke alatt.",
+      "controlsTimeStone": "Figyeld az órát: ha lejár az időd, helyetted tesznek le egy követ."
     }
   },
   "tile": {
@@ -438,6 +466,7 @@
     "goal": "Felváltva jelöltök meg egy szabad mezőt: aki elsőként rak ki {{line}} jelet egy sorban, nyer.",
     "yourTurnStone": "Te jössz: tegyél egy követ egy szabad metszéspontra.",
     "black": "Fekete",
-    "white": "Fehér"
+    "white": "Fehér",
+    "goalStone": "Felváltva tesztek le egy követ egy szabad metszéspontra: aki elsőként rak ki {{line}} követ egy sorban, nyer."
   }
 }

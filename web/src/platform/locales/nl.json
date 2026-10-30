@@ -16,7 +16,7 @@
     "loading": "Laden…",
     "tileRummy": "Rummy met stenen",
     "tileRummyDetail": "Rijen en groepen met de stenen op je rekje.",
-    "grid": "Rasterspellen",
+    "grid": "Pen en papier",
     "gridDetail": "Krijg je tekens op een rij voordat de ander dat doet."
   },
   "units": {
@@ -197,6 +197,34 @@
       "scores": "Iedereen begint met 20 punten (tenzij de kamer iets anders koos). Gaat iemand uit, dan verliest elke andere speler 2, of 4 als de winnaar uitging met een okey of met zeven paren, 8 voor allebei. Wie bij het delen de tweeling van de wijzer heeft, laat hem zien, en elke andere speler verliest 1. Is de pot leeg, dan wordt de ronde opnieuw gedeeld. Het spel eindigt als iemand geen punten meer heeft: de meeste punten winnen.",
       "controlsDiscard": "Laat een steen los op je weggooiplek om je beurt te beëindigen, of op de uitgaanplek om te winnen met de andere 14. Sorteer je rekje met de knoppen erboven, of sleep stenen in je eigen volgorde.",
       "controlsTime": "Let op de klok: als de tijd op is, pak je een steen als je dat nog niet deed, en wordt er voor jou een steen weggegooid."
+    },
+    "ticTacToe": {
+      "aim": "Krijg drie van je tekens op een rij voordat de ander dat doet: horizontaal, verticaal of diagonaal.",
+      "aimCaption": "X pakt de bovenste rij.",
+      "turnTitle": "Om de beurt",
+      "turn": "X begint, daarna zijn jullie om de beurt. Zet in je beurt je teken in een leeg vakje. Tekens blijven staan tot het einde.",
+      "tipsTitle": "Goed spelen",
+      "tips": "Begin in het midden of in een hoek. Heeft de ander twee op een rij, blokkeer dan meteen het derde vakje. Het beste: maak met één teken twee dreigingen, want de ander kan er maar één blokkeren.",
+      "tipsCaption": "De X in de onderste hoek dreigt op twee lijnen; O blokkeert er één, X wint op de andere.",
+      "drawTitle": "Gelijkspel",
+      "draw": "Zijn alle negen vakjes vol en heeft niemand drie op een rij, dan is het gelijkspel. Spelen beiden zorgvuldig, dan eindigt boter-kaas-en-eieren altijd gelijk: je wint door een fout van de ander.",
+      "drawCaption": "Elke lijn is geblokkeerd: gelijkspel."
+    },
+    "gomoku": {
+      "aim": "Krijg vijf van je stenen op een rij voordat de ander dat doet: horizontaal, verticaal of diagonaal. Zes of meer winnen ook.",
+      "aimCaption": "De open vier van Zwart is niet te stoppen: Wit blokkeert één kant, Zwart maakt het aan de andere kant af.",
+      "turn": "Zwart begint, daarna leggen jullie om de beurt één steen op een vrij snijpunt, ook langs de rand. Stenen worden nooit verplaatst of geslagen.",
+      "threatsTitle": "Open rijen",
+      "threats": "Een rij met beide uiteinden vrij is open. Een open vier wint altijd, dus blokkeer een open drie voordat hij groeit: leg een steen aan een van de uiteinden.",
+      "threatsCaption": "De drie van Wit op de diagonaal is aan beide kanten open: Zwart blokkeert er één.",
+      "draw": "Raakt het bord vol zonder vijf op een rij, dan is het gelijkspel. Op 15 × 15 is dat zeldzaam."
+    },
+    "grid": {
+      "controlsMark": "Klik op een leeg vakje om je teken daar te zetten; in je beurt laat een vaag teken zien waar het komt.",
+      "controlsStone": "Klik op een vrij snijpunt om je steen te leggen; in je beurt laat een vage steen zien waar hij komt. Een rode stip markeert de laatste steen.",
+      "controlsTime": "Let op de klok: is je tijd op, dan wordt er een teken voor je gezet.",
+      "controlsPaper": "Licht of donker papier: kies het in de instellingen, achter het tandwiel op het bord.",
+      "controlsTimeStone": "Let op de klok: is je tijd op, dan wordt er een steen voor je gelegd."
     }
   },
   "tile": {
@@ -438,6 +466,7 @@
     "goal": "Om de beurt markeer je een vrij vakje: wie het eerst {{line}} op een rij heeft, wint.",
     "yourTurnStone": "Jij bent aan de beurt: leg een steen op een vrij snijpunt.",
     "black": "Zwart",
-    "white": "Wit"
+    "white": "Wit",
+    "goalStone": "Om de beurt leg je een steen op een vrij snijpunt: wie het eerst {{line}} op een rij heeft, wint."
   }
 }
