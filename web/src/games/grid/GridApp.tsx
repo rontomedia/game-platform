@@ -9,7 +9,7 @@ import { turnLength } from '../../platform/turns.ts'
 import { GridBoard } from './GridBoard.tsx'
 import { GridHowToPlay } from './GridRules.tsx'
 import { problemText } from './messages.ts'
-import { named, type GridOptions } from './protocol.ts'
+import { MAX_BOARDS, named, type GridOptions } from './protocol.ts'
 import { useGrid } from './useGrid.ts'
 import initEngine, { gameProtocolVersion, protocolVersion, type BotLevel, type RuleSet } from './wasm/engine.js'
 
@@ -17,7 +17,7 @@ import initEngine, { gameProtocolVersion, protocolVersion, type BotLevel, type R
 await initEngine()
 
 /**
- * Grid games' page (Tic-Tac-Toe, Gomoku): home, lobby and board. `kind`:
+ * Grid games' page (Tic-Tac-Toe, Gomoku, Notakto): home, lobby and board. `kind`:
  * the rule set the home screen starts on (its page's).
  */
 export default function GridApp({ kind }: { kind?: RuleSet }) {
@@ -77,16 +77,30 @@ interface Choices {
   turnSeconds: number
   timeBank: boolean
   standIn: BotLevel
+  /** Notakto's boards. */
+  boards: number
 }
 
-const defaultChoices: Choices = { ruleSet: 'ticTacToe', turnSeconds: 60, timeBank: false, standIn: 'medium' }
+const defaultChoices: Choices = { ruleSet: 'ticTacToe', turnSeconds: 60, timeBank: false, standIn: 'medium', boards: 3 }
+
+/** The rule sets, in the order the home screen offers them. */
+const RULE_SETS = ['ticTacToe', 'gomoku', 'notakto'] as const
 
 /** Remembered across visits: the options the player last created a grid room with. */
 const OPTIONS_KEY = 'grid.roomOptions'
 
-/** The choices as the server takes them: a named rule set, no house rules yet. */
-function roomOptions({ ruleSet, turnSeconds, timeBank, standIn }: Choices): GridOptions {
-  return { turnSeconds, liveTurns: true, timeBank, standIn, game: named(ruleSet) }
+/** The choices as the server takes them: a named rule set, and Notakto's boards. */
+function roomOptions({ ruleSet, turnSeconds, timeBank, standIn, boards }: Choices): GridOptions {
+  const game = named(ruleSet)
+  return { turnSeconds, liveTurns: true, timeBank, standIn, game: ruleSet === 'notakto' ? { ...game, boards } : game }
+}
+
+/** What the rule set's game is, in a line. */
+function goal(t: TFunction, ruleSet: RuleSet): string {
+  const { line } = named(ruleSet)
+  if (ruleSet === 'gomoku') return t('grid.goalStone', { line })
+  if (ruleSet === 'notakto') return t('grid.goalNotakto')
+  return t('grid.goal', { line })
 }
 
 function Home({
@@ -110,7 +124,11 @@ function Home({
     remember(OPTIONS_KEY, next)
     setChoices(next)
   }
-  const changed = Number(choices.timeBank !== defaultChoices.timeBank) + Number(choices.standIn !== defaultChoices.standIn)
+  const notakto = choices.ruleSet === 'notakto'
+  const changed =
+    Number(choices.timeBank !== defaultChoices.timeBank) +
+    Number(choices.standIn !== defaultChoices.standIn) +
+    Number(notakto && choices.boards !== defaultChoices.boards)
   return (
     <RoomHome
       send={send}
@@ -123,16 +141,25 @@ function Home({
         <span className="block text-sm font-medium text-slate-300">{t('home.game')}</span>
         <Choice
           label={t('home.game')}
-          choices={(['ticTacToe', 'gomoku'] as const).map((ruleSet) => [ruleSet, t(`grid.${ruleSet}`)] as const)}
+          choices={RULE_SETS.map((ruleSet) => [ruleSet, t(`grid.${ruleSet}`)] as const)}
           value={choices.ruleSet}
           onChange={(ruleSet) => change({ ruleSet })}
         />
-        <p className="mt-2 text-xs text-slate-500">
-          {t(choices.ruleSet === 'gomoku' ? 'grid.goalStone' : 'grid.goal', { line: named(choices.ruleSet).line })}
-        </p>
+        <p className="mt-2 text-xs text-slate-500">{goal(t, choices.ruleSet)}</p>
       </div>
       <TurnTime value={choices.turnSeconds} onChange={(turnSeconds) => change({ turnSeconds })} />
       <Advanced changed={changed}>
+        {notakto && (
+          <div className="mt-5">
+            <span className="block text-sm font-medium text-slate-300">{t('grid.boards')}</span>
+            <Choice
+              label={t('grid.boards')}
+              choices={Array.from({ length: MAX_BOARDS }, (_, i) => [i + 1, String(i + 1)] as const)}
+              value={choices.boards}
+              onChange={(boards) => change({ boards })}
+            />
+          </div>
+        )}
         <Option
           title={t('home.timeBank')}
           detail={t('home.timeBankDetail')}
@@ -147,8 +174,10 @@ function Home({
 
 /** The room's rules in a sentence, for the lobby. */
 function describe(t: TFunction, options: GridOptions): string {
-  const { ruleSet, width, height, line } = options.game
-  const parts = [`${t(`grid.${ruleSet}`)}: ${t('grid.rules', { line, width, height })}`]
+  const { ruleSet, width, height, line, boards } = options.game
+  const parts = [
+    `${t(`grid.${ruleSet}`)}: ${ruleSet === 'notakto' ? t('grid.boardsCount', { count: boards }) : t('grid.rules', { line, width, height })}`,
+  ]
   parts.push(t('room.turn', { time: turnLength(t, options.turnSeconds ?? 60) }))
   if (options.timeBank) parts.push(t('room.timeBank'))
   parts.push(t(`room.standIn.${options.standIn}`))

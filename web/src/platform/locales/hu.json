@@ -455,7 +455,8 @@
     "notYourTurn": "Nem te jössz.",
     "occupied": "Ez a mező foglalt.",
     "offBoard": "Ez a mező nincs a rácson.",
-    "over": "A játék véget ért."
+    "over": "A játék véget ért.",
+    "closed": "Az a tábla már lezárult."
   },
   "grid": {
     "ticTacToe": "Tic-tac-toe",
@@ -467,6 +468,12 @@
     "yourTurnStone": "Te jössz: tegyél egy követ egy szabad metszéspontra.",
     "black": "Fekete",
     "white": "Fehér",
-    "goalStone": "Felváltva tesztek le egy követ egy szabad metszéspontra: aki elsőként rak ki {{line}} követ egy sorban, nyer."
+    "goalStone": "Felváltva tesztek le egy követ egy szabad metszéspontra: aki elsőként rak ki {{line}} követ egy sorban, nyer.",
+    "notakto": "Notakto",
+    "goalNotakto": "Mindkét játékos X-et rajzol. Egy hármas sor lezárja a táblát: aki az utolsó táblát zárja le, veszít.",
+    "boards": "Táblák",
+    "board": "{{n}}. tábla",
+    "boardsCount_one": "{{count}} tábla",
+    "boardsCount_other": "{{count}} tábla"
   }
 }

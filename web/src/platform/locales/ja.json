@@ -436,7 +436,8 @@
     "notYourTurn": "あなたの番ではありません。",
     "occupied": "そのマスは埋まっています。",
     "offBoard": "そのマスは盤上にありません。",
-    "over": "ゲームは終了しました。"
+    "over": "ゲームは終了しました。",
+    "closed": "その盤はもう終わっています。"
   },
   "grid": {
     "ticTacToe": "三目並べ",
@@ -448,6 +449,11 @@
     "yourTurnStone": "あなたの番です。空いている交点に石を置いてください。",
     "black": "黒",
     "white": "白",
-    "goalStone": "交互に空いた交点に石を置き、先に {{line}} 個並べた方の勝ちです。"
+    "goalStone": "交互に空いた交点に石を置き、先に {{line}} 個並べた方の勝ちです。",
+    "notakto": "Notakto",
+    "goalNotakto": "どちらも X を書きます。3 つ並ぶとその盤は終わり。最後の盤を終わらせた人の負けです。",
+    "boards": "盤の数",
+    "board": "盤 {{n}}",
+    "boardsCount_other": "{{count}} 面"
   }
 }

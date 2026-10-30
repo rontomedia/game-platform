@@ -8,6 +8,7 @@ export const PAGES = {
   '/okey': { family: 'tile-rummy', kind: 'okey' },
   '/tic-tac-toe': { family: 'grid', kind: 'ticTacToe' },
   '/gomoku': { family: 'grid', kind: 'gomoku' },
+  '/notakto': { family: 'grid', kind: 'notakto' },
 } as const
 
 export type PagePath = keyof typeof PAGES

@@ -10,7 +10,7 @@ use crate::game::{Cell, GridError, GridView};
 
 /// Bumped when grid placement's messages change in a way an older client
 /// can't read (`Welcome { game }`).
-pub const GRID_PROTOCOL: u32 = 1;
+pub const GRID_PROTOCOL: u32 = 2;
 
 /// From a player to the game.
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]

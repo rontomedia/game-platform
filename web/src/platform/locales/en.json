@@ -455,7 +455,8 @@
     "notYourTurn": "It isn’t your turn.",
     "occupied": "That cell is taken.",
     "offBoard": "That cell isn’t on the grid.",
-    "over": "The game is over."
+    "over": "The game is over.",
+    "closed": "That board is finished."
   },
   "grid": {
     "ticTacToe": "Tic-Tac-Toe",
@@ -467,6 +468,12 @@
     "yourTurnStone": "Your turn: place a stone on a free point.",
     "black": "Black",
     "white": "White",
-    "goalStone": "Take turns placing a stone on a free point: the first with {{line}} in a row wins."
+    "goalStone": "Take turns placing a stone on a free point: the first with {{line}} in a row wins.",
+    "notakto": "Notakto",
+    "goalNotakto": "Both players mark X. A line of three finishes its board: whoever finishes the last board loses.",
+    "boards": "Boards",
+    "board": "Board {{n}}",
+    "boardsCount_one": "{{count}} board",
+    "boardsCount_other": "{{count}} boards"
   }
 }

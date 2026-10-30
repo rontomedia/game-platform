@@ -117,6 +117,26 @@ async fn two_hard_bots_draw_and_a_watcher_sees_it() {
 }
 
 #[tokio::test]
+async fn notakto_on_two_boards_is_the_second_players() {
+    let rules = GridRules { boards: 2, ..GridRules::named(RuleSet::Notakto) };
+    let (_rooms, room) = open_room(FAST, rules);
+    let mut ann = Member::join(&room, "Ann", true).await;
+    for _ in 0..2 {
+        room.send(Command::AddBot { player: ann.id, level: BotLevel::Hard }).await.unwrap();
+    }
+    room.send(Command::Start { player: ann.id }).await.unwrap();
+    let last = loop {
+        let view = ann.state().await;
+        if view.outcome.is_some() {
+            break view;
+        }
+    };
+    assert_eq!(last.lines.len(), 2, "both boards finished");
+    assert!(last.board.iter().all(|&s| s != Square::O), "all marks X");
+    assert_eq!(last.outcome.unwrap().winner, Some(1));
+}
+
+#[tokio::test]
 async fn a_person_against_a_bot() {
     let timing = Timing { turn: Duration::from_millis(800), ..FAST };
     let (_rooms, room) = open_room(timing, GridRules::default());

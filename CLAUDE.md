@@ -46,7 +46,7 @@ npm run wasm      # only rebuild every game's engine WASM (scripts/wasm.mjs; nee
 ```
 
 `http://localhost:5173/` is the games page; `/rummy`, `/okey-101`, `/okey`,
-`/tic-tac-toe` and `/gomoku` a rule set's page each.
+`/tic-tac-toe`, `/gomoku` and `/notakto` a rule set's page each.
 `http://localhost:5173/?demo` shows the board with a made-up 4-player game
 and no server (`src/games/tile-rummy/demo.ts`): the place to work on the board's look.
 `?demo=racks` adds the open racks panel; `?demo=watcher` is a bots-only
@@ -149,15 +149,20 @@ only builds it on start.
 - **`games/grid`** (crate `grid`): grid placement, pure like `tile_rummy`:
   `GridRules` (named rule sets `TicTacToe` 3×3 line 3 and `Gomoku` 15×15
   line 5, freestyle: a longer line wins too; sides 3-19 and the line as
-  house rules, `checked()`), `Game` (X, seat 0, first; `place`,
-  `GridError`, the outcome with its line, views, `placings`),
-  `check_place`, `outcome_of`. Bots (`bot.rs`, over `board.rs`'s windows
+  house rules, `checked()`; `Notakto`: `boards` 3×3 boards side by side,
+  1-4, cells counted across them as one grid, `columns`, `board_of`),
+  `Game` (X, seat 0, first; `place`, `GridError`, `lines` made, the
+  outcome with its line, views, `placings`; in Notakto both mark X, a line
+  closes its board and who closes the last loses), `check_place`. Notakto's
+  bots (`notakto.rs`) search it to the end: boards as 9-bit sets in their
+  least symmetric form (46 of them), Hard perfect, Medium perfect once
+  few cells are safe, Easy any safe cell. Other bots (`bot.rs`, over `board.rs`'s windows
   of `line` cells kept up to date): every level makes a line it can;
   Easy blocks one, else one move ahead with hash noise; Medium two moves,
   Hard four (grids of up to 12 cells searched to the end, so it never
   loses Tic-Tac-Toe), Extra Hard deepening until `spent` (negamax with
   alpha-beta over cells near the marks).
-- **`games/grid-wasm`**: `checkPlace`, `outcome`, `botMove`, as
+- **`games/grid-wasm`**: `checkPlace`, `botMove`, as
   tile-rummy-wasm, into `web/src/games/grid/wasm/`.
 - **`crates/platform`**: what every game's rooms share; depends on no
   game.
@@ -283,7 +288,10 @@ only builds it on start.
     `Settings.paper`), the winning line highlighted; a click places a
     mark (checked first, `checkPlace`). Tic-Tac-Toe: lines by hand, X and
     O drawn in pen in the cells (`marks.tsx`, Motion `pathLength`; rows
-    fixed and the mark laid over its cell, so drawing never resizes it). Gomoku
+    fixed and the mark laid over its cell, so drawing never resizes it,
+    `MarkGrid`); Notakto's boards the same, side by side or in rows,
+    whichever makes them biggest (`useLayout`), a closed board struck
+    through and faded. Gomoku
     (`StoneBoard.tsx`, any grid over 25 cells): black and white stones on
     the intersections (black first; a rim, `--rim-*`, shows each on either
     sheet), star points, the last stone dotted; its lines are the paper's

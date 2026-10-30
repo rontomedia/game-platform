@@ -493,7 +493,8 @@
     "notYourTurn": "To nie twój ruch.",
     "occupied": "To pole jest zajęte.",
     "offBoard": "Tego pola nie ma na planszy.",
-    "over": "Gra się skończyła."
+    "over": "Gra się skończyła.",
+    "closed": "Ta plansza jest już zakończona."
   },
   "grid": {
     "ticTacToe": "Kółko i krzyżyk",
@@ -505,6 +506,14 @@
     "yourTurnStone": "Twój ruch: postaw kamień na wolnym przecięciu.",
     "black": "Czarne",
     "white": "Białe",
-    "goalStone": "Na zmianę stawiacie kamienie na wolnych przecięciach: wygrywa pierwszy, kto ułoży {{line}} w rzędzie."
+    "goalStone": "Na zmianę stawiacie kamienie na wolnych przecięciach: wygrywa pierwszy, kto ułoży {{line}} w rzędzie.",
+    "notakto": "Notakto",
+    "goalNotakto": "Obaj gracze stawiają X. Linia trzech kończy planszę: kto zakończy ostatnią planszę, przegrywa.",
+    "boards": "Plansze",
+    "board": "Plansza {{n}}",
+    "boardsCount_one": "{{count}} plansza",
+    "boardsCount_few": "{{count}} plansze",
+    "boardsCount_many": "{{count}} plansz",
+    "boardsCount_other": "{{count}} planszy"
   }
 }

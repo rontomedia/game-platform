@@ -474,7 +474,8 @@
     "notYourTurn": "Não é a sua vez.",
     "occupied": "Essa casa está ocupada.",
     "offBoard": "Essa casa não está na grade.",
-    "over": "A partida terminou."
+    "over": "A partida terminou.",
+    "closed": "Esse tabuleiro já está fechado."
   },
   "grid": {
     "ticTacToe": "Jogo da velha",
@@ -486,6 +487,13 @@
     "yourTurnStone": "Sua vez: coloque uma pedra num cruzamento livre.",
     "black": "Pretas",
     "white": "Brancas",
-    "goalStone": "Coloquem uma pedra por vez num cruzamento livre: vence quem fizer {{line}} em linha primeiro."
+    "goalStone": "Coloquem uma pedra por vez num cruzamento livre: vence quem fizer {{line}} em linha primeiro.",
+    "notakto": "Notakto",
+    "goalNotakto": "Os dois jogadores marcam X. Uma linha de três fecha o tabuleiro: quem fechar o último tabuleiro perde.",
+    "boards": "Tabuleiros",
+    "board": "Tabuleiro {{n}}",
+    "boardsCount_one": "{{count}} tabuleiro",
+    "boardsCount_many": "{{count}} tabuleiros",
+    "boardsCount_other": "{{count}} tabuleiros"
   }
 }

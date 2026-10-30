@@ -455,7 +455,8 @@
     "notYourTurn": "Sıra sende değil.",
     "occupied": "O kare dolu.",
     "offBoard": "O kare tahtada değil.",
-    "over": "Oyun bitti."
+    "over": "Oyun bitti.",
+    "closed": "O tahta kapandı."
   },
   "grid": {
     "ticTacToe": "XOX",
@@ -467,6 +468,12 @@
     "yourTurnStone": "Sıra sende: boş bir kesişime taş koy.",
     "black": "Siyah",
     "white": "Beyaz",
-    "goalStone": "Sırayla boş bir kesişime taş koyun: ilk {{line}} tanesini sıraya dizen kazanır."
+    "goalStone": "Sırayla boş bir kesişime taş koyun: ilk {{line}} tanesini sıraya dizen kazanır.",
+    "notakto": "Notakto",
+    "goalNotakto": "İki oyuncu da X koyar. Üçlü bir sıra tahtasını kapatır: son tahtayı kapatan kaybeder.",
+    "boards": "Tahtalar",
+    "board": "Tahta {{n}}",
+    "boardsCount_one": "{{count}} tahta",
+    "boardsCount_other": "{{count}} tahta"
   }
 }

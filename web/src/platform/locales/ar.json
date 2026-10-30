@@ -531,7 +531,8 @@
     "notYourTurn": "ليس دورك.",
     "occupied": "هذه الخانة مشغولة.",
     "offBoard": "هذه الخانة ليست على الشبكة.",
-    "over": "انتهت اللعبة."
+    "over": "انتهت اللعبة.",
+    "closed": "هذا اللوح مُغلق."
   },
   "grid": {
     "ticTacToe": "إكس أو",
@@ -543,6 +544,16 @@
     "yourTurnStone": "دورك: ضع حجرًا على تقاطع فارغ.",
     "black": "الأسود",
     "white": "الأبيض",
-    "goalStone": "يضع كل لاعب حجرًا على تقاطع فارغ بالتناوب: يفوز أول من يصنع {{line}} في صف."
+    "goalStone": "يضع كل لاعب حجرًا على تقاطع فارغ بالتناوب: يفوز أول من يصنع {{line}} في صف.",
+    "notakto": "Notakto",
+    "goalNotakto": "يضع اللاعبان كلاهما X. صفّ من ثلاثة يُغلق لوحته: من يُغلق آخر لوحة يخسر.",
+    "boards": "الألواح",
+    "board": "اللوح {{n}}",
+    "boardsCount_zero": "{{count}} لوح",
+    "boardsCount_one": "لوح واحد",
+    "boardsCount_two": "لوحان",
+    "boardsCount_few": "{{count}} ألواح",
+    "boardsCount_many": "{{count}} لوحًا",
+    "boardsCount_other": "{{count}} لوح"
   }
 }

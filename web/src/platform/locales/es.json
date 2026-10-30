@@ -474,7 +474,8 @@
     "notYourTurn": "No es tu turno.",
     "occupied": "Esa casilla está ocupada.",
     "offBoard": "Esa casilla no está en la cuadrícula.",
-    "over": "La partida ha terminado."
+    "over": "La partida ha terminado.",
+    "closed": "Ese tablero ya está cerrado."
   },
   "grid": {
     "ticTacToe": "Tres en raya",
@@ -486,6 +487,13 @@
     "yourTurnStone": "Tu turno: coloca una piedra en una intersección libre.",
     "black": "Negras",
     "white": "Blancas",
-    "goalStone": "Poned por turnos una piedra en una intersección libre: gana el primero con {{line}} en línea."
+    "goalStone": "Poned por turnos una piedra en una intersección libre: gana el primero con {{line}} en línea.",
+    "notakto": "Notakto",
+    "goalNotakto": "Ambos jugadores marcan X. Una línea de tres cierra su tablero: quien cierre el último tablero pierde.",
+    "boards": "Tableros",
+    "board": "Tablero {{n}}",
+    "boardsCount_one": "{{count}} tablero",
+    "boardsCount_many": "{{count}} tableros",
+    "boardsCount_other": "{{count}} tableros"
   }
 }

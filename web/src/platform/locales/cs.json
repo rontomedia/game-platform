@@ -493,7 +493,8 @@
     "notYourTurn": "Nejste na tahu.",
     "occupied": "To pole je obsazené.",
     "offBoard": "To pole není na mřížce.",
-    "over": "Hra skončila."
+    "over": "Hra skončila.",
+    "closed": "Ta mřížka je už uzavřená."
   },
   "grid": {
     "ticTacToe": "Piškvorky 3 × 3",
@@ -505,6 +506,14 @@
     "yourTurnStone": "Jste na tahu: položte kámen na volný průsečík.",
     "black": "Černý",
     "white": "Bílý",
-    "goalStone": "Střídavě pokládáte kámen na volný průsečík: vyhrává ten, kdo první spojí {{line}} v řadě."
+    "goalStone": "Střídavě pokládáte kámen na volný průsečík: vyhrává ten, kdo první spojí {{line}} v řadě.",
+    "notakto": "Notakto",
+    "goalNotakto": "Oba hráči píší X. Řada tří uzavře svou mřížku: kdo uzavře poslední mřížku, prohrává.",
+    "boards": "Mřížky",
+    "board": "Mřížka {{n}}",
+    "boardsCount_one": "{{count}} mřížka",
+    "boardsCount_few": "{{count}} mřížky",
+    "boardsCount_many": "{{count}} mřížky",
+    "boardsCount_other": "{{count}} mřížek"
   }
 }

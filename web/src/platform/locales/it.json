@@ -474,7 +474,8 @@
     "notYourTurn": "Non è il tuo turno.",
     "occupied": "Quella casella è occupata.",
     "offBoard": "Quella casella non è nella griglia.",
-    "over": "La partita è finita."
+    "over": "La partita è finita.",
+    "closed": "Quella griglia è chiusa."
   },
   "grid": {
     "ticTacToe": "Tris",
@@ -486,6 +487,13 @@
     "yourTurnStone": "Tocca a te: metti una pietra su un incrocio libero.",
     "black": "Nero",
     "white": "Bianco",
-    "goalStone": "A turno si mette una pietra su un incrocio libero: vince chi mette per primo {{line}} in fila."
+    "goalStone": "A turno si mette una pietra su un incrocio libero: vince chi mette per primo {{line}} in fila.",
+    "notakto": "Notakto",
+    "goalNotakto": "Entrambi i giocatori segnano X. Una linea di tre chiude la sua griglia: chi chiude l’ultima griglia perde.",
+    "boards": "Griglie",
+    "board": "Griglia {{n}}",
+    "boardsCount_one": "{{count}} griglia",
+    "boardsCount_many": "{{count}} griglie",
+    "boardsCount_other": "{{count}} griglie"
   }
 }

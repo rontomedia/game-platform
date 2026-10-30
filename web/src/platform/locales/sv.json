@@ -455,7 +455,8 @@
     "notYourTurn": "Det är inte din tur.",
     "occupied": "Rutan är upptagen.",
     "offBoard": "Rutan finns inte i rutnätet.",
-    "over": "Spelet är slut."
+    "over": "Spelet är slut.",
+    "closed": "Det brädet är stängt."
   },
   "grid": {
     "ticTacToe": "Tre i rad",
@@ -467,6 +468,12 @@
     "yourTurnStone": "Din tur: lägg en sten på en ledig korsning.",
     "black": "Svart",
     "white": "Vit",
-    "goalStone": "Lägg i tur och ordning en sten på en ledig korsning: först med {{line}} i rad vinner."
+    "goalStone": "Lägg i tur och ordning en sten på en ledig korsning: först med {{line}} i rad vinner.",
+    "notakto": "Notakto",
+    "goalNotakto": "Båda spelarna sätter X. En rad om tre stänger brädet: den som stänger det sista brädet förlorar.",
+    "boards": "Brädor",
+    "board": "Bräde {{n}}",
+    "boardsCount_one": "{{count}} bräde",
+    "boardsCount_other": "{{count}} brädor"
   }
 }

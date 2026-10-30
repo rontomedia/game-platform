@@ -3,7 +3,7 @@
 //! so bad input from JS is an ordinary error instead of leaking WASM
 //! memory.
 
-use grid::{BotLevel, Cell, GridError, GridRules, GridView, Outcome, Square};
+use grid::{BotLevel, Cell, GridError, GridRules, GridView};
 use serde::{Deserialize, Serialize};
 use tsify::{Ts, Tsify};
 use wasm_bindgen::prelude::*;
@@ -38,18 +38,6 @@ pub fn check_place(view: Ts<GridView>, cell: Ts<Cell>) -> Result<Ts<PlaceVerdict
         Err(error) => PlaceVerdict::Rejected { error },
     };
     Ok(Ts::from_rust(&verdict)?)
-}
-
-/// See `grid::outcome_of`: how a grid as it stands ends the game, if it
-/// does. `undefined` while it goes on.
-#[wasm_bindgen]
-pub fn outcome(rules: Ts<GridRules>, board: Vec<Ts<Square>>) -> Result<Option<Ts<Outcome>>, JsError> {
-    let board = board.into_iter().map(|square| square.to_rust()).collect::<Result<Vec<_>, _>>()?;
-    let rules = rules.to_rust()?;
-    if board.len() != rules.cells() {
-        return Err(JsError::new("the board doesn't fit the rules' grid"));
-    }
-    Ok(grid::outcome_of(&rules, &board).map(|outcome| Ts::from_rust(&outcome)).transpose()?)
 }
 
 /// See `grid::bot_move`: a bot's mark for the player whose turn it is, for

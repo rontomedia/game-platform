@@ -80,12 +80,15 @@ impl GameEngine for GridMatch {
         bot_move_with(&self.0.view(self.0.current()), level, spent)
     }
 
-    /// The first free cell.
+    /// The first cell that may be marked.
     fn bot_fallback(&mut self) {
         let seat = self.0.current();
         let rules = *self.0.rules();
-        if let Some(free) = self.0.board().iter().position(|&s| s == Square::Empty) {
-            let _ = self.0.place(seat, rules.cell(free));
+        let free: Vec<usize> = self.0.board().iter().enumerate().filter(|(_, &s)| s == Square::Empty).map(|(i, _)| i).collect();
+        for cell in free {
+            if self.0.place(seat, rules.cell(cell)).is_ok() {
+                break;
+            }
         }
     }
 

@@ -436,7 +436,8 @@
     "notYourTurn": "還沒輪到你。",
     "occupied": "這個格子已經有子了。",
     "offBoard": "這個格子不在棋盤上。",
-    "over": "遊戲已結束。"
+    "over": "遊戲已結束。",
+    "closed": "這個棋盤已經結束了。"
   },
   "grid": {
     "ticTacToe": "井字棋",
@@ -448,6 +449,11 @@
     "yourTurnStone": "輪到你了：在空的交叉點上落子。",
     "black": "黑方",
     "white": "白方",
-    "goalStone": "輪流在空的交叉點落子：先連成 {{line}} 子者獲勝。"
+    "goalStone": "輪流在空的交叉點落子：先連成 {{line}} 子者獲勝。",
+    "notakto": "Notakto",
+    "goalNotakto": "雙方都畫 X。連成三個就結束該棋盤：結束最後一個棋盤的人輸。",
+    "boards": "棋盤數",
+    "board": "棋盤 {{n}}",
+    "boardsCount_other": "{{count}} 個棋盤"
   }
 }

@@ -474,7 +474,8 @@
     "notYourTurn": "Nu e rândul tău.",
     "occupied": "Căsuța e ocupată.",
     "offBoard": "Căsuța nu e pe grilă.",
-    "over": "Jocul s-a terminat."
+    "over": "Jocul s-a terminat.",
+    "closed": "Tabla aceea e închisă."
   },
   "grid": {
     "ticTacToe": "X și 0",
@@ -486,6 +487,13 @@
     "yourTurnStone": "E rândul tău: pune o piatră pe o intersecție liberă.",
     "black": "Negru",
     "white": "Alb",
-    "goalStone": "Pe rând, puneți câte o piatră pe o intersecție liberă: câștigă primul care are {{line}} în linie."
+    "goalStone": "Pe rând, puneți câte o piatră pe o intersecție liberă: câștigă primul care are {{line}} în linie.",
+    "notakto": "Notakto",
+    "goalNotakto": "Ambii jucători desenează X. O linie de trei închide tabla: cine închide ultima tablă pierde.",
+    "boards": "Table",
+    "board": "Tabla {{n}}",
+    "boardsCount_one": "{{count}} tablă",
+    "boardsCount_few": "{{count}} table",
+    "boardsCount_other": "{{count}} de table"
   }
 }

@@ -474,7 +474,8 @@
     "notYourTurn": "Ce n’est pas votre tour.",
     "occupied": "Cette case est prise.",
     "offBoard": "Cette case n’est pas sur la grille.",
-    "over": "La partie est terminée."
+    "over": "La partie est terminée.",
+    "closed": "Cette grille est terminée."
   },
   "grid": {
     "ticTacToe": "Morpion",
@@ -486,6 +487,13 @@
     "yourTurnStone": "À vous : posez une pierre sur une intersection libre.",
     "black": "Noirs",
     "white": "Blancs",
-    "goalStone": "Chacun à son tour pose une pierre sur une intersection libre : le premier à en aligner {{line}} gagne."
+    "goalStone": "Chacun à son tour pose une pierre sur une intersection libre : le premier à en aligner {{line}} gagne.",
+    "notakto": "Notakto",
+    "goalNotakto": "Les deux joueurs tracent des X. Un alignement de trois clôt sa grille : celui qui clôt la dernière grille perd.",
+    "boards": "Grilles",
+    "board": "Grille {{n}}",
+    "boardsCount_one": "{{count}} grille",
+    "boardsCount_many": "{{count}} grilles",
+    "boardsCount_other": "{{count}} grilles"
   }
 }

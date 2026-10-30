@@ -455,7 +455,8 @@
     "notYourTurn": "Je bent niet aan de beurt.",
     "occupied": "Dat vakje is bezet.",
     "offBoard": "Dat vakje ligt niet in het raster.",
-    "over": "Het spel is afgelopen."
+    "over": "Het spel is afgelopen.",
+    "closed": "Dat bord is al gesloten."
   },
   "grid": {
     "ticTacToe": "Boter-kaas-en-eieren",
@@ -467,6 +468,12 @@
     "yourTurnStone": "Jij bent aan de beurt: leg een steen op een vrij snijpunt.",
     "black": "Zwart",
     "white": "Wit",
-    "goalStone": "Om de beurt leg je een steen op een vrij snijpunt: wie het eerst {{line}} op een rij heeft, wint."
+    "goalStone": "Om de beurt leg je een steen op een vrij snijpunt: wie het eerst {{line}} op een rij heeft, wint.",
+    "notakto": "Notakto",
+    "goalNotakto": "Beide spelers zetten X. Een rij van drie sluit het bord: wie het laatste bord sluit, verliest.",
+    "boards": "Borden",
+    "board": "Bord {{n}}",
+    "boardsCount_one": "{{count}} bord",
+    "boardsCount_other": "{{count}} borden"
   }
 }

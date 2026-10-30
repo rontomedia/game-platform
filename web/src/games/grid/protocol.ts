@@ -13,7 +13,15 @@ export type GridOutgoing = Outgoing<GridRules, BotLevel, GridRequest>
 
 /** A rule set as it's played without house rules (as `GridRules::named`). */
 export function named(ruleSet: RuleSet): GridRules {
-  return ruleSet === 'gomoku'
-    ? { ruleSet, width: 15, height: 15, line: 5 }
-    : { ruleSet, width: 3, height: 3, line: 3 }
+  switch (ruleSet) {
+    case 'gomoku':
+      return { ruleSet, width: 15, height: 15, line: 5, boards: 1 }
+    case 'notakto':
+      return { ruleSet, width: 3, height: 3, line: 3, boards: 3 }
+    default:
+      return { ruleSet, width: 3, height: 3, line: 3, boards: 1 }
+  }
 }
+
+/** The most boards Notakto is played on (`grid::MAX_BOARDS`). */
+export const MAX_BOARDS = 4

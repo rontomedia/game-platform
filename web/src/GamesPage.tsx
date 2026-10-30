@@ -41,6 +41,7 @@ export function GamesPage() {
           pages={[
             ['/tic-tac-toe', t('grid.ticTacToe')],
             ['/gomoku', t('grid.gomoku')],
+            ['/notakto', t('grid.notakto')],
           ]}
         />
       </div>

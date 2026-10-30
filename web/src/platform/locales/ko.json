@@ -436,7 +436,8 @@
     "notYourTurn": "내 차례가 아닙니다.",
     "occupied": "이미 표시된 칸입니다.",
     "offBoard": "격자 위의 칸이 아닙니다.",
-    "over": "게임이 끝났습니다."
+    "over": "게임이 끝났습니다.",
+    "closed": "그 판은 이미 끝났습니다."
   },
   "grid": {
     "ticTacToe": "틱택토",
@@ -448,6 +449,11 @@
     "yourTurnStone": "내 차례: 빈 교차점에 돌을 놓으세요.",
     "black": "흑",
     "white": "백",
-    "goalStone": "번갈아 빈 교차점에 돌을 놓습니다. 먼저 {{line}}개를 한 줄로 놓으면 이깁니다."
+    "goalStone": "번갈아 빈 교차점에 돌을 놓습니다. 먼저 {{line}}개를 한 줄로 놓으면 이깁니다.",
+    "notakto": "Notakto",
+    "goalNotakto": "두 사람 모두 X를 씁니다. 세 개가 한 줄이 되면 그 판은 끝나고, 마지막 판을 끝낸 사람이 집니다.",
+    "boards": "판 수",
+    "board": "판 {{n}}",
+    "boardsCount_other": "판 {{count}}개"
   }
 }

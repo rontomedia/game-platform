@@ -22,7 +22,8 @@ use serde::{Deserialize, Serialize};
 use tsify::Tsify;
 
 use crate::board::{mix, Board};
-use crate::game::{Cell, GridView};
+use crate::game::{Cell, GridView, RuleSet};
+use crate::notakto;
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[cfg_attr(feature = "wasm", derive(Tsify))]
@@ -64,6 +65,9 @@ pub fn bot_move(view: &GridView, level: BotLevel) -> Cell {
 /// engine has no clock): Hard and Extra Hard stop looking when it
 /// reaches 1, and play the best they had found.
 pub fn bot_move_with(view: &GridView, level: BotLevel, spent: &dyn Fn() -> f64) -> Cell {
+    if view.rules.rule_set == RuleSet::Notakto {
+        return notakto::choose(view, level);
+    }
     let mut board = Board::from_view(view);
     let cell = choose(&mut board, view.current, level, spent);
     view.rules.cell(cell)
@@ -258,7 +262,7 @@ impl<'a> Search<'a> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::game::{Game, GridRules, RuleSet};
+    use crate::game::{Game, GridRules};
     use BotLevel::*;
 
     const LEVELS: [BotLevel; 4] = [Easy, Medium, Hard, ExtraHard];

@@ -455,7 +455,8 @@
     "notYourTurn": "Du bist nicht dran.",
     "occupied": "Dieses Feld ist besetzt.",
     "offBoard": "Dieses Feld liegt nicht im Raster.",
-    "over": "Das Spiel ist vorbei."
+    "over": "Das Spiel ist vorbei.",
+    "closed": "Dieses Feld ist schon beendet."
   },
   "grid": {
     "ticTacToe": "Tic-Tac-Toe",
@@ -467,6 +468,12 @@
     "yourTurnStone": "Du bist dran: setz einen Stein auf einen freien Schnittpunkt.",
     "black": "Schwarz",
     "white": "Weiß",
-    "goalStone": "Abwechselnd wird ein Stein auf einen freien Schnittpunkt gesetzt: Wer zuerst {{line}} in einer Reihe hat, gewinnt."
+    "goalStone": "Abwechselnd wird ein Stein auf einen freien Schnittpunkt gesetzt: Wer zuerst {{line}} in einer Reihe hat, gewinnt.",
+    "notakto": "Notakto",
+    "goalNotakto": "Beide setzen X. Eine Dreierreihe beendet ihr Feld: Wer das letzte Feld beendet, verliert.",
+    "boards": "Felder",
+    "board": "Feld {{n}}",
+    "boardsCount_one": "{{count}} Feld",
+    "boardsCount_other": "{{count}} Felder"
   }
 }

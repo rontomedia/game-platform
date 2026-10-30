@@ -1,4 +1,5 @@
-import { useCallback, useState, type CSSProperties } from 'react'
+import { motion } from 'motion/react'
+import { useCallback, useEffect, useState, type CSSProperties } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import { LeaveMenu } from '../../platform/LeaveMenu.tsx'
@@ -12,7 +13,7 @@ import type { GridOutgoing, GridRoom } from './protocol.ts'
 import { Mark } from './marks.tsx'
 import { StoneBoard, StoneFace, type PaperLines } from './StoneBoard.tsx'
 import type { GridGame } from './useGrid.ts'
-import { checkPlace, type Cell, type Square } from './wasm/engine.js'
+import { checkPlace, type Cell, type Line, type Square } from './wasm/engine.js'
 
 /** Seconds left at which the clock turns amber. */
 const LOW_TIME = 10
@@ -75,14 +76,16 @@ export function GridBoard({
     return { turn, bank }
   }
 
-  const winning = new Set(outcome?.line.map((cell) => cell.row * rules.width + cell.col))
+  const columns = rules.width * rules.boards
+  const winning = new Set(outcome?.line.map((cell) => cell.row * columns + cell.col))
   const last = view.moves.at(-1)
-  const lastIndex = last && last.row * rules.width + last.col
+  const lastIndex = last && last.row * columns + last.col
   // Tic-Tac-Toe's grid is drawn as by hand, inner lines only, marks in its
-  // cells; a big one (Gomoku) is a board of lines with stones on their
-  // intersections, drawn over the paper's own lines (`paper`).
-  const stones = rules.width * rules.height > 25
-  const ink = '4px solid var(--grid-ink)'
+  // cells; Notakto's boards likewise, side by side; a big one (Gomoku) is
+  // a board of lines with stones on their intersections, drawn over the
+  // paper's own lines (`paper`).
+  const notakto = rules.ruleSet === 'notakto'
+  const stones = !notakto && rules.width * rules.height > 25
   const [paper, setPaper] = useState<PaperLines | null>(null)
   const onPaper = useCallback(
     (lines: PaperLines) =>
@@ -93,6 +96,14 @@ export function GridBoard({
     stones && paper
       ? { backgroundSize: `${paper.size}px ${paper.size}px`, backgroundPosition: `${paper.x}px ${paper.y}px` }
       : undefined
+  const preview = yourTurn && !sent ? (notakto || view.you === 0 ? 'x' : 'o') : undefined
+  /** The squares of board `b` (of Notakto's), row by row, with their cells. */
+  const boardCells = (b: number) =>
+    Array.from({ length: rules.width * rules.height }, (_, i) => {
+      const cell = { row: Math.floor(i / rules.width), col: b * rules.width + (i % rules.width) }
+      const index = cell.row * columns + cell.col
+      return { cell, index, square: view.board[index] }
+    })
 
   const note = outcome
     ? outcome.winner === undefined
@@ -120,7 +131,7 @@ export function GridBoard({
               <PlayerChip
                 key={seat}
                 name={name(seat)}
-                mark={seat === 0 ? 'x' : 'o'}
+                mark={seat === 0 || notakto ? 'x' : 'o'}
                 stones={stones}
                 you={seat === view.you}
                 bot={room.seats[seat]?.bot !== undefined}
@@ -151,40 +162,28 @@ export function GridBoard({
               onPaper={onPaper}
               onPlace={place}
             />
+          ) : notakto ? (
+            <NotaktoBoards
+              boards={rules.boards}
+              finished={view.lines}
+              cells={boardCells}
+              preview={preview}
+              winning={winning}
+              lastIndex={lastIndex}
+              onPlace={place}
+            />
           ) : (
-          <div
-            className="grid w-[min(100%,calc(100dvh-15rem))]"
-            // Rows as fixed as the columns: a mark being drawn mustn't size its row.
-            style={{
-              gridTemplateColumns: `repeat(${rules.width}, minmax(0, 1fr))`,
-              gridTemplateRows: `repeat(${rules.height}, minmax(0, 1fr))`,
-              aspectRatio: `${rules.width} / ${rules.height}`,
-            }}
-            dir="ltr"
-            role="grid"
-            aria-label={t(`grid.${rules.ruleSet}`)}
-          >
-            {view.board.map((square, index) => {
-              const cell = { row: Math.floor(index / rules.width), col: index % rules.width }
-              // By hand: no lines along the edge.
-              const lines: CSSProperties = {
-                borderRight: cell.col < rules.width - 1 ? ink : undefined,
-                borderBottom: cell.row < rules.height - 1 ? ink : undefined,
-              }
-              return (
-                <GridCell
-                  key={index}
-                  square={square}
-                  preview={yourTurn && square === 'empty' && !sent ? (view.you === 0 ? 'x' : 'o') : undefined}
-                  winning={winning.has(index)}
-                  last={index === lastIndex}
-                  pen={2.6}
-                  style={lines}
-                  onClick={() => place(cell)}
-                />
-              )
-            })}
-          </div>
+            <MarkGrid
+              className="w-[min(100%,calc(100dvh-15rem))]"
+              width={rules.width}
+              height={rules.height}
+              cells={boardCells(0)}
+              preview={preview}
+              winning={winning}
+              lastIndex={lastIndex}
+              label={t(`grid.${rules.ruleSet}`)}
+              onPlace={place}
+            />
           )}
         </main>
 
@@ -208,9 +207,176 @@ export function GridBoard({
   )
 }
 
+type BoardCell = { cell: Cell; index: number; square: Square }
+
+/**
+ * A grid drawn by hand, inner lines only, marks in its cells: Tic-Tac-Toe's,
+ * or one of Notakto's boards. Its rows are as fixed as its columns: a mark
+ * being drawn mustn't size its row.
+ */
+function MarkGrid({
+  className,
+  width,
+  height,
+  cells,
+  preview,
+  winning,
+  lastIndex,
+  label,
+  pen = 2.6,
+  ink = '4px solid var(--grid-ink)',
+  closed = false,
+  onPlace,
+}: {
+  className: string
+  width: number
+  height: number
+  cells: BoardCell[]
+  preview?: 'x' | 'o'
+  winning: Set<number>
+  lastIndex?: number
+  label: string
+  pen?: number
+  ink?: string
+  /** Finished: no cell may be marked. */
+  closed?: boolean
+  onPlace: (cell: Cell) => void
+}) {
+  return (
+    <div
+      className={`grid ${className}`}
+      style={{
+        gridTemplateColumns: `repeat(${width}, minmax(0, 1fr))`,
+        gridTemplateRows: `repeat(${height}, minmax(0, 1fr))`,
+        aspectRatio: `${width} / ${height}`,
+      }}
+      dir="ltr"
+      role="grid"
+      aria-label={label}
+    >
+      {cells.map(({ cell, index, square }, i) => (
+        <GridCell
+          key={index}
+          square={square}
+          closed={closed}
+          preview={square === 'empty' && !closed ? preview : undefined}
+          winning={winning.has(index)}
+          last={index === lastIndex}
+          pen={pen}
+          // By hand: no lines along the edge.
+          style={{
+            borderRight: i % width < width - 1 ? ink : undefined,
+            borderBottom: Math.floor(i / width) < height - 1 ? ink : undefined,
+          }}
+          onClick={() => onPlace(cell)}
+        />
+      ))}
+    </div>
+  )
+}
+
+/**
+ * Notakto's boards side by side (four in two rows), all marks X; a finished
+ * board has its line struck through and fades, as nobody may play there.
+ */
+function NotaktoBoards({
+  boards,
+  finished,
+  cells,
+  preview,
+  winning,
+  lastIndex,
+  onPlace,
+}: {
+  boards: number
+  finished: Line[]
+  cells: (board: number) => BoardCell[]
+  preview?: 'x' | 'o'
+  winning: Set<number>
+  lastIndex?: number
+  onPlace: (cell: Cell) => void
+}) {
+  const { t } = useTranslation()
+  const { across, size } = useLayout(boards)
+  return (
+    <div className="flex flex-wrap justify-center gap-10" style={{ width: across * size + (across - 1) * 40 }}>
+      {Array.from({ length: boards }, (_, b) => {
+        const line = finished.find((line) => line.cells[0].col >= b * 3 && line.cells[0].col < b * 3 + 3)
+        return (
+          <div key={b} className="relative transition-opacity" style={{ width: size, opacity: line && !line.cells.some((cell) => winning.has(cell.row * boards * 3 + cell.col)) ? 0.55 : 1 }}>
+            <MarkGrid
+              className="w-full"
+              width={3}
+              height={3}
+              cells={cells(b)}
+              preview={preview}
+              closed={!!line}
+              winning={winning}
+              lastIndex={lastIndex}
+              label={t('grid.board', { n: b + 1 })}
+              pen={3}
+              ink="3px solid var(--grid-ink)"
+              onPlace={onPlace}
+            />
+            {line && <StrikeThrough cells={line.cells} offset={b * 3} />}
+          </div>
+        )
+      })}
+    </div>
+  )
+}
+
+/**
+ * How many of `boards` boards go across, and how wide each is (px): of the
+ * ways to lay them out in rows (4 only as 4, 2 × 2 or 1 a row), the one
+ * that makes them biggest in the window, below the header and status line.
+ */
+function useLayout(boards: number) {
+  const [window_, setWindow] = useState(() => [window.innerWidth, window.innerHeight])
+  useEffect(() => {
+    const resize = () => setWindow([window.innerWidth, window.innerHeight])
+    window.addEventListener('resize', resize)
+    return () => window.removeEventListener('resize', resize)
+  }, [])
+  const [width, height] = window_
+  const [gap, rem] = [40, 16]
+  const layouts = Array.from({ length: boards }, (_, i) => i + 1).filter((across) => boards !== 4 || across !== 3)
+  return layouts
+    .map((across) => {
+      const down = Math.ceil(boards / across)
+      const fit = Math.min((width - 3 * rem - (across - 1) * gap) / across, (height - 15 * rem - (down - 1) * gap) / down, 18 * rem)
+      return { across, size: Math.max(64, Math.floor(fit)) }
+    })
+    .reduce((best, layout) => (layout.size > best.size ? layout : best))
+}
+
+/** A pen stroke through a finished board's line, end to end, drawn as it appears. */
+function StrikeThrough({ cells, offset }: { cells: Cell[]; offset: number }) {
+  const [first, end] = [cells[0], cells[cells.length - 1]]
+  // In thirds of the board, from cell centres, overshooting a little at both ends.
+  const at = (cell: Cell) => [(cell.col - offset) * 10 + 5, cell.row * 10 + 5]
+  const [x1, y1] = at(first)
+  const [x2, y2] = at(end)
+  const [dx, dy] = [(x2 - x1) * 0.12, (y2 - y1) * 0.12]
+  return (
+    <svg viewBox="0 0 30 30" className="pointer-events-none absolute inset-0 size-full" aria-hidden>
+      <motion.path
+        d={`M${x1 - dx} ${y1 - dy}L${x2 + dx} ${y2 + dy}`}
+        stroke="var(--ink)"
+        strokeWidth={1.1}
+        strokeLinecap="round"
+        initial={{ pathLength: 0 }}
+        animate={{ pathLength: 1 }}
+        transition={{ duration: 0.3, delay: 0.25, ease: 'easeOut' }}
+      />
+    </svg>
+  )
+}
+
 /** A cell: empty (with the player's mark faint under the pointer on their turn), or a mark. */
 function GridCell({
   square,
+  closed = false,
   preview,
   winning,
   last,
@@ -219,6 +385,7 @@ function GridCell({
   onClick,
 }: {
   square: Square
+  closed?: boolean
   preview?: 'x' | 'o'
   winning: boolean
   last: boolean
@@ -231,7 +398,7 @@ function GridCell({
     <button
       role="gridcell"
       onClick={onClick}
-      disabled={square !== 'empty'}
+      disabled={square !== 'empty' || closed}
       aria-label={square === 'empty' ? undefined : square.toUpperCase()}
       title={square === 'empty' ? undefined : square.toUpperCase()}
       style={{ ...style, background: winning ? 'var(--highlight)' : last ? 'var(--touch)' : undefined }}
